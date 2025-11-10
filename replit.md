@@ -32,15 +32,17 @@ This is a learning/course management system with features for:
 - Port: 5000 (configured for Replit)
 - Host: 0.0.0.0 (allows proxy access)
 - HMR: Configured for WSS on port 443
+- **Important**: `allowedHosts: true` in Vite config is required for Replit's dynamic proxy domains
 
 ## Recent Changes (November 10, 2025)
 - Initial setup in Replit environment
 - Added TypeScript configuration files (tsconfig.json, tsconfig.node.json)
-- Configured Vite for Replit (port 5000, host 0.0.0.0, HMR settings)
+- Configured Vite for Replit (port 5000, host 0.0.0.0, HMR settings, allowedHosts)
 - Added missing TypeScript dependencies
 - Installed all npm packages
 - Created .gitignore for Node.js projects
-- Verified application runs successfully
+- Fixed "Blocked request" error by enabling allowedHosts in Vite config
+- Verified application runs successfully with proper proxy support
 
 ## Notes
 - The project uses Tailwind CSS v4.1 with embedded utilities in src/index.css
