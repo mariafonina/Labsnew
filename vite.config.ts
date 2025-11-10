@@ -51,8 +51,16 @@
       },
     },
     build: {
-      target: 'esnext',
+      target: ['es2021', 'chrome100', 'safari15', 'firefox100', 'edge100'],
+      cssTarget: ['chrome100', 'safari15', 'firefox100', 'edge100'],
       outDir: 'build',
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true,
+        },
+      },
     },
     server: {
       host: '0.0.0.0',
