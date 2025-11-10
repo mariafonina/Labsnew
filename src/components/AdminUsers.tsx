@@ -36,7 +36,7 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 export function AdminUsers() {
   const { users, addUser, updateUser, deleteUser, importUsersFromCSV, exportUsersToCSV } = useApp();

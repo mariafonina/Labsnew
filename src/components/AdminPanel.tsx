@@ -33,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import type { NewsItem, Event, Instruction, Recording, FAQItem } from "../contexts/AppContext";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminQuestions } from "./AdminQuestions";

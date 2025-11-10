@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Calendar, Clock, Video, MessageCircle, Bookmark } from "lucide-react";
 import { EventQuestions } from "./EventQuestions";
 import { useApp } from "../contexts/AppContext";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 export function EventsCalendar() {
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);

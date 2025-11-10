@@ -3,7 +3,7 @@ import { Card } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Bookmark, Eye } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { InstructionDetail } from "./InstructionDetail";
 import type { Instruction } from "../contexts/AppContext";
 

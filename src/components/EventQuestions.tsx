@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MessageCircle, ThumbsUp, Send } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";

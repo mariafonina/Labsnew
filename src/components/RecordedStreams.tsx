@@ -5,7 +5,7 @@ import { Button } from "./ui/button";
 import { Play, Clock, Calendar, Bookmark, Eye } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useApp } from "../contexts/AppContext";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { RecordingDetail } from "./RecordingDetail";
 import type { Recording } from "../contexts/AppContext";
 

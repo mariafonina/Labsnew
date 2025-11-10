@@ -5,7 +5,7 @@ import { Card } from "./ui/card";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { ArrowLeft, Bookmark, ThumbsUp, Send } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import type { Instruction } from "../contexts/AppContext";
 
 interface InstructionDetailProps {

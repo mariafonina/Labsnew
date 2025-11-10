@@ -5,7 +5,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Button } from "./ui/button";
 import { Heart, Bookmark, MessageCircle, ArrowRight, Bell } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { motion } from "motion/react";
 import { useState } from "react";
 import type { NewsItem } from "../contexts/AppContext";

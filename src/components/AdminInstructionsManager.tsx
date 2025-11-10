@@ -18,7 +18,7 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import type { Instruction, InstructionCategory } from "../contexts/AppContext";

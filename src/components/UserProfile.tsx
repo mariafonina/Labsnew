@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { User, Instagram, Send, Mail, Phone, Calendar as CalendarIcon, Lock, Eye, EyeOff, LogOut } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { useApp } from "../contexts/AppContext";
 
 export interface UserProfileData {

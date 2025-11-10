@@ -16,12 +16,13 @@ import { Logo } from "./components/Logo";
 import { Bell, Calendar, BookOpen, Video, Newspaper, HelpCircle, MessageSquare, Bookmark, FileText, User, Settings } from "lucide-react";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
-import { AppProvider, useApp } from "./contexts/AppContext";
+import { useApp } from "./contexts/AppContext";
+import { useAuth } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/sonner";
-import { toast } from "sonner@2.0.3";
 
 function AppContent() {
-  const { auth, login, getUnreadNotificationsCount } = useApp();
+  const { isAuthenticated, user } = useAuth();
+  const { getUnreadNotificationsCount } = useApp();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeTab, setActiveTab] = useState("news");
   const [targetQuestionId, setTargetQuestionId] = useState<string | null>(null);
@@ -40,22 +41,17 @@ function AppContent() {
 
   useEffect(() => {
     // Check if user has seen onboarding
-    if (auth.isAuthenticated) {
+    if (isAuthenticated) {
       const hasSeenOnboarding = localStorage.getItem("hasSeenOnboarding");
       if (!hasSeenOnboarding) {
         setShowOnboarding(true);
       }
     }
-  }, [auth.isAuthenticated]);
+  }, [isAuthenticated]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("hasSeenOnboarding", "true");
     setShowOnboarding(false);
-  };
-
-  const handleLogin = (email: string, password: string, rememberMe: boolean) => {
-    login(email, password, rememberMe);
-    toast.success("Добро пожаловать!");
   };
 
   const handleNavigateToQuestion = (eventId: string, eventType: "event" | "instruction" | "recording", questionId: string) => {
@@ -84,12 +80,13 @@ function AppContent() {
   };
 
   // Show login screen if not authenticated
-  if (!auth.isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
+  if (!isAuthenticated) {
+    return <Login />;
   }
 
   // Show admin panel if user is admin
-  if (auth.isAdmin) {
+  const isAdmin = user?.role === 'admin';
+  if (isAdmin) {
     return <AdminPanel />;
   }
 
@@ -567,9 +564,9 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AppProvider>
+    <>
       <Toaster position="top-center" />
       <AppContent />
-    </AppProvider>
+    </>
   );
 }
