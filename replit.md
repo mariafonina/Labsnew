@@ -52,6 +52,16 @@ This is a learning/course management system with features for:
 
 ## Recent Changes (November 10, 2025)
 
+### Deployment Configuration
+- **✅ Production server ready for deployment**:
+  - Root `/` endpoint responds with 200 OK for health checks
+  - Server listens on `0.0.0.0:5000` (forwarded to port 80 externally)
+  - Serves built React app and API from single Express server
+  - Health check endpoint: `/api/health` returns JSON status
+  - Deployment config: `NODE_ENV=production PORT=5000 npm run server`
+  - Build step: `npm run build` creates optimized production bundle
+  - VM deployment target for persistent connections
+
 ### Initial Setup
 - Initial setup in Replit environment
 - Added TypeScript configuration files (tsconfig.json, tsconfig.node.json)

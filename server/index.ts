@@ -45,13 +45,38 @@ app.use('/api/favorites', favoritesRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/progress', progressRoutes);
 
+// Root endpoint for health checks - must respond quickly
+app.get('/', (req, res) => {
+  // If Accept header prefers JSON or this is explicitly a health check, return JSON
+  if (req.accepts('json') && !req.accepts('html')) {
+    return res.json({ 
+      status: 'ok', 
+      message: 'ЛАБС Server',
+      environment: isProduction ? 'production' : 'development',
+      timestamp: new Date().toISOString() 
+    });
+  }
+  
+  // In production, serve the React app HTML
+  if (isProduction) {
+    const buildPath = path.join(process.cwd(), 'build');
+    return res.sendFile(path.join(buildPath, 'index.html'));
+  }
+  
+  // In development, return JSON health check
+  res.json({ 
+    status: 'ok', 
+    message: 'ЛАБС API Server (Development)',
+    timestamp: new Date().toISOString() 
+  });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// In production, serve static files and handle SPA routing
+// In production, serve static assets and handle SPA routing
 if (isProduction) {
-  // Use process.cwd() to get the project root directory
   const buildPath = path.join(process.cwd(), 'build');
   
   console.log(`Serving static files from: ${buildPath}`);
@@ -59,19 +84,9 @@ if (isProduction) {
   // Serve static assets (CSS, JS, images, etc.)
   app.use(express.static(buildPath));
   
-  // Handle SPA routing - send all non-API requests to index.html
-  // This must come AFTER all API routes
+  // Handle SPA routing for all other requests (except those already handled above)
   app.use((req, res) => {
     res.sendFile(path.join(buildPath, 'index.html'));
-  });
-} else {
-  // In development, provide a simple health check at root
-  app.get('/', (req, res) => {
-    res.json({ 
-      status: 'ok', 
-      message: 'ЛАБС API Server',
-      timestamp: new Date().toISOString() 
-    });
   });
 }
 
