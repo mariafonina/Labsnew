@@ -37,11 +37,7 @@ externalPort = 3001
 localPort = 5000
 externalPort = 80
 
-[[ports]]
-localPort = 39407
-externalPort = 3000
-
 [deployment]
 deploymentTarget = "vm"
-run = ["bash", "-c", "npm run server & npm run client"]
+run = ["bash", "-c", "NODE_ENV=production PORT=5000 npm run server"]
 build = ["npm", "run", "build"]
