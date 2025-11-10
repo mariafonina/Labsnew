@@ -1,5 +1,4 @@
-import { ImageWithFallback } from "./figma/ImageWithFallback";
-import logoImage from "figma:asset/13a4769fa3e7ea24d314097d2df6c08e97dcd1f7.png";
+import logoImage from "@/assets/logo.png";
 
 interface LogoProps {
   className?: string;
@@ -16,7 +15,7 @@ export function Logo({ className = "", size = "md", onClick }: LogoProps) {
   };
 
   const content = (
-    <ImageWithFallback
+    <img
       src={logoImage}
       alt="ЛАБС"
       className={`${sizes[size]} w-auto object-contain`}

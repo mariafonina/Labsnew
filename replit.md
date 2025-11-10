@@ -42,9 +42,22 @@ This is a learning/course management system with features for:
 - Installed all npm packages
 - Created .gitignore for Node.js projects
 - Fixed "Blocked request" error by enabling allowedHosts in Vite config
+- **Added custom ЛАБС pink logo**:
+  - Replaced Figma placeholder logo with custom pink ЛАБС branding
+  - Updated Logo component to use `src/assets/logo.png`
+  - Added favicon (`public/favicon.png`)
+  - Updated Vite alias to point to new logo
+  - Logo displays across all components: Login, UserSidebar, AdminPanel, AdminSidebar, Onboarding, and mobile header
 - Verified application runs successfully with proper proxy support
+
+## Branding
+- **Logo**: Pink ЛАБС logo located at `src/assets/logo.png`
+- **Favicon**: `public/favicon.png` (same as logo)
+- **Logo Usage**: Imported via Logo component from `src/components/Logo.tsx`
+- Supports multiple sizes: sm (h-6), md (h-8), lg (h-12), xl (h-16)
 
 ## Notes
 - The project uses Tailwind CSS v4.1 with embedded utilities in src/index.css
 - No tailwind.config.js or postcss.config.js needed unless custom Tailwind generation is required
 - TypeScript path alias '@' maps to './src' directory
+- Image assets are typed via `src/vite-env.d.ts` for TypeScript support
