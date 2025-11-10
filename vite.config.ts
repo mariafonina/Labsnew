@@ -54,6 +54,7 @@
       target: ['es2021', 'chrome100', 'safari15', 'firefox100', 'edge100'],
       cssTarget: ['chrome100', 'safari15', 'firefox100', 'edge100'],
       outDir: 'build',
+      // Using esbuild (built into Vite) instead of terser for faster builds
       minify: 'esbuild',
     },
     server: {
