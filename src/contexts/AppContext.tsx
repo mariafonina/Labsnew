@@ -644,8 +644,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addNote = (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
+    // Sanitize note content to prevent XSS
+    const sanitizedContent = note.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
     const newNote: Note = {
       ...note,
+      content: sanitizedContent,
       id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -672,8 +676,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     eventTitle?: string,
     eventType?: "event" | "instruction" | "recording" | "faq"
   ) => {
+    // Sanitize comment content to prevent XSS
+    const sanitizedContent = comment.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    
     const newComment: Comment = {
       ...comment,
+      content: sanitizedContent,
       eventTitle: eventTitle || comment.eventTitle,
       eventType: eventType || comment.eventType,
       id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,

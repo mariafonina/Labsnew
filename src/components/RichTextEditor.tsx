@@ -30,6 +30,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 
 interface RichTextEditorProps {
   value: string;
@@ -212,12 +213,29 @@ export function RichTextEditor({
       return para;
     }).join('\n');
 
-    return html;
+    // Sanitize the generated HTML to prevent XSS attacks
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: [
+        'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+        'p', 'br', 'hr',
+        'strong', 'em', 'u', 's',
+        'blockquote', 'code', 'pre',
+        'ul', 'ol', 'li',
+        'a', 'img',
+        'div', 'span',
+      ],
+      ALLOWED_ATTR: [
+        'href', 'target', 'rel',
+        'src', 'alt',
+        'class',
+      ],
+      ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    });
   };
 
   return (
     <div className="space-y-4">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "edit" | "preview")} className="w-full">
+      <Tabs value={activeTab} onValueChange={(v: string) => setActiveTab(v as "edit" | "preview")} className="w-full">
         <div className="flex items-center justify-between mb-4">
           <TabsList className="grid w-[250px] grid-cols-2">
             <TabsTrigger value="edit" className="flex items-center gap-2">
@@ -325,7 +343,7 @@ export function RichTextEditor({
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs value={imageTab} onValueChange={(v) => setImageTab(v as "url" | "unsplash")} className="w-full">
+          <Tabs value={imageTab} onValueChange={(v: string) => setImageTab(v as "url" | "unsplash")} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="url">URL изображения</TabsTrigger>
               <TabsTrigger value="unsplash">Поиск Unsplash</TabsTrigger>

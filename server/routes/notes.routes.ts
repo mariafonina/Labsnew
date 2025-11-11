@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db';
 import { verifyToken, AuthRequest } from '../auth';
+import { sanitizeText } from '../utils/sanitize';
 
 const router = Router();
 
@@ -31,13 +32,16 @@ router.post('/', verifyToken, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Instruction ID is required' });
     }
 
+    // Sanitize text content to prevent XSS attacks
+    const sanitizedContent = sanitizeText(content || '');
+
     const result = await query(
       `INSERT INTO labs.notes (user_id, instruction_id, content) 
        VALUES ($1, $2, $3) 
        ON CONFLICT (user_id, instruction_id) 
        DO UPDATE SET content = $3, updated_at = CURRENT_TIMESTAMP 
        RETURNING *`,
-      [req.userId, instruction_id, content || '']
+      [req.userId, instruction_id, sanitizedContent]
     );
 
     res.json(result.rows[0]);

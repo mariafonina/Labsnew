@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { ArrowLeft, Bookmark, ThumbsUp, Send } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
+import { sanitizeHtml } from "../utils/sanitize";
 import type { Instruction } from "../contexts/AppContext";
 
 interface InstructionDetailProps {
@@ -198,7 +199,7 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
           <Card className="p-8 md:p-10 bg-white/80 backdrop-blur-sm border-gray-200/60 shadow-lg overflow-hidden">
             <div className="rich-content prose prose-lg max-w-none">
               <div 
-                dangerouslySetInnerHTML={{ __html: instruction.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(instruction.content) }}
               />
             </div>
           </Card>

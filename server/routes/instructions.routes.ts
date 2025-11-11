@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db';
 import { verifyToken, AuthRequest } from '../auth';
+import { sanitizeHtml } from '../utils/sanitize';
 
 const router = Router();
 
@@ -58,9 +59,12 @@ router.post('/', verifyToken, async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Title and content are required' });
     }
 
+    // Sanitize HTML content to prevent XSS attacks
+    const sanitizedContent = sanitizeHtml(content);
+
     const result = await query(
       'INSERT INTO labs.instructions (user_id, title, content, category, tags, image_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [req.userId, title, content, category, tags, image_url]
+      [req.userId, title, sanitizedContent, category, tags, image_url]
     );
 
     res.status(201).json(result.rows[0]);
@@ -75,9 +79,12 @@ router.put('/:id', verifyToken, async (req: AuthRequest, res) => {
     const { id } = req.params;
     const { title, content, category, tags, image_url } = req.body;
 
+    // Sanitize HTML content to prevent XSS attacks
+    const sanitizedContent = sanitizeHtml(content);
+
     const result = await query(
       'UPDATE labs.instructions SET title = $1, content = $2, category = $3, tags = $4, image_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7 RETURNING *',
-      [title, content, category, tags, image_url, id, req.userId]
+      [title, sanitizedContent, category, tags, image_url, id, req.userId]
     );
 
     if (result.rows.length === 0) {
