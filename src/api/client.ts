@@ -172,6 +172,96 @@ class ApiClient {
     });
   }
 
+  // Admin API methods
+  async getNews() {
+    return this.request<any[]>('/admin/news');
+  }
+
+  async createNews(data: any) {
+    return this.request<any>('/admin/news', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateNews(id: number, data: any) {
+    return this.request<any>(`/admin/news/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteNews(id: number) {
+    return this.request<any>(`/admin/news/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getRecordings() {
+    return this.request<any[]>('/admin/recordings');
+  }
+
+  async createRecording(data: any) {
+    return this.request<any>('/admin/recordings', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateRecording(id: number, data: any) {
+    return this.request<any>(`/admin/recordings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteRecording(id: number) {
+    return this.request<any>(`/admin/recordings/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getFAQ() {
+    return this.request<any[]>('/admin/faq');
+  }
+
+  async createFAQ(data: any) {
+    return this.request<any>('/admin/faq', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateFAQ(id: number, data: any) {
+    return this.request<any>(`/admin/faq/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteFAQ(id: number) {
+    return this.request<any>(`/admin/faq/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getUsers() {
+    return this.request<any[]>('/admin/users');
+  }
+
+  async updateUserRole(id: number, role: 'user' | 'admin') {
+    return this.request<any>(`/admin/users/${id}/role`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    });
+  }
+
+  async deleteUser(id: number) {
+    return this.request<any>(`/admin/users/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Generic methods for custom API calls
   async get<T = any>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint);
