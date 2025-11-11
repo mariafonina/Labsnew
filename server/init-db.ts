@@ -144,6 +144,53 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.progress" created');
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.news (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        content TEXT NOT NULL,
+        author VARCHAR(100) NOT NULL,
+        author_avatar VARCHAR(500),
+        date VARCHAR(50) NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        image VARCHAR(500),
+        is_new BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.news" created');
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.recordings (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(200) NOT NULL,
+        date VARCHAR(50) NOT NULL,
+        duration VARCHAR(50),
+        instructor VARCHAR(100) NOT NULL,
+        thumbnail VARCHAR(500),
+        views INTEGER DEFAULT 0,
+        description TEXT,
+        video_url VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.recordings" created');
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.faq (
+        id SERIAL PRIMARY KEY,
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        category VARCHAR(50) NOT NULL,
+        helpful INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.faq" created');
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
@@ -154,6 +201,10 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_comments_event_id ON labs.comments(event_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_comments_user_id ON labs.comments(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_progress_user_instruction ON labs.progress(user_id, instruction_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_news_category ON labs.news(category)');
+    await query('CREATE INDEX IF NOT EXISTS idx_news_created_at ON labs.news(created_at)');
+    await query('CREATE INDEX IF NOT EXISTS idx_recordings_created_at ON labs.recordings(created_at)');
+    await query('CREATE INDEX IF NOT EXISTS idx_faq_category ON labs.faq(category)');
     console.log('Indexes created');
 
     console.log('Database initialization completed successfully!');

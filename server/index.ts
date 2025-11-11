@@ -11,6 +11,10 @@ import favoritesRoutes from './routes/favorites.routes';
 import notesRoutes from './routes/notes.routes';
 import progressRoutes from './routes/progress.routes';
 import commentsRoutes from './routes/comments.routes';
+import adminNewsRoutes from './routes/admin/news.routes';
+import adminRecordingsRoutes from './routes/admin/recordings.routes';
+import adminFaqRoutes from './routes/admin/faq.routes';
+import adminUsersRoutes from './routes/admin/users.routes';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -42,6 +46,12 @@ app.use('/api/favorites', favoritesRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/comments', commentsRoutes);
+
+// Admin routes
+app.use('/api/admin/news', adminNewsRoutes);
+app.use('/api/admin/recordings', adminRecordingsRoutes);
+app.use('/api/admin/faq', adminFaqRoutes);
+app.use('/api/admin/users', adminUsersRoutes);
 
 // Root endpoint for health checks - must respond quickly
 app.get('/', (req, res) => {
