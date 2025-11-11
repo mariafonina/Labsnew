@@ -90,13 +90,18 @@ if (isProduction) {
   });
 }
 
-// Track database readiness
-let dbReady = false;
-
+// Only initialize database in development mode
+// In production (Autoscale), database should already be set up via migrations
 async function initDB() {
+  // Skip database initialization in production for fast Autoscale startup
+  if (isProduction) {
+    console.log('Production mode: Skipping automatic database initialization');
+    console.log('Run "npm run migrate" separately to initialize database schema');
+    return;
+  }
+  
   try {
     await initializeDatabase();
-    dbReady = true;
     console.log('Database initialized successfully');
   } catch (error) {
     console.error('Failed to initialize database:', error);
@@ -104,12 +109,12 @@ async function initDB() {
   }
 }
 
-// Start server immediately, initialize database in background
+// Start server immediately for fast health check response
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend API server running on port ${PORT}`);
   console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
   console.log(`Server listening on 0.0.0.0:${PORT}`);
   
-  // Initialize database after server is listening
+  // Initialize database only in development mode
   initDB();
 });
