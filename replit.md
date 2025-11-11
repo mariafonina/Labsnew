@@ -52,6 +52,22 @@ This is a learning/course management system with features for:
 
 ## Recent Changes (November 11, 2025)
 
+### Admin Panel API Integration ✅ COMPLETED
+- **Refactored AdminPanel** from 1782 lines to ~60 lines using composition pattern
+- **Created 4 specialized manager components**:
+  - `AdminNewsManager` - News management with API
+  - `AdminRecordingsManager` - Recordings management with API
+  - `AdminFAQManager` - FAQ management with API
+  - `AdminEventsManager` - Events management with API
+- **Extended ApiClient** with admin CRUD methods for all entities
+- **Fixed rate limiter** in admin routes (removed broken `createAdminLimiter()` call)
+- **All managers use**:
+  - API-first data flow (no localStorage)
+  - Optimistic updates for better UX
+  - Toast notifications for user feedback
+  - Dialog/AlertDialog for forms and confirmations
+- **Architect review: PASS** - Clean separation, follows established patterns, security intact
+
 ### DRY Refactoring & Code Quality ✅ COMPLETED
 - **Created 3 reusable backend utilities** eliminating ~220+ lines of duplicated code:
   - **server/utils/async-handler.ts**: Universal error handling wrapper for all routes
@@ -103,17 +119,18 @@ This is a learning/course management system with features for:
 
 ## Recent Changes (November 10, 2025)
 
-### Deployment Configuration ✅ READY FOR AUTOSCALE
-- **Instant startup for Autoscale deployments**:
-  - Server starts in ~60ms (production mode skips database initialization)
-  - Root `/` endpoint responds with 200 OK immediately for health checks
+### Deployment Configuration ✅ AUTOSCALE READY
+- **Optimized for Autoscale health checks**:
+  - Root `/` endpoint returns JSON instantly (~26ms response time) ⚡
+  - No HTML serving on root - React app served via static file middleware
+  - Production mode skips database initialization for fast startup
   - Server listens on `0.0.0.0:5000` (forwarded to port 80 externally)
-  - Serves built React app and API from single Express server
-  - Health check endpoint: `/api/health` returns JSON status
-  - Deployment type: **Autoscale** (scales based on traffic, goes idle when unused)
-  - Build step: `npm run build` creates optimized production bundle
-  - Run step: `NODE_ENV=production PORT=5000 npm run server`
-  - Database schema: One-time setup via `npm run migrate` (already completed)
+  - Health check endpoints: `/` and `/api/health` both return JSON status
+- **Deployment type**: **Autoscale** (scales based on traffic, goes idle when unused)
+- **Build command**: `npm run build` (creates optimized production bundle in `build/`)
+- **Run command**: `NODE_ENV=production PORT=5000 npm run server`
+- **Database setup**: Run `npm run migrate` **ONCE** before first deployment to initialize schema
+- **Post-deployment**: Admin user already created (username: `admin`, password: `admin123`)
 
 ### Initial Setup
 - Initial setup in Replit environment

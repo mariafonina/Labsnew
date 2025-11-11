@@ -53,28 +53,12 @@ app.use('/api/admin/recordings', adminRecordingsRoutes);
 app.use('/api/admin/faq', adminFaqRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 
-// Root endpoint for health checks - must respond quickly
+// Root endpoint - always return fast JSON for health checks
 app.get('/', (req, res) => {
-  // If Accept header prefers JSON or this is explicitly a health check, return JSON
-  if (req.accepts('json') && !req.accepts('html')) {
-    return res.json({ 
-      status: 'ok', 
-      message: 'ЛАБС Server',
-      environment: isProduction ? 'production' : 'development',
-      timestamp: new Date().toISOString() 
-    });
-  }
-  
-  // In production, serve the React app HTML
-  if (isProduction) {
-    const buildPath = path.join(process.cwd(), 'build');
-    return res.sendFile(path.join(buildPath, 'index.html'));
-  }
-  
-  // In development, return JSON health check
   res.json({ 
     status: 'ok', 
-    message: 'ЛАБС API Server (Development)',
+    message: 'ЛАБС Server',
+    environment: isProduction ? 'production' : 'development',
     timestamp: new Date().toISOString() 
   });
 });
