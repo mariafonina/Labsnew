@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { query } from '../db';
 import { verifyToken, AuthRequest } from '../auth';
+import { createLimiter, readLimiter } from '../utils/rate-limit';
 
 const router = Router();
 
-router.get('/', verifyToken, async (req: AuthRequest, res) => {
+router.get('/', verifyToken, readLimiter, async (req: AuthRequest, res) => {
   try {
     const result = await query(
       `SELECT * FROM labs.favorites WHERE user_id = $1 ORDER BY created_at DESC`,
@@ -17,7 +18,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res) => {
   }
 });
 
-router.post('/', verifyToken, async (req: AuthRequest, res) => {
+router.post('/', verifyToken, createLimiter, async (req: AuthRequest, res) => {
   try {
     const { item_type, item_id, title, description, date } = req.body;
 

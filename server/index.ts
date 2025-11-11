@@ -1,9 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { initializeDatabase } from './init-db';
+import { globalLimiter, burstLimiter, requestSizeLimiter } from './utils/rate-limit';
 import authRoutes from './routes/auth.routes';
 import instructionsRoutes from './routes/instructions.routes';
 import eventsRoutes from './routes/events.routes';
@@ -30,13 +30,9 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.'
-});
-
-app.use('/api/', limiter);
+app.use('/api/', globalLimiter);
+app.use('/api/', burstLimiter);
+app.use('/api/', requestSizeLimiter);
 
 // API routes
 app.use('/api/auth', authRoutes);

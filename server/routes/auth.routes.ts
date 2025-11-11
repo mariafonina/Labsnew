@@ -2,10 +2,11 @@ import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import { query } from '../db';
 import { generateToken } from '../auth';
+import { authLimiter } from '../utils/rate-limit';
 
 const router = Router();
 
-router.post('/register', async (req, res) => {
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
@@ -51,7 +52,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 

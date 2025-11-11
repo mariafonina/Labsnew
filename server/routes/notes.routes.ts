@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { query } from '../db';
 import { verifyToken, AuthRequest } from '../auth';
 import { sanitizeText } from '../utils/sanitize';
+import { createLimiter, readLimiter, contentSpamDetector } from '../utils/rate-limit';
 
 const router = Router();
 
 // Get all notes for current user
-router.get('/', verifyToken, async (req: AuthRequest, res) => {
+router.get('/', verifyToken, readLimiter, async (req: AuthRequest, res) => {
   try {
     const result = await query(
       'SELECT * FROM labs.notes WHERE user_id = $1 ORDER BY updated_at DESC',
@@ -40,7 +41,7 @@ router.get('/:id', verifyToken, async (req: AuthRequest, res) => {
 });
 
 // Create a new note
-router.post('/', verifyToken, async (req: AuthRequest, res) => {
+router.post('/', verifyToken, createLimiter, contentSpamDetector({ maxDuplicates: 3, windowMs: 120000 }), async (req: AuthRequest, res) => {
   try {
     const { title, content, linked_item } = req.body;
 

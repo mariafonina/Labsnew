@@ -19,7 +19,7 @@ This is a learning/course management system with features for:
 - **Backend**: Express.js with TypeScript
 - **Database**: PostgreSQL (external server maridb.mashtab.io, schema 'labs')
 - **Authentication**: JWT with bcrypt
-- **Security**: Helmet, CORS, Rate Limiting (100 req/15min)
+- **Security**: Helmet, CORS, Comprehensive Rate Limiting & Spam Protection
 - **Additional Libraries**: 
   - Framer Motion for animations
   - React Hook Form for forms
@@ -49,6 +49,30 @@ This is a learning/course management system with features for:
   - Auto-initializes database schema on startup
   - Hot-reload via tsx watch
 - **Run Command**: `npm run dev` (runs both frontend and backend concurrently)
+
+## Recent Changes (November 11, 2025)
+
+### Rate Limiting & Spam Protection
+- **Created comprehensive security utilities** (server/utils/rate-limit.ts):
+  - Multi-layer rate limiting: global, burst, auth, create, read limiters
+  - Content spam detection: Prevents duplicate comments/notes within time windows
+  - User-based and IP-based throttling
+  - Request size validation (max 5MB)
+  - Automatic cleanup of expired rate limit records
+- **Applied to all API endpoints**:
+  - Auth routes: Strict 5 attempts per 15 min (prevents brute force)
+  - Comments: Spam detection (max 2 duplicates/min) + create limiter
+  - Notes: Spam detection (max 3 duplicates/2min) + create limiter
+  - Favorites: Create limiter (10/min)
+  - Read operations: 60 requests/min
+- **Benefits**: Protection against DDoS, spam, abuse, and brute force attacks
+
+### XSS Protection & Data Migration Infrastructure
+- **Implemented comprehensive XSS protection** with DOMPurify
+- Created sanitization utilities for frontend and backend
+- Updated database schema for new data model (item_type/item_id)
+- Created migration tool and UI banner for localStorage→PostgreSQL
+- Enhanced ApiClient error handling for better conflict detection
 
 ## Recent Changes (November 10, 2025)
 
@@ -108,7 +132,17 @@ This is a learning/course management system with features for:
   - `/api/notes/*` - Notes system
   - `/api/progress/*` - Progress tracking
 - **Security Features**:
-  - Rate limiting: 100 requests per 15 minutes
+  - **Comprehensive Rate Limiting** (server/utils/rate-limit.ts):
+    - Global limiter: 100 requests per 15 minutes
+    - Burst limiter: 20 requests per 10 seconds
+    - Auth limiter: 5 login attempts per 15 minutes
+    - Create limiter: 10 operations per minute
+    - Read limiter: 60 operations per minute
+    - Content spam detector: Prevents duplicate content (configurable)
+    - User-based and IP-based rate limiting
+    - Request throttling for heavy operations
+    - Request size limiter: Max 5MB payload
+  - **XSS Protection**: DOMPurify sanitization on all user-generated content
   - CORS enabled for frontend
   - Helmet.js for HTTP headers
   - JWT_SECRET stored in Replit Secrets
@@ -157,12 +191,16 @@ Required secrets:
 Optional:
 - `VITE_API_URL` - Override API base URL (auto-detected if not set)
 
+## Completed Features ✅
+1. ✅ **XSS Protection**: DOMPurify sanitization implemented (frontend + backend)
+2. ✅ **Rate Limiting & Spam Protection**: Comprehensive multi-layer security system
+3. ✅ **Data Migration Infrastructure**: Created migration tool with UI banner
+
 ## Next Steps
-1. **XSS Protection**: Implement DOMPurify sanitization for user-generated content
-2. **Data Migration**: Migrate existing localStorage data to PostgreSQL
-3. **Admin Panel**: Update admin features to use API endpoints
-4. **Role-Based Access**: Implement admin-specific endpoints
-5. **Tests**: Add integration tests for auth and API endpoints
+1. **Frontend Refactoring**: Update components to use new API schema (item_type/item_id)
+2. **Admin Panel**: Connect admin features to API endpoints
+3. **Role-Based Access**: Implement admin-specific endpoints with permissions
+4. **Tests**: Add integration tests for auth, rate limiting, and API endpoints
 
 ## Notes
 - The project uses Tailwind CSS v4.1 with embedded utilities in src/index.css

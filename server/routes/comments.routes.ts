@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { verifyToken, AuthRequest } from '../auth';
 import { query } from '../db';
 import { sanitizeText } from '../utils/sanitize';
+import { contentSpamDetector, createLimiter, readLimiter } from '../utils/rate-limit';
 
 const router = Router();
 
 // Get all comments for a specific event
-router.get('/event/:eventId', verifyToken, async (req: AuthRequest, res) => {
+router.get('/event/:eventId', verifyToken, readLimiter, async (req: AuthRequest, res) => {
   try {
     const { eventId } = req.params;
     const result = await query(
@@ -35,7 +36,7 @@ router.get('/', verifyToken, async (req: AuthRequest, res) => {
 });
 
 // Create a new comment
-router.post('/', verifyToken, async (req: AuthRequest, res) => {
+router.post('/', verifyToken, createLimiter, contentSpamDetector({ maxDuplicates: 2, windowMs: 60000 }), async (req: AuthRequest, res) => {
   try {
     const { event_id, event_type, event_title, author_name, author_role, content, parent_id } = req.body;
 
