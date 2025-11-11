@@ -2,119 +2,78 @@ import { Router } from 'express';
 import { query } from '../db';
 import { verifyToken, AuthRequest } from '../auth';
 import { sanitizeHtml } from '../utils/sanitize';
+import { asyncHandler } from '../utils/async-handler';
+import { findOneOrFail, deleteOneOrFail } from '../utils/db-helpers';
 
 const router = Router();
 
-router.get('/', verifyToken, async (req: AuthRequest, res) => {
-  try {
-    const { category, search } = req.query;
-    let queryText = 'SELECT * FROM labs.instructions WHERE user_id = $1';
-    const params: any[] = [req.userId];
+router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+  const { category, search } = req.query;
+  let queryText = 'SELECT * FROM labs.instructions WHERE user_id = $1';
+  const params: any[] = [req.userId];
 
-    if (category) {
-      queryText += ' AND category = $2';
-      params.push(category);
-    }
-
-    if (search) {
-      const searchIndex = params.length + 1;
-      queryText += ` AND (title ILIKE $${searchIndex} OR content ILIKE $${searchIndex})`;
-      params.push(`%${search}%`);
-    }
-
-    queryText += ' ORDER BY created_at DESC';
-
-    const result = await query(queryText, params);
-    res.json(result.rows);
-  } catch (error) {
-    console.error('Error fetching instructions:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  if (category) {
+    queryText += ' AND category = $2';
+    params.push(category);
   }
-});
 
-router.get('/:id', verifyToken, async (req: AuthRequest, res) => {
-  try {
-    const { id } = req.params;
-    const result = await query(
-      'SELECT * FROM labs.instructions WHERE id = $1 AND user_id = $2',
-      [id, req.userId]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Instruction not found' });
-    }
-
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error fetching instruction:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  if (search) {
+    const searchIndex = params.length + 1;
+    queryText += ` AND (title ILIKE $${searchIndex} OR content ILIKE $${searchIndex})`;
+    params.push(`%${search}%`);
   }
-});
 
-router.post('/', verifyToken, async (req: AuthRequest, res) => {
-  try {
-    const { title, content, category, tags, image_url } = req.body;
+  queryText += ' ORDER BY created_at DESC';
 
-    if (!title || !content) {
-      return res.status(400).json({ error: 'Title and content are required' });
-    }
+  const result = await query(queryText, params);
+  res.json(result.rows);
+}));
 
-    // Sanitize HTML content to prevent XSS attacks
-    const sanitizedContent = sanitizeHtml(content);
+router.get('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+  const instruction = await findOneOrFail('instructions', { id: req.params.id, user_id: req.userId! }, res);
+  if (!instruction) return;
+  res.json(instruction);
+}));
 
-    const result = await query(
-      'INSERT INTO labs.instructions (user_id, title, content, category, tags, image_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [req.userId, title, sanitizedContent, category, tags, image_url]
-    );
+router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+  const { title, content, category, tags, image_url } = req.body;
 
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    console.error('Error creating instruction:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  if (!title || !content) {
+    return res.status(400).json({ error: 'Title and content are required' });
   }
-});
 
-router.put('/:id', verifyToken, async (req: AuthRequest, res) => {
-  try {
-    const { id } = req.params;
-    const { title, content, category, tags, image_url } = req.body;
+  const sanitizedContent = sanitizeHtml(content);
 
-    // Sanitize HTML content to prevent XSS attacks
-    const sanitizedContent = sanitizeHtml(content);
+  const result = await query(
+    'INSERT INTO labs.instructions (user_id, title, content, category, tags, image_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+    [req.userId, title, sanitizedContent, category, tags, image_url]
+  );
 
-    const result = await query(
-      'UPDATE labs.instructions SET title = $1, content = $2, category = $3, tags = $4, image_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7 RETURNING *',
-      [title, sanitizedContent, category, tags, image_url, id, req.userId]
-    );
+  res.status(201).json(result.rows[0]);
+}));
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Instruction not found' });
-    }
+router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const { title, content, category, tags, image_url } = req.body;
 
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Error updating instruction:', error);
-    res.status(500).json({ error: 'Internal server error' });
+  const sanitizedContent = sanitizeHtml(content);
+
+  const result = await query(
+    'UPDATE labs.instructions SET title = $1, content = $2, category = $3, tags = $4, image_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7 RETURNING *',
+    [title, sanitizedContent, category, tags, image_url, id, req.userId]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Instruction not found' });
   }
-});
 
-router.delete('/:id', verifyToken, async (req: AuthRequest, res) => {
-  try {
-    const { id } = req.params;
-    const result = await query(
-      'DELETE FROM labs.instructions WHERE id = $1 AND user_id = $2 RETURNING id',
-      [id, req.userId]
-    );
+  res.json(result.rows[0]);
+}));
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Instruction not found' });
-    }
-
-    res.json({ message: 'Instruction deleted successfully' });
-  } catch (error) {
-    console.error('Error deleting instruction:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+  const deleted = await deleteOneOrFail('instructions', { id: req.params.id, user_id: req.userId! }, res);
+  if (!deleted) return;
+  res.json({ message: 'Instruction deleted successfully' });
+}));
 
 export default router;
