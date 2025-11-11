@@ -90,20 +90,26 @@ if (isProduction) {
   });
 }
 
-async function startServer() {
+// Track database readiness
+let dbReady = false;
+
+async function initDB() {
   try {
     await initializeDatabase();
+    dbReady = true;
     console.log('Database initialized successfully');
-
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`Backend API server running on port ${PORT}`);
-      console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
-      console.log(`Server listening on 0.0.0.0:${PORT}`);
-    });
   } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+    console.error('Failed to initialize database:', error);
+    console.error('Server will continue running, but database operations may fail');
   }
 }
 
-startServer();
+// Start server immediately, initialize database in background
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Backend API server running on port ${PORT}`);
+  console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
+  console.log(`Server listening on 0.0.0.0:${PORT}`);
+  
+  // Initialize database after server is listening
+  initDB();
+});
