@@ -48,7 +48,10 @@ class ApiClient {
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
+      const err: any = new Error(error.error || `HTTP ${response.status}`);
+      err.status = response.status;
+      err.response = { status: response.status };
+      throw err;
     }
 
     return response.json();
@@ -170,6 +173,31 @@ class ApiClient {
     return this.request<any>('/progress', {
       method: 'POST',
       body: JSON.stringify({ instruction_id: instructionId, completed }),
+    });
+  }
+
+  // Generic methods for custom API calls
+  async get<T = any>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint);
+  }
+
+  async post<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'POST',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async put<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PUT',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
+  async delete<T = any>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'DELETE',
     });
   }
 }

@@ -54,25 +54,52 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS labs.favorites (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
-        instruction_id INTEGER REFERENCES labs.instructions(id) ON DELETE CASCADE,
+        item_type VARCHAR(20) NOT NULL,
+        item_id VARCHAR(100) NOT NULL,
+        title VARCHAR(200),
+        description TEXT,
+        date VARCHAR(50),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, instruction_id)
+        UNIQUE(user_id, item_type, item_id)
       )
     `);
     console.log('Table "labs.favorites" created');
+    
+    // Migrate existing favorites table if it exists with old schema
+    try {
+      await query(`ALTER TABLE labs.favorites ADD COLUMN IF NOT EXISTS item_type VARCHAR(20)`);
+      await query(`ALTER TABLE labs.favorites ADD COLUMN IF NOT EXISTS item_id VARCHAR(100)`);
+      await query(`ALTER TABLE labs.favorites ADD COLUMN IF NOT EXISTS title VARCHAR(200)`);
+      await query(`ALTER TABLE labs.favorites ADD COLUMN IF NOT EXISTS description TEXT`);
+      await query(`ALTER TABLE labs.favorites ADD COLUMN IF NOT EXISTS date VARCHAR(50)`);
+      console.log('Migrated labs.favorites to new schema');
+    } catch (err) {
+      // Columns already exist, that's fine
+    }
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.notes (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
-        instruction_id INTEGER REFERENCES labs.instructions(id) ON DELETE CASCADE,
+        title VARCHAR(200),
         content TEXT NOT NULL,
+        linked_item JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, instruction_id)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('Table "labs.notes" created');
+    
+    // Migrate existing notes table if it exists with old schema
+    try {
+      await query(`ALTER TABLE labs.notes ADD COLUMN IF NOT EXISTS title VARCHAR(200)`);
+      await query(`ALTER TABLE labs.notes ADD COLUMN IF NOT EXISTS linked_item JSONB`);
+      // Drop old constraint if exists
+      await query(`ALTER TABLE labs.notes DROP CONSTRAINT IF EXISTS notes_user_id_instruction_id_key`);
+      console.log('Migrated labs.notes to new schema');
+    } catch (err) {
+      // Columns already exist, that's fine
+    }
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.questions (
@@ -89,6 +116,23 @@ export async function initializeDatabase() {
     console.log('Table "labs.questions" created');
 
     await query(`
+      CREATE TABLE IF NOT EXISTS labs.comments (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
+        event_id VARCHAR(100) NOT NULL,
+        event_type VARCHAR(20),
+        event_title VARCHAR(200),
+        author_name VARCHAR(100) NOT NULL,
+        author_role VARCHAR(10) NOT NULL,
+        content TEXT NOT NULL,
+        parent_id INTEGER REFERENCES labs.comments(id) ON DELETE CASCADE,
+        likes INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.comments" created');
+
+    await query(`
       CREATE TABLE IF NOT EXISTS labs.progress (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
@@ -100,15 +144,16 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.progress" created');
 
-    await query(`
-      CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id);
-      CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category);
-      CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id);
-      CREATE INDEX IF NOT EXISTS idx_events_date ON labs.events(event_date);
-      CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON labs.favorites(user_id);
-      CREATE INDEX IF NOT EXISTS idx_notes_user_instruction ON labs.notes(user_id, instruction_id);
-      CREATE INDEX IF NOT EXISTS idx_progress_user_instruction ON labs.progress(user_id, instruction_id);
-    `);
+    await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
+    await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_events_date ON labs.events(event_date)');
+    await query('CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON labs.favorites(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_favorites_item ON labs.favorites(item_type, item_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_notes_user_id ON labs.notes(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_comments_event_id ON labs.comments(event_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_comments_user_id ON labs.comments(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_progress_user_instruction ON labs.progress(user_id, instruction_id)');
     console.log('Indexes created');
 
     console.log('Database initialization completed successfully!');

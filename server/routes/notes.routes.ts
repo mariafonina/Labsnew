@@ -5,16 +5,31 @@ import { sanitizeText } from '../utils/sanitize';
 
 const router = Router();
 
-router.get('/:instruction_id', verifyToken, async (req: AuthRequest, res) => {
+// Get all notes for current user
+router.get('/', verifyToken, async (req: AuthRequest, res) => {
   try {
-    const { instruction_id } = req.params;
     const result = await query(
-      'SELECT * FROM labs.notes WHERE user_id = $1 AND instruction_id = $2',
-      [req.userId, instruction_id]
+      'SELECT * FROM labs.notes WHERE user_id = $1 ORDER BY updated_at DESC',
+      [req.userId]
+    );
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching notes:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get specific note by ID
+router.get('/:id', verifyToken, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query(
+      'SELECT * FROM labs.notes WHERE id = $1 AND user_id = $2',
+      [id, req.userId]
     );
 
     if (result.rows.length === 0) {
-      return res.json({ content: '' });
+      return res.status(404).json({ error: 'Note not found' });
     }
 
     res.json(result.rows[0]);
@@ -24,40 +39,69 @@ router.get('/:instruction_id', verifyToken, async (req: AuthRequest, res) => {
   }
 });
 
+// Create a new note
 router.post('/', verifyToken, async (req: AuthRequest, res) => {
   try {
-    const { instruction_id, content } = req.body;
+    const { title, content, linked_item } = req.body;
 
-    if (!instruction_id) {
-      return res.status(400).json({ error: 'Instruction ID is required' });
+    if (!content) {
+      return res.status(400).json({ error: 'Content is required' });
     }
 
     // Sanitize text content to prevent XSS attacks
-    const sanitizedContent = sanitizeText(content || '');
+    const sanitizedContent = sanitizeText(content);
+    const sanitizedTitle = title ? sanitizeText(title) : null;
 
     const result = await query(
-      `INSERT INTO labs.notes (user_id, instruction_id, content) 
-       VALUES ($1, $2, $3) 
-       ON CONFLICT (user_id, instruction_id) 
-       DO UPDATE SET content = $3, updated_at = CURRENT_TIMESTAMP 
-       RETURNING *`,
-      [req.userId, instruction_id, sanitizedContent]
+      'INSERT INTO labs.notes (user_id, title, content, linked_item) VALUES ($1, $2, $3, $4) RETURNING *',
+      [req.userId, sanitizedTitle, sanitizedContent, linked_item ? JSON.stringify(linked_item) : null]
     );
 
-    res.json(result.rows[0]);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Error saving note:', error);
+    console.error('Error creating note:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-router.delete('/:instruction_id', verifyToken, async (req: AuthRequest, res) => {
+// Update a note
+router.put('/:id', verifyToken, async (req: AuthRequest, res) => {
   try {
-    const { instruction_id } = req.params;
-    await query(
-      'DELETE FROM labs.notes WHERE user_id = $1 AND instruction_id = $2',
-      [req.userId, instruction_id]
+    const { id } = req.params;
+    const { title, content, linked_item } = req.body;
+
+    // Sanitize content
+    const sanitizedContent = content ? sanitizeText(content) : undefined;
+    const sanitizedTitle = title ? sanitizeText(title) : undefined;
+
+    const result = await query(
+      'UPDATE labs.notes SET title = COALESCE($1, title), content = COALESCE($2, content), linked_item = COALESCE($3, linked_item), updated_at = CURRENT_TIMESTAMP WHERE id = $4 AND user_id = $5 RETURNING *',
+      [sanitizedTitle, sanitizedContent, linked_item ? JSON.stringify(linked_item) : null, id, req.userId]
     );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error updating note:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete a note
+router.delete('/:id', verifyToken, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const result = await query(
+      'DELETE FROM labs.notes WHERE id = $1 AND user_id = $2 RETURNING id',
+      [id, req.userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Note not found' });
+    }
 
     res.json({ message: 'Note deleted successfully' });
   } catch (error) {

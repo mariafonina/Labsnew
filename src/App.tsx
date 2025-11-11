@@ -13,6 +13,7 @@ import { Login } from "./components/Login";
 import { AdminPanel } from "./components/AdminPanel";
 import { UserSidebar } from "./components/UserSidebar";
 import { Logo } from "./components/Logo";
+import { MigrationBanner } from "./components/MigrationBanner";
 import { Bell, Calendar, BookOpen, Video, Newspaper, HelpCircle, MessageSquare, Bookmark, FileText, User, Settings } from "lucide-react";
 import { Badge } from "./components/ui/badge";
 import { Button } from "./components/ui/button";
@@ -94,6 +95,7 @@ function AppContent() {
 
   return (
     <>
+      <MigrationBanner />
       <Onboarding open={showOnboarding} onComplete={handleOnboardingComplete} />
       
       {/* Desktop Layout with Sidebar */}

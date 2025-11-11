@@ -7,11 +7,7 @@ const router = Router();
 router.get('/', verifyToken, async (req: AuthRequest, res) => {
   try {
     const result = await query(
-      `SELECT f.*, i.title, i.content, i.category, i.image_url 
-       FROM labs.favorites f 
-       JOIN labs.instructions i ON f.instruction_id = i.id 
-       WHERE f.user_id = $1 
-       ORDER BY f.created_at DESC`,
+      `SELECT * FROM labs.favorites WHERE user_id = $1 ORDER BY created_at DESC`,
       [req.userId]
     );
     res.json(result.rows);
@@ -23,15 +19,15 @@ router.get('/', verifyToken, async (req: AuthRequest, res) => {
 
 router.post('/', verifyToken, async (req: AuthRequest, res) => {
   try {
-    const { instruction_id } = req.body;
+    const { item_type, item_id, title, description, date } = req.body;
 
-    if (!instruction_id) {
-      return res.status(400).json({ error: 'Instruction ID is required' });
+    if (!item_type || !item_id) {
+      return res.status(400).json({ error: 'Item type and ID are required' });
     }
 
     const result = await query(
-      'INSERT INTO labs.favorites (user_id, instruction_id) VALUES ($1, $2) ON CONFLICT (user_id, instruction_id) DO NOTHING RETURNING *',
-      [req.userId, instruction_id]
+      'INSERT INTO labs.favorites (user_id, item_type, item_id, title, description, date) VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (user_id, item_type, item_id) DO NOTHING RETURNING *',
+      [req.userId, item_type, item_id, title, description, date]
     );
 
     if (result.rows.length === 0) {
@@ -45,12 +41,12 @@ router.post('/', verifyToken, async (req: AuthRequest, res) => {
   }
 });
 
-router.delete('/:instruction_id', verifyToken, async (req: AuthRequest, res) => {
+router.delete('/:item_type/:item_id', verifyToken, async (req: AuthRequest, res) => {
   try {
-    const { instruction_id } = req.params;
+    const { item_type, item_id } = req.params;
     const result = await query(
-      'DELETE FROM labs.favorites WHERE user_id = $1 AND instruction_id = $2 RETURNING id',
-      [req.userId, instruction_id]
+      'DELETE FROM labs.favorites WHERE user_id = $1 AND item_type = $2 AND item_id = $3 RETURNING id',
+      [req.userId, item_type, item_id]
     );
 
     if (result.rows.length === 0) {

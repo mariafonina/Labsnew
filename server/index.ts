@@ -10,6 +10,7 @@ import eventsRoutes from './routes/events.routes';
 import favoritesRoutes from './routes/favorites.routes';
 import notesRoutes from './routes/notes.routes';
 import progressRoutes from './routes/progress.routes';
+import commentsRoutes from './routes/comments.routes';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -44,6 +45,7 @@ app.use('/api/events', eventsRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/progress', progressRoutes);
+app.use('/api/comments', commentsRoutes);
 
 // Root endpoint for health checks - must respond quickly
 app.get('/', (req, res) => {
