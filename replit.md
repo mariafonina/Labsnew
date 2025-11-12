@@ -50,6 +50,19 @@ This is a learning/course management system with features for:
   - Hot-reload via tsx watch
 - **Run Command**: `npm run dev` (runs both frontend and backend concurrently)
 
+## Recent Changes (November 12, 2025)
+
+### User Authentication Fixes ✅ COMPLETED
+- **Fixed logout functionality in UserProfile.tsx**:
+  - Migrated from deprecated `useApp()` to `useAuth()` context
+  - Logout now properly clears JWT token and user session
+  - Added async error handling for logout operations
+  - Password change temporarily disabled (API endpoint to be added later)
+- **Authentication system status**:
+  - AuthContext: JWT-based authentication (login, logout, session)
+  - AppContext: Feature data (notes, favorites, events) - correct usage
+  - UserProfile now fully integrated with API authentication
+
 ## Recent Changes (November 11, 2025)
 
 ### Admin Panel API Integration ✅ COMPLETED
