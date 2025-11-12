@@ -8,6 +8,7 @@ import {
   HelpCircle,
   MessageCircle,
   Users,
+  Mail,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -44,6 +45,7 @@ export function AdminSidebar({
     { id: "instructions", label: "Инструкции", icon: BookOpen },
     { id: "recordings", label: "Записи", icon: Video },
     { id: "faq", label: "FAQ", icon: HelpCircle },
+    { id: "emails", label: "Email-рассылки", icon: Mail },
     { id: "questions", label: "Вопросы", icon: MessageCircle, badge: userQuestionsCount },
     { id: "users", label: "Пользователи", icon: Users },
   ];

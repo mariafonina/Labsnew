@@ -9,6 +9,7 @@ import { AdminNewsManager } from "./AdminNewsManager";
 import { AdminRecordingsManager } from "./AdminRecordingsManager";
 import { AdminFAQManager } from "./AdminFAQManager";
 import { AdminEventsManager } from "./AdminEventsManager";
+import { AdminEmailManager } from "./AdminEmailManager";
 
 export function AdminPanel() {
   const { user, logout } = useAuth();
@@ -40,6 +41,8 @@ export function AdminPanel() {
         return <AdminRecordingsManager />;
       case "faq":
         return <AdminFAQManager />;
+      case "emails":
+        return <AdminEmailManager />;
       case "questions":
         return <AdminQuestions />;
       case "users":

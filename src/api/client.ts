@@ -307,6 +307,41 @@ class ApiClient {
     });
   }
 
+  async getEmailCampaigns() {
+    return this.request<any[]>('/admin/emails');
+  }
+
+  async getEmailCampaignDetails(id: number) {
+    return this.request<any>(`/admin/emails/${id}`);
+  }
+
+  async createEmailCampaign(data: any) {
+    return this.request<any>('/admin/emails', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateEmailCampaign(id: number, data: any) {
+    return this.request<any>(`/admin/emails/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteEmailCampaign(id: number) {
+    return this.request<any>(`/admin/emails/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async sendEmailCampaign(id: number, testMode: boolean = false, recipients?: string[]) {
+    return this.request<any>(`/admin/emails/${id}/send`, {
+      method: 'POST',
+      body: JSON.stringify({ test_mode: testMode, recipients }),
+    });
+  }
+
   // Generic methods for custom API calls
   async get<T = any>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint);
