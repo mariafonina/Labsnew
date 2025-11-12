@@ -45,3 +45,27 @@ The backend is an Express.js server written in TypeScript, running on Node.js. I
 - **Security Middleware:** Helmet, CORS
 - **Build Tool:** Vite
 - **Backend Framework:** Express.js
+## Recent Changes (November 12, 2025)
+
+### Public API Endpoints for Admin Content ✅ COMPLETED
+- **Problem**: Content created in admin panel was not visible to regular users due to 403 Forbidden errors
+- **Root Cause**: Frontend components were calling admin endpoints (`/api/admin/news`) which require JWT + admin role
+- **Solution**: Created public read-only API endpoints:
+  - `/api/news` - Public news feed (no authentication required)
+  - `/api/recordings` - Public recordings list (no authentication required)
+  - `/api/faq` - Public FAQ items (no authentication required)
+  - `/api/events` - All events calendar (no authentication required)
+  - `/api/events/my` - User-specific personal events (authenticated)
+- **Architecture**: Separation of concerns - public read endpoints for content display, admin write endpoints for CRUD operations
+- **Result**: Admin-created news, recordings, FAQ, and events now display correctly for all users
+- **Files Created**: `server/routes/news.routes.ts`, `server/routes/recordings.routes.ts`, `server/routes/faq.routes.ts`
+
+### UI/UX Improvements ✅ COMPLETED
+- **Improved InstructionsLibrary layout spacing**:
+  - Increased spacing between categories (32px → 40px)
+  - Enhanced padding inside instruction cards (20×14px → 24×20px)
+  - Better gap between interactive elements (14px → 16px)
+  - Improved button spacing and touch targets (8px → 10px padding)
+  - Enhanced text readability (leading-tight → leading-relaxed)
+  - Added visual separation after category headers
+- **Result**: Cleaner, more breathable interface with better user experience
