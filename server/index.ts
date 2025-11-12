@@ -19,6 +19,7 @@ import adminRecordingsRoutes from './routes/admin/recordings.routes';
 import adminFaqRoutes from './routes/admin/faq.routes';
 import adminUsersRoutes from './routes/admin/users.routes';
 import adminEmailsRoutes from './routes/admin/emails.routes';
+import passwordResetRoutes from './routes/password-reset.routes';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -46,6 +47,7 @@ app.use('/api/', requestSizeLimiter);
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api', passwordResetRoutes);
 app.use('/api/instructions', instructionsRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/favorites', favoritesRoutes);
