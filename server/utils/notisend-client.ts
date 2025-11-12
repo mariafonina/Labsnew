@@ -116,24 +116,24 @@ class NotisendClient {
     };
   }
 
-  async sendTemplateEmail(to: string, templateId: string, templateData: Record<string, any>): Promise<any> {
+  async sendTemplateEmail(to: string, templateId: string, templateData: Record<string, any>, subject?: string): Promise<any> {
     return this.sendEmail({
       to,
-      subject: '', 
-      html: '', 
+      subject: subject || 'Уведомление', 
+      html: '',
       template_id: templateId,
       template_data: templateData,
     });
   }
 
-  async sendBulkTemplateEmail(recipients: string[], templateId: string, templateDataMap: Record<string, any> = {}): Promise<any> {
+  async sendBulkTemplateEmail(recipients: string[], templateId: string, templateDataMap: Record<string, any> = {}, subject?: string): Promise<any> {
     const results = [];
     const errors = [];
 
     for (const recipient of recipients) {
       try {
         const templateData = templateDataMap[recipient] || {};
-        const result = await this.sendTemplateEmail(recipient, templateId, templateData);
+        const result = await this.sendTemplateEmail(recipient, templateId, templateData, subject);
         results.push({ email: recipient, status: 'sent', result });
       } catch (error: any) {
         errors.push({ email: recipient, status: 'failed', error: error.message });

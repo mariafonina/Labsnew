@@ -128,7 +128,8 @@ router.post('/:id/send', verifyToken, requireAdmin, createLimiter, asyncHandler(
     sendResult = await notisendClient.sendBulkTemplateEmail(
       recipientEmails,
       campaign.template_id,
-      {}
+      {},
+      campaign.subject || 'Уведомление'
     );
   } else {
     sendResult = await notisendClient.sendBulkEmail({
@@ -202,7 +203,8 @@ router.post('/send-user-credentials', verifyToken, requireAdmin, createLimiter, 
       const result = await notisendClient.sendTemplateEmail(
         user.email,
         template_id,
-        templateData
+        templateData,
+        'Данные для входа в ЛАБС'
       );
 
       results.push({ user_id: user.id, email: user.email, status: 'sent', result });
