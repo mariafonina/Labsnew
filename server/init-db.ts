@@ -191,6 +191,42 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.faq" created');
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.email_campaigns (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        subject VARCHAR(300),
+        html_content TEXT,
+        text_content TEXT,
+        template_id VARCHAR(100),
+        recipients_count INTEGER DEFAULT 0,
+        sent_count INTEGER DEFAULT 0,
+        failed_count INTEGER DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'draft',
+        scheduled_at TIMESTAMP,
+        sent_at TIMESTAMP,
+        created_by INTEGER REFERENCES labs.users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.email_campaigns" created');
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.email_logs (
+        id SERIAL PRIMARY KEY,
+        campaign_id INTEGER REFERENCES labs.email_campaigns(id) ON DELETE CASCADE,
+        recipient_email VARCHAR(100) NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        notisend_id VARCHAR(100),
+        error_message TEXT,
+        sent_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.email_logs" created');
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
@@ -205,6 +241,10 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_news_created_at ON labs.news(created_at)');
     await query('CREATE INDEX IF NOT EXISTS idx_recordings_created_at ON labs.recordings(created_at)');
     await query('CREATE INDEX IF NOT EXISTS idx_faq_category ON labs.faq(category)');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_campaigns_status ON labs.email_campaigns(status)');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_campaigns_created_by ON labs.email_campaigns(created_by)');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_logs_campaign_id ON labs.email_logs(campaign_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_logs_status ON labs.email_logs(status)');
     console.log('Indexes created');
 
     console.log('Database initialization completed successfully!');
