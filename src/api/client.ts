@@ -37,30 +37,20 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const url = `${API_BASE_URL}${endpoint}`;
-    console.log('[API Client] Request:', options.method || 'GET', url);
-    console.log('[API Client] Body:', options.body);
-
-    const response = await fetch(url, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
     });
 
-    console.log('[API Client] Response status:', response.status);
-    console.log('[API Client] Response URL:', response.url);
-
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      console.error('[API Client] Error response:', error);
       const err: any = new Error(error.error || `HTTP ${response.status}`);
       err.status = response.status;
       err.response = { status: response.status };
       throw err;
     }
 
-    const data = await response.json();
-    console.log('[API Client] Success response:', data);
-    return data;
+    return response.json();
   }
 
   async register(username: string, email: string, password: string) {

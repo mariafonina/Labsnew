@@ -52,6 +52,16 @@ This is a learning/course management system with features for:
 
 ## Recent Changes (November 12, 2025)
 
+### Frontend-to-API Migration ✅ COMPLETED
+- **Problem**: Admin-created content (news, recordings, FAQ, events) was not appearing on user-facing pages because components loaded from localStorage while admin panel saved to PostgreSQL API
+- **Solution**: Migrated 4 main components to load data from API instead of AppContext/localStorage:
+  - **NewsFeed.tsx**: Now loads news from `/api/admin/news` on mount
+  - **RecordedStreams.tsx**: Now loads recordings from `/api/admin/recordings`
+  - **FAQ.tsx**: Now loads FAQ items from `/api/admin/faq`
+  - **EventsCalendar.tsx**: Now loads events from `/api/events` with dynamic type detection (upcoming/past based on date)
+- **Result**: Content created in admin panel now immediately appears on user-facing pages
+- **Data flow**: Admin creates → PostgreSQL → API → Components display
+
 ### User Authentication Fixes ✅ COMPLETED
 - **Fixed logout functionality in UserProfile.tsx**:
   - Migrated from deprecated `useApp()` to `useAuth()` context

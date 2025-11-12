@@ -1,16 +1,56 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Avatar, AvatarFallback } from "./ui/avatar";
-import { Calendar, Clock, Video, MessageCircle, Bookmark } from "lucide-react";
+import { Calendar, Clock, Video, Bookmark } from "lucide-react";
 import { EventQuestions } from "./EventQuestions";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
+import { apiClient } from "../api/client";
+
+interface Event {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+  time?: string;
+  location?: string;
+  type?: string;
+  instructor?: string;
+  link?: string;
+}
 
 export function EventsCalendar() {
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
-  const { getCommentsByEvent, events, addToFavorites, removeFromFavorites, isFavorite, auth } = useApp();
+  const { getCommentsByEvent, addToFavorites, removeFromFavorites, isFavorite, auth } = useApp();
+  const [events, setEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  const loadEvents = async () => {
+    try {
+      const data = await apiClient.getEvents();
+      setEvents(data.map((item: any) => {
+        const eventDate = new Date(item.event_date);
+        const now = new Date();
+        return {
+          id: String(item.id),
+          title: item.title,
+          description: item.description || '',
+          date: item.event_date,
+          time: item.event_time || '',
+          location: item.location || '',
+          type: eventDate >= now ? 'upcoming' : 'past',
+          instructor: '', // Not available in DB
+          link: '' // Not available in DB
+        };
+      }));
+    } catch (error) {
+      console.error('Failed to load events:', error);
+      toast.error('Не удалось загрузить события');
+    }
+  };
 
   // Get user gender for colors
   const gender = auth.isAuthenticated 
@@ -46,13 +86,6 @@ export function EventsCalendar() {
     }
   };
 
-  const getInitials = (name: string) => {
-    const parts = name.split(" ");
-    if (parts.length >= 2) {
-      return parts[0][0] + parts[1][0];
-    }
-    return name.substring(0, 2).toUpperCase();
-  };
 
   // Группируем события по типу
   const upcomingEvents = events.filter(e => e.type === "upcoming");
@@ -99,17 +132,12 @@ export function EventsCalendar() {
                       {event.title}
                     </h3>
                     
-                    {/* Спикер */}
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-gradient-to-br from-pink-400 to-rose-400 text-white text-xs font-extrabold">
-                          {getInitials(event.instructor)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-gray-700 font-semibold text-sm">
-                        {event.instructor}
-                      </span>
-                    </div>
+                    {/* Location */}
+                    {event.location && (
+                      <p className="text-gray-600 text-sm">
+                        📍 {event.location}
+                      </p>
+                    )}
                     
                     {/* Кнопка подключиться */}
                     <div className="flex gap-3">

@@ -1,23 +1,59 @@
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Button } from "./ui/button";
 import { Heart, Bookmark, MessageCircle, ArrowRight, Bell } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { motion } from "motion/react";
-import { useState } from "react";
-import type { NewsItem } from "../contexts/AppContext";
+import { useState, useEffect } from "react";
+import { apiClient } from "../api/client";
+
+interface NewsItem {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  authorAvatar?: string;
+  date: string;
+  category: string;
+  image?: string;
+  isNew: boolean;
+}
 
 interface NewsFeedProps {
   onNavigateToQuestion?: (eventId: string, eventType: "event" | "instruction" | "recording", questionId: string) => void;
 }
 
 export function NewsFeed({ onNavigateToQuestion }: NewsFeedProps) {
-  const { addToFavorites, removeFromFavorites, isFavorite, toggleLike, isLiked, notifications, markNotificationAsRead, newsItems } = useApp();
+  const { addToFavorites, removeFromFavorites, isFavorite, toggleLike, isLiked, notifications, markNotificationAsRead } = useApp();
+  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
   const [animatingLike, setAnimatingLike] = useState<string | null>(null);
   const [animatingFavorite, setAnimatingFavorite] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadNews();
+  }, []);
+
+  const loadNews = async () => {
+    try {
+      const data = await apiClient.getNews();
+      setNewsItems(data.map((item: any) => ({
+        id: String(item.id),
+        title: item.title,
+        content: item.content,
+        author: item.author,
+        authorAvatar: item.author_avatar,
+        date: item.date,
+        category: item.category,
+        image: item.image,
+        isNew: item.is_new
+      })));
+    } catch (error) {
+      console.error('Failed to load news:', error);
+      toast.error('Не удалось загрузить новости');
+    }
+  };
   
   const handleToggleFavorite = (item: NewsItem) => {
     setAnimatingFavorite(item.id);

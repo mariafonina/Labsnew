@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -7,11 +7,48 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { RecordingDetail } from "./RecordingDetail";
-import type { Recording } from "../contexts/AppContext";
+import { apiClient } from "../api/client";
+
+interface Recording {
+  id: string;
+  title: string;
+  date: string;
+  duration?: string;
+  instructor: string;
+  thumbnail?: string;
+  views?: number;
+  description?: string;
+  videoUrl?: string;
+}
 
 export function RecordedStreams() {
-  const { recordings, addToFavorites, removeFromFavorites, isFavorite } = useApp();
+  const { addToFavorites, removeFromFavorites, isFavorite } = useApp();
+  const [recordings, setRecordings] = useState<Recording[]>([]);
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
+
+  useEffect(() => {
+    loadRecordings();
+  }, []);
+
+  const loadRecordings = async () => {
+    try {
+      const data = await apiClient.getRecordings();
+      setRecordings(data.map((item: any) => ({
+        id: String(item.id),
+        title: item.title,
+        date: item.date,
+        duration: item.duration,
+        instructor: item.instructor,
+        thumbnail: item.thumbnail,
+        views: item.views,
+        description: item.description,
+        videoUrl: item.video_url
+      })));
+    } catch (error) {
+      console.error('Failed to load recordings:', error);
+      toast.error('Не удалось загрузить записи');
+    }
+  };
 
   const handleToggleFavorite = (recording: Recording, e: React.MouseEvent) => {
     e.stopPropagation();

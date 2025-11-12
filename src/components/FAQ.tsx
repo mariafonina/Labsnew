@@ -8,14 +8,45 @@ import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Search, HelpCircle, ThumbsUp } from "lucide-react";
-import { useState, useMemo } from "react";
+import { Search, ThumbsUp } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
 import { useApp } from "../contexts/AppContext";
+import { apiClient } from "../api/client";
+import { toast } from "sonner";
+
+interface FAQItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+  helpful: number;
+}
 
 export function FAQ() {
-  const { faqItems, toggleFAQHelpful, isLiked, toggleLike, auth } = useApp();
+  const { toggleFAQHelpful, isLiked, toggleLike, auth } = useApp();
+  const [faqItems, setFaqItems] = useState<FAQItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadFAQ();
+  }, []);
+
+  const loadFAQ = async () => {
+    try {
+      const data = await apiClient.getFAQ();
+      setFaqItems(data.map((item: any) => ({
+        id: String(item.id),
+        question: item.question,
+        answer: item.answer,
+        category: item.category,
+        helpful: item.helpful
+      })));
+    } catch (error) {
+      console.error('Failed to load FAQ:', error);
+      toast.error('Не удалось загрузить FAQ');
+    }
+  };
 
   // Get unique categories
   const categories = useMemo(() => {
