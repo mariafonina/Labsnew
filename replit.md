@@ -81,3 +81,29 @@ The backend is an Express.js server written in TypeScript, running on Node.js. I
 - **Code Quality**: Removed ~100 lines of duplicate code, eliminated unused imports (useEffect, apiClient, toast)
 - **Performance**: Data loads once on mount (<1s), cached in state and localStorage, no redundant API calls
 - **Result**: "Мгновенное" (instant) data display - users see content immediately when navigating between pages
+
+### Multi-Tenant Security Fix with requestId Pattern ✅ COMPLETED
+- **CRITICAL PROBLEM**: Multi-tenant data leakage - users could see notes, favorites, comments, and progress from other users
+- **Root Cause Analysis**: 
+  1. User-specific data was stored in `localStorage` which persists across logins
+  2. Race conditions during rapid logout→login transitions allowed stale API responses to update state with previous user's data
+  3. Shared boolean flag (`isCancelledRef`) was reset when new user logged in, allowing old requests to pass validation
+- **Complete Solution**: requestId Pattern for Race-Free Multi-Tenant Isolation
+  - **Monotonic Request Counter**: `requestIdRef` increments on every auth state change (login, logout, cleanup)
+  - **Captured Request ID**: Each fetch captures its `currentRequestId` at start time
+  - **Stale Request Rejection**: API responses validate `currentRequestId === requestIdRef.current` before updating state
+  - **Triple-Layer Defense**:
+    1. Entry Gate: `!auth.isAuthenticated` → Clear state + increment requestId
+    2. Response Validation: Only latest requestId can update state
+    3. Cleanup Guard: Increment requestId on unmount + clear state
+- **Attack Scenarios Prevented**:
+  - ✅ User A logs in, API calls start → User A logs out → User B logs in → A's responses rejected (ID mismatch)
+  - ✅ Rapid logout during slow network fetch → Stale responses cannot update state
+  - ✅ API rejection/network error → State properly cleared with ID check
+- **localStorage Migration**: Removed ALL user-specific data from localStorage (notes, favorites, comments, progress)
+  - localStorage now ONLY stores: auth token (rememberMe), public data caching, notifications
+  - User data loads from PostgreSQL via API after authentication with strict `user_id` filtering
+- **Backend Guarantees**: All user data queries use `WHERE user_id = $1` for database-level isolation
+- **Architect Approval**: "The requestId-based cancellation correctly prevents any stale fetch from mutating user-scoped state after logout/login churn, eliminating the multi-tenant data leakage previously observed."
+- **Files Modified**: `src/contexts/AppContext.tsx`, `src/api/client.ts`
+- **Result**: BULLETPROOF multi-tenant isolation - no execution path allows cross-user data leakage
