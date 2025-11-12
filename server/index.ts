@@ -11,6 +11,9 @@ import favoritesRoutes from './routes/favorites.routes';
 import notesRoutes from './routes/notes.routes';
 import progressRoutes from './routes/progress.routes';
 import commentsRoutes from './routes/comments.routes';
+import newsRoutes from './routes/news.routes';
+import recordingsRoutes from './routes/recordings.routes';
+import faqRoutes from './routes/faq.routes';
 import adminNewsRoutes from './routes/admin/news.routes';
 import adminRecordingsRoutes from './routes/admin/recordings.routes';
 import adminFaqRoutes from './routes/admin/faq.routes';
@@ -46,6 +49,11 @@ app.use('/api/favorites', favoritesRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/comments', commentsRoutes);
+
+// Public content routes (no authentication required)
+app.use('/api/news', newsRoutes);
+app.use('/api/recordings', recordingsRoutes);
+app.use('/api/faq', faqRoutes);
 
 // Admin routes
 app.use('/api/admin/news', adminNewsRoutes);

@@ -172,11 +172,20 @@ class ApiClient {
     });
   }
 
-  // Admin API methods
+  // Public content API methods (no auth required for reading)
   async getNews() {
-    return this.request<any[]>('/admin/news');
+    return this.request<any[]>('/news');
   }
 
+  async getRecordings() {
+    return this.request<any[]>('/recordings');
+  }
+
+  async getFAQ() {
+    return this.request<any[]>('/faq');
+  }
+
+  // Admin API methods (auth required for write operations)
   async createNews(data: any) {
     return this.request<any>('/admin/news', {
       method: 'POST',
@@ -197,10 +206,6 @@ class ApiClient {
     });
   }
 
-  async getRecordings() {
-    return this.request<any[]>('/admin/recordings');
-  }
-
   async createRecording(data: any) {
     return this.request<any>('/admin/recordings', {
       method: 'POST',
@@ -219,10 +224,6 @@ class ApiClient {
     return this.request<any>(`/admin/recordings/${id}`, {
       method: 'DELETE',
     });
-  }
-
-  async getFAQ() {
-    return this.request<any[]>('/admin/faq');
   }
 
   async createFAQ(data: any) {

@@ -6,7 +6,16 @@ import { deleteOneOrFail } from '../utils/db-helpers';
 
 const router = Router();
 
-router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+// Public endpoint - get all events (no authentication required)
+router.get('/', asyncHandler(async (req, res) => {
+  const result = await query(
+    'SELECT * FROM labs.events ORDER BY event_date ASC, event_time ASC'
+  );
+  res.json(result.rows);
+}));
+
+// Get user's personal events only (authenticated)
+router.get('/my', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
   const result = await query(
     'SELECT * FROM labs.events WHERE user_id = $1 ORDER BY event_date ASC, event_time ASC',
     [req.userId]
