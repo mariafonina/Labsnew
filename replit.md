@@ -69,3 +69,15 @@ The backend is an Express.js server written in TypeScript, running on Node.js. I
   - Enhanced text readability (leading-tight → leading-relaxed)
   - Added visual separation after category headers
 - **Result**: Cleaner, more breathable interface with better user experience
+
+### Centralized Data Prefetching for Instant Display ✅ COMPLETED
+- **Problem**: Components were making individual API calls on mount, causing loading delays and duplicate network requests
+- **Solution**: Implemented centralized data prefetching in AppContext using parallel loading
+  - **AppContext Bootstrap**: Added `useEffect` that fetches news, events, recordings, FAQ in parallel on app mount using `Promise.allSettled`
+  - **Component Migration**: Removed duplicate loading logic from 4 components (NewsFeed, EventsCalendar, RecordedStreams, FAQ)
+  - **Data Flow**: Components now read directly from context state → instant display without loading delays
+  - **Error Handling**: Graceful partial failure - app continues if some APIs fail
+  - **Type Safety**: Fixed Event interface to include `location` field, imported Recording type from AppContext
+- **Code Quality**: Removed ~100 lines of duplicate code, eliminated unused imports (useEffect, apiClient, toast)
+- **Performance**: Data loads once on mount (<1s), cached in state and localStorage, no redundant API calls
+- **Result**: "Мгновенное" (instant) data display - users see content immediately when navigating between pages
