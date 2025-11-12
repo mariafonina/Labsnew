@@ -53,6 +53,34 @@ class ApiClient {
     return response.json();
   }
 
+  private async requestFormData<T>(
+    endpoint: string,
+    formData: FormData,
+    method: 'POST' | 'PUT' = 'POST'
+  ): Promise<T> {
+    const headers: Record<string, string> = {};
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      const err: any = new Error(error.error || `HTTP ${response.status}`);
+      err.status = response.status;
+      err.response = { status: response.status };
+      throw err;
+    }
+
+    return response.json();
+  }
+
   async register(username: string, email: string, password: string) {
     return this.request<{ token: string; user: any }>('/auth/register', {
       method: 'POST',
@@ -212,6 +240,14 @@ class ApiClient {
     return this.request<any>(`/admin/news/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  async createNewsWithImage(formData: FormData) {
+    return this.requestFormData<any>('/admin/news', formData, 'POST');
+  }
+
+  async updateNewsWithImage(id: number, formData: FormData) {
+    return this.requestFormData<any>(`/admin/news/${id}`, formData, 'PUT');
   }
 
   async createRecording(data: any) {
