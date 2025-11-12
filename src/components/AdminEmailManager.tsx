@@ -203,9 +203,9 @@ export function AdminEmailManager() {
         <div className="text-center py-12 text-labs-text-secondary">Загрузка...</div>
       ) : filteredCampaigns.length === 0 ? (
         <AdminEmptyState
-          icon={Mail}
+          icon={<Mail className="h-10 w-10 text-gray-400" />}
           title="Email-кампании"
-          message={searchQuery ? "Кампании не найдены" : "Нет созданных кампаний"}
+          description={searchQuery ? "Кампании не найдены" : "Нет созданных кампаний"}
           actionLabel="Создать кампанию"
           onAction={() => setIsAdding(true)}
         />
