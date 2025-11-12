@@ -49,6 +49,37 @@ The backend is an Express.js server written in TypeScript, running on Node.js. I
 - **Backend Framework:** Express.js
 ## Recent Changes (November 12, 2025)
 
+### Password Reset System ✅ COMPLETED
+- **Feature**: Complete password reset flow for user account management
+- **Implementation**:
+  - **Backend**: 
+    - Database table `password_reset_tokens` with 24-hour TTL, single-use tokens
+    - API endpoints: `/api/forgot-password`, `/api/reset-password`, `/api/verify-reset-token`
+    - Token generation using crypto.randomBytes for security
+    - Email sending via Notisend API with HTML templates
+    - Email enumeration protection (always returns success response)
+    - FRONTEND_BASE_URL environment variable support for configurable reset URLs
+  - **Frontend**:
+    - `ForgotPasswordDialog` component - email input modal from login screen
+    - `ResetPassword` page - new password form with token verification
+    - Password visibility toggles (eye icons) in all password fields
+    - "Забыли пароль?" button on login screen
+    - react-router-dom integration for `/reset-password/:token` route
+    - Automatic redirect to login after successful password reset
+  - **Security**:
+    - Tokens are UNIQUE, single-use, and expire after 24 hours
+    - Email validation (RFC-compliant regex + trim/lowercase)
+    - Minimum password length (6 characters)
+    - SQL injection protection via parameterized queries
+    - Email enumeration attack mitigation
+    - Development-safe error handling (graceful fallback when NOTISEND_API_KEY missing)
+- **User Flow**: User clicks "Забыли пароль?" → enters email → receives Notisend email with reset link → clicks link → enters new password → automatically logs in
+- **Architect Review**: PASS - "Flow meets requirements, operates correctly across client/server, proper security measures in place"
+- **Files Created**: `server/utils/password-reset.ts`, `server/routes/password-reset.routes.ts`, `src/components/ForgotPasswordDialog.tsx`, `src/pages/ResetPassword.tsx`
+- **Files Modified**: `server/init-db.ts`, `server/index.ts`, `src/components/Login.tsx`, `src/App.tsx`, `src/main.tsx`, `src/api/client.ts`, `package.json`
+
+
+
 ### Direct Image Upload for Admin News ✅ COMPLETED
 - **Problem**: Admin had to manually enter image URLs, which was inconvenient and error-prone
 - **Solution**: Implemented direct file upload with multer middleware and FormData API

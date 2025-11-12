@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Onboarding } from "./components/Onboarding";
 import { NewsFeed } from "./components/NewsFeed";
 import { EventsCalendar } from "./components/EventsCalendar";
@@ -560,22 +560,14 @@ function AppContent() {
   );
 }
 
-function MainApp() {
+export default function App() {
   return (
     <>
       <Toaster position="top-center" />
-      <AppContent />
-    </>
-  );
-}
-
-export default function App() {
-  return (
-    <BrowserRouter>
       <Routes>
-        <Route path="/reset-password/:token" element={<><Toaster position="top-center" /><ResetPassword /></>} />
-        <Route path="*" element={<MainApp />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="*" element={<AppContent />} />
       </Routes>
-    </BrowserRouter>
+    </>
   );
 }
