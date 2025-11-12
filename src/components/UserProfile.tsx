@@ -124,7 +124,7 @@ export function UserProfile() {
             </Label>
             <Select
               value={profile.gender}
-              onValueChange={(value) => handleChange("gender", value)}
+              onValueChange={(value: string) => handleChange("gender", value)}
             >
               <SelectTrigger id="gender" className="h-12">
                 <SelectValue placeholder="Выберите пол" />
