@@ -144,6 +144,10 @@ class ApiClient {
     });
   }
 
+  async getAllNotes() {
+    return this.request<any[]>('/notes');
+  }
+
   async getNote(instructionId: number) {
     return this.request<any>(`/notes/${instructionId}`);
   }
@@ -170,6 +174,10 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ instruction_id: instructionId, completed }),
     });
+  }
+
+  async getAllComments() {
+    return this.request<any[]>('/comments');
   }
 
   // Public content API methods (no auth required for reading)
