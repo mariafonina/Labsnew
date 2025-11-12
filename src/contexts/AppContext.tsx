@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { apiClient } from "../api/client";
 
 export interface FavoriteItem {
   id: string;
@@ -71,6 +72,7 @@ export interface Event {
   description: string;
   date: string;
   time: string;
+  location?: string;
   duration: string;
   instructor: string;
   type: "upcoming" | "past";
@@ -281,6 +283,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         description: "Разберём методики постановки целей и создания плана действий",
         date: "2024-11-15",
         time: "19:00",
+        location: "Онлайн",
         duration: "2 часа",
         instructor: "Анна Смирнова",
         type: "upcoming",
@@ -292,6 +295,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         description: "Практическое занятие с разбором реальных кейсов",
         date: "2024-11-18",
         time: "20:00",
+        location: "Онлайн",
         duration: "1.5 часа",
         instructor: "Дмитрий Козлов",
         type: "upcoming"
@@ -611,6 +615,81 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem("users", JSON.stringify(users));
   }, [users]);
+
+  // Centralized data prefetching on mount for instant display
+  useEffect(() => {
+    const loadPublicData = async () => {
+      try {
+        const [newsData, eventsData, recordingsData, faqData] = await Promise.allSettled([
+          apiClient.getNews(),
+          apiClient.getEvents(),
+          apiClient.getRecordings(),
+          apiClient.getFAQ()
+        ]);
+
+        if (newsData.status === 'fulfilled' && newsData.value.length > 0) {
+          setNewsItems(newsData.value.map((item: any) => ({
+            id: String(item.id),
+            title: item.title,
+            content: item.content,
+            author: item.author,
+            authorAvatar: item.author_avatar,
+            date: item.date,
+            category: item.category,
+            image: item.image,
+            isNew: item.is_new
+          })));
+        }
+
+        if (eventsData.status === 'fulfilled' && eventsData.value.length > 0) {
+          setEvents(eventsData.value.map((item: any) => {
+            const eventDate = new Date(item.event_date);
+            const now = new Date();
+            return {
+              id: String(item.id),
+              title: item.title,
+              description: item.description || '',
+              date: item.event_date,
+              time: item.event_time || '',
+              location: item.location || '',
+              duration: '',
+              instructor: '',
+              type: (eventDate >= now ? 'upcoming' : 'past') as 'upcoming' | 'past',
+              link: ''
+            };
+          }));
+        }
+
+        if (recordingsData.status === 'fulfilled' && recordingsData.value.length > 0) {
+          setRecordings(recordingsData.value.map((item: any) => ({
+            id: String(item.id),
+            title: item.title,
+            date: item.date,
+            duration: item.duration || '',
+            instructor: item.instructor,
+            thumbnail: item.thumbnail,
+            views: item.views || 0,
+            description: item.description || '',
+            videoUrl: item.video_url
+          })));
+        }
+
+        if (faqData.status === 'fulfilled' && faqData.value.length > 0) {
+          setFaqItems(faqData.value.map((item: any) => ({
+            id: String(item.id),
+            question: item.question,
+            answer: item.answer,
+            category: item.category,
+            helpful: item.helpful || 0
+          })));
+        }
+      } catch (error) {
+        console.error('Failed to prefetch public data:', error);
+      }
+    };
+
+    loadPublicData();
+  }, []);
 
   const addToFavorites = (item: FavoriteItem) => {
     setFavorites((prev) => {

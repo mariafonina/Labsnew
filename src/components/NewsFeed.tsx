@@ -26,34 +26,9 @@ interface NewsFeedProps {
 }
 
 export function NewsFeed({ onNavigateToQuestion }: NewsFeedProps) {
-  const { addToFavorites, removeFromFavorites, isFavorite, toggleLike, isLiked, notifications, markNotificationAsRead } = useApp();
-  const [newsItems, setNewsItems] = useState<NewsItem[]>([]);
+  const { newsItems, addToFavorites, removeFromFavorites, isFavorite, toggleLike, isLiked, notifications, markNotificationAsRead } = useApp();
   const [animatingLike, setAnimatingLike] = useState<string | null>(null);
   const [animatingFavorite, setAnimatingFavorite] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadNews();
-  }, []);
-
-  const loadNews = async () => {
-    try {
-      const data = await apiClient.getNews();
-      setNewsItems(data.map((item: any) => ({
-        id: String(item.id),
-        title: item.title,
-        content: item.content,
-        author: item.author,
-        authorAvatar: item.author_avatar,
-        date: item.date,
-        category: item.category,
-        image: item.image,
-        isNew: item.is_new
-      })));
-    } catch (error) {
-      console.error('Failed to load news:', error);
-      toast.error('Не удалось загрузить новости');
-    }
-  };
   
   const handleToggleFavorite = (item: NewsItem) => {
     setAnimatingFavorite(item.id);

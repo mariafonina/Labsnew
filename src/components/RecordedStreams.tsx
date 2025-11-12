@@ -1,54 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Play, Clock, Calendar, Bookmark, Eye } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { useApp } from "../contexts/AppContext";
+import { useApp, type Recording } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { RecordingDetail } from "./RecordingDetail";
-import { apiClient } from "../api/client";
-
-interface Recording {
-  id: string;
-  title: string;
-  date: string;
-  duration?: string;
-  instructor: string;
-  thumbnail?: string;
-  views?: number;
-  description?: string;
-  videoUrl?: string;
-}
 
 export function RecordedStreams() {
-  const { addToFavorites, removeFromFavorites, isFavorite } = useApp();
-  const [recordings, setRecordings] = useState<Recording[]>([]);
+  const { recordings, addToFavorites, removeFromFavorites, isFavorite } = useApp();
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
-
-  useEffect(() => {
-    loadRecordings();
-  }, []);
-
-  const loadRecordings = async () => {
-    try {
-      const data = await apiClient.getRecordings();
-      setRecordings(data.map((item: any) => ({
-        id: String(item.id),
-        title: item.title,
-        date: item.date,
-        duration: item.duration,
-        instructor: item.instructor,
-        thumbnail: item.thumbnail,
-        views: item.views,
-        description: item.description,
-        videoUrl: item.video_url
-      })));
-    } catch (error) {
-      console.error('Failed to load recordings:', error);
-      toast.error('Не удалось загрузить записи');
-    }
-  };
 
   const handleToggleFavorite = (recording: Recording, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -146,7 +108,7 @@ export function RecordedStreams() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={(e) => handleToggleFavorite(recording, e)}
+                    onClick={(e: React.MouseEvent) => handleToggleFavorite(recording, e)}
                     className={isFavorite(recording.id) ? "text-pink-500" : "text-gray-400"}
                   >
                     <Bookmark
@@ -193,7 +155,7 @@ export function RecordedStreams() {
                 <div className="flex gap-2">
                   {recording.videoUrl && (
                     <Button
-                      onClick={(e) => {
+                      onClick={(e: React.MouseEvent) => {
                         e.stopPropagation();
                         window.open(recording.videoUrl, "_blank");
                       }}

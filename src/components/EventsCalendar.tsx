@@ -21,36 +21,7 @@ interface Event {
 
 export function EventsCalendar() {
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
-  const { getCommentsByEvent, addToFavorites, removeFromFavorites, isFavorite, auth } = useApp();
-  const [events, setEvents] = useState<Event[]>([]);
-
-  useEffect(() => {
-    loadEvents();
-  }, []);
-
-  const loadEvents = async () => {
-    try {
-      const data = await apiClient.getEvents();
-      setEvents(data.map((item: any) => {
-        const eventDate = new Date(item.event_date);
-        const now = new Date();
-        return {
-          id: String(item.id),
-          title: item.title,
-          description: item.description || '',
-          date: item.event_date,
-          time: item.event_time || '',
-          location: item.location || '',
-          type: eventDate >= now ? 'upcoming' : 'past',
-          instructor: '', // Not available in DB
-          link: '' // Not available in DB
-        };
-      }));
-    } catch (error) {
-      console.error('Failed to load events:', error);
-      toast.error('Не удалось загрузить события');
-    }
-  };
+  const { events, getCommentsByEvent, addToFavorites, removeFromFavorites, isFavorite, auth } = useApp();
 
   // Get user gender for colors
   const gender = auth.isAuthenticated 
