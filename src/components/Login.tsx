@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Alert, AlertDescription } from "./ui/alert";
 import { useAuth } from "../contexts/AuthContext";
 import { Logo } from "./Logo";
+import { ForgotPasswordDialog } from "./ForgotPasswordDialog";
+import { Eye, EyeOff } from "lucide-react";
 
 export function Login() {
   const { login, register } = useAuth();
@@ -17,6 +19,9 @@ export function Login() {
   const [regPassword, setRegPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,15 +83,25 @@ export function Login() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Пароль</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    className="h-12"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="login-password"
+                      type={showLoginPassword ? "text" : "password"}
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      className="h-12 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowLoginPassword(!showLoginPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      tabIndex={-1}
+                    >
+                      {showLoginPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
                 {error && (
                   <Alert variant="destructive">
@@ -95,6 +110,15 @@ export function Login() {
                 )}
                 <Button type="submit" className="w-full h-12 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500" disabled={isLoading}>
                   {isLoading ? "Вход..." : "Войти"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => setForgotPasswordOpen(true)}
+                  className="w-full text-pink-600 hover:text-pink-700"
+                  disabled={isLoading}
+                >
+                  Забыли пароль?
                 </Button>
               </form>
             </TabsContent>
@@ -126,16 +150,26 @@ export function Login() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-password">Пароль (минимум 6 символов)</Label>
-                  <Input
-                    id="reg-password"
-                    type="password"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    required
-                    minLength={6}
-                    disabled={isLoading}
-                    className="h-12"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="reg-password"
+                      type={showRegPassword ? "text" : "password"}
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      disabled={isLoading}
+                      className="h-12 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      tabIndex={-1}
+                    >
+                      {showRegPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
                 {error && (
                   <Alert variant="destructive">
@@ -150,6 +184,7 @@ export function Login() {
           </Tabs>
         </CardContent>
       </Card>
+      <ForgotPasswordDialog open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen} />
     </div>
   );
 }

@@ -366,6 +366,19 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Password reset methods
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return this.post('/forgot-password', { email });
+  }
+
+  async verifyResetToken(token: string): Promise<{ valid: boolean; message?: string }> {
+    return this.get(`/verify-reset-token/${token}`);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    return this.post('/reset-password', { token, newPassword });
+  }
 }
 
 export const apiClient = new ApiClient();
