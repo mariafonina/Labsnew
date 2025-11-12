@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Onboarding } from "./components/Onboarding";
 import { NewsFeed } from "./components/NewsFeed";
 import { EventsCalendar } from "./components/EventsCalendar";
@@ -14,9 +14,8 @@ import { AdminPanel } from "./components/AdminPanel";
 import { UserSidebar } from "./components/UserSidebar";
 import { Logo } from "./components/Logo";
 import { MigrationBanner } from "./components/MigrationBanner";
-import { Bell, Calendar, BookOpen, Video, Newspaper, HelpCircle, MessageSquare, Bookmark, FileText, User, Settings } from "lucide-react";
-import { Badge } from "./components/ui/badge";
-import { Button } from "./components/ui/button";
+import { ResetPassword } from "./pages/ResetPassword";
+import { Calendar, BookOpen, Video, Newspaper, HelpCircle, MessageSquare, Bookmark, FileText } from "lucide-react";
 import { useApp } from "./contexts/AppContext";
 import { useAuth } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/sonner";
@@ -26,7 +25,6 @@ function AppContent() {
   const { getUnreadNotificationsCount } = useApp();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeTab, setActiveTab] = useState("news");
-  const [targetQuestionId, setTargetQuestionId] = useState<string | null>(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   useEffect(() => {
@@ -55,9 +53,7 @@ function AppContent() {
     setShowOnboarding(false);
   };
 
-  const handleNavigateToQuestion = (eventId: string, eventType: "event" | "instruction" | "recording", questionId: string) => {
-    setTargetQuestionId(questionId);
-    
+  const handleNavigateToQuestion = (_eventId: string, eventType: "event" | "instruction" | "recording", questionId: string) => {
     // Переключаемся на нужную вкладку
     if (eventType === "event") {
       setActiveTab("calendar");
@@ -564,11 +560,22 @@ function AppContent() {
   );
 }
 
-export default function App() {
+function MainApp() {
   return (
     <>
       <Toaster position="top-center" />
       <AppContent />
     </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/reset-password/:token" element={<><Toaster position="top-center" /><ResetPassword /></>} />
+        <Route path="*" element={<MainApp />} />
+      </Routes>
+    </BrowserRouter>
   );
 }

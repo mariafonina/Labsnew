@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { query } from '../db';
-import { sendSingleEmail } from './notisend-client';
+import { notisendClient } from './notisend-client';
 
 const RESET_TOKEN_EXPIRY_HOURS = 24;
 
@@ -19,7 +19,9 @@ export async function generateResetToken(userId: number): Promise<string> {
 }
 
 export async function sendPasswordResetEmail(email: string, username: string, token: string): Promise<void> {
-  const resetUrl = `${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DOMAINS?.split(',')[0]}` : 'http://localhost:5000'}/reset-password/${token}`;
+  const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 
+    (process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DOMAINS?.split(',')[0]}` : 'http://localhost:5000');
+  const resetUrl = `${frontendBaseUrl}/reset-password/${token}`;
 
   const subject = 'Сброс пароля - ЛАБС';
   const htmlBody = `
@@ -47,7 +49,20 @@ export async function sendPasswordResetEmail(email: string, username: string, to
     </div>
   `;
 
-  await sendSingleEmail(email, subject, htmlBody);
+  try {
+    await notisendClient.sendEmail({
+      to: email,
+      subject,
+      html: htmlBody,
+    });
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
+    if (!process.env.NOTISEND_API_KEY) {
+      console.warn('NOTISEND_API_KEY not configured - email sending skipped in development');
+    } else {
+      throw error;
+    }
+  }
 }
 
 export async function verifyResetToken(token: string): Promise<{ valid: boolean; userId?: number; message?: string }> {

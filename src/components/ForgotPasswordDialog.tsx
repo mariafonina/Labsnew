@@ -30,7 +30,7 @@ export function ForgotPasswordDialog({ open, onOpenChange }: ForgotPasswordDialo
     setIsLoading(true);
 
     try {
-      const response = await apiClient.forgotPassword(email);
+      await apiClient.forgotPassword(email);
       setSuccess(true);
       setEmail("");
     } catch (err) {

@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import bcrypt from 'bcrypt';
 import { query } from '../db';
 import {
@@ -8,21 +8,30 @@ import {
   markTokenAsUsed,
 } from '../utils/password-reset';
 import { asyncHandler } from '../utils/async-handler';
-import { sanitizeText } from '../utils/text-content-middleware';
 
 const router = express.Router();
+
+// Email validation helper
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email.trim());
+};
 
 // Request password reset
 router.post(
   '/forgot-password',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { email } = req.body;
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return res.status(400).json({ message: 'Email обязателен' });
     }
 
-    const sanitizedEmail = sanitizeText(email);
+    const sanitizedEmail = email.trim().toLowerCase();
+
+    if (!isValidEmail(sanitizedEmail)) {
+      return res.status(400).json({ message: 'Неверный формат email' });
+    }
 
     // Find user by email
     const userResult = await query(
@@ -59,7 +68,7 @@ router.post(
 // Verify reset token
 router.get(
   '/verify-reset-token/:token',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { token } = req.params;
 
     const verification = await verifyResetToken(token);
@@ -75,7 +84,7 @@ router.get(
 // Reset password
 router.post(
   '/reset-password',
-  asyncHandler(async (req, res) => {
+  asyncHandler(async (req: Request, res: Response) => {
     const { token, newPassword } = req.body;
 
     if (!token || !newPassword) {
