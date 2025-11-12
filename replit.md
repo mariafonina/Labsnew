@@ -47,6 +47,28 @@ The backend is an Express.js server written in TypeScript, running on Node.js. I
 - **Backend Framework:** Express.js
 ## Recent Changes (November 12, 2025)
 
+### Direct Image Upload for Admin News ✅ COMPLETED
+- **Problem**: Admin had to manually enter image URLs, which was inconvenient and error-prone
+- **Solution**: Implemented direct file upload with multer middleware and FormData API
+- **Features**:
+  - File input with real-time image preview in admin news form
+  - Server-side image storage in `/uploads/news/` directory
+  - Automatic validation (file type: jpeg/jpg/png/gif/webp, max size: 5MB)
+  - Unique filename generation with timestamp to prevent collisions
+  - Static file serving via Express from `/uploads` directory
+- **API Changes**:
+  - Frontend: `createNewsWithImage(formData)` and `updateNewsWithImage(id, formData)` methods
+  - Backend: POST/PUT endpoints now accept `multipart/form-data` with `uploadNewsImage.single('image')` middleware
+  - FormData handler omits Content-Type header to allow browser to set proper multipart boundary
+- **Auto-Metadata Population**: Backend automatically sets:
+  - `author` - extracted from JWT token (req.userId → username lookup)
+  - `date` - Russian locale format: "12 ноября 2025" using `toLocaleDateString('ru-RU')`
+  - `is_new` - always true for new items
+- **Admin UX Improvement**: Form simplified - removed manual fields for author, author_avatar, date, is_new (system auto-fills)
+- **Files Modified**: `src/api/client.ts`, `server/routes/admin/news.routes.ts`, `server/index.ts`, `server/utils/multer-config.ts`, `src/components/AdminNewsManager.tsx`
+- **Security**: Image type validation, size limits, sanitization of all text fields, admin-only access with JWT + role check
+- **Architect Review**: PASS - "Image upload flow meets requirements and operates correctly across client and server boundaries"
+
 ### Public API Endpoints for Admin Content ✅ COMPLETED
 - **Problem**: Content created in admin panel was not visible to regular users due to 403 Forbidden errors
 - **Root Cause**: Frontend components were calling admin endpoints (`/api/admin/news`) which require JWT + admin role
