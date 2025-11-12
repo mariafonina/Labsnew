@@ -12,7 +12,7 @@ import {
 } from "./ui/select";
 import { User, Instagram, Send, Mail, Phone, Calendar as CalendarIcon, Lock, Eye, EyeOff, LogOut } from "lucide-react";
 import { toast } from "sonner";
-import { useApp } from "../contexts/AppContext";
+import { useAuth } from "../contexts/AuthContext";
 
 export interface UserProfileData {
   nickname: string;
@@ -25,7 +25,7 @@ export interface UserProfileData {
 }
 
 export function UserProfile() {
-  const { auth, changePassword, logout } = useApp();
+  const { logout } = useAuth();
   
   const [profile, setProfile] = useState<UserProfileData>(() => {
     const saved = localStorage.getItem("userProfile");
@@ -77,21 +77,16 @@ export function UserProfile() {
       return;
     }
 
-    const success = changePassword(oldPassword, newPassword);
-    
-    if (success) {
-      toast.success("Пароль успешно изменён");
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } else {
-      toast.error("Неверный текущий пароль");
-    }
+    toast.info("Функция смены пароля будет добавлена в следующей версии");
   };
 
-  const handleLogout = () => {
-    logout();
-    toast.success("Вы вышли из аккаунта");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast.success("Вы вышли из аккаунта");
+    } catch (error) {
+      toast.error("Не удалось выйти из аккаунта");
+    }
   };
 
   return (
