@@ -29,12 +29,14 @@ The backend is an Express.js server written in TypeScript, running on Node.js. I
 **Feature Specifications:**
 - **Authentication:** JWT-based login/logout, session management, secure password handling.
 - **Content Management:** CRUD operations for instructions, events, favorites, notes, questions, and user progress.
-- **Admin Functionality:** Dedicated API endpoints and managers for news, recordings, FAQ, and events.
+- **Admin Functionality:** Dedicated API endpoints and managers for news, recordings, FAQ, events, and email campaigns.
+- **Email Marketing:** Notisend integration for mass communications, news distribution, credentials delivery, and transactional emails.
 - **User Features:** Notes, favorites, progress tracking, user profiles, and an event calendar.
 
 ## External Dependencies
 - **Database:** PostgreSQL (external server: `maridb.mashtab.io`, schema: `labs`)
 - **Authentication:** JWT, bcrypt
+- **Email Service:** Notisend API (notisend.ru) for email campaigns
 - **UI Libraries:** Radix UI primitives
 - **Styling:** Tailwind CSS v4.1
 - **Animations:** Framer Motion
@@ -129,3 +131,26 @@ The backend is an Express.js server written in TypeScript, running on Node.js. I
 - **Architect Approval**: "The requestId-based cancellation correctly prevents any stale fetch from mutating user-scoped state after logout/login churn, eliminating the multi-tenant data leakage previously observed."
 - **Files Modified**: `src/contexts/AppContext.tsx`, `src/api/client.ts`
 - **Result**: BULLETPROOF multi-tenant isolation - no execution path allows cross-user data leakage
+
+### Notisend Email Integration ✅ COMPLETED
+- **Purpose**: Enable admin to send mass email communications, news broadcasts, marketing campaigns, and transactional emails
+- **Implementation**:
+  - **Backend**: Created Notisend API client (`server/utils/notisend-client.ts`) with methods for single, bulk, and template-based emails
+  - **API Routes**: `/api/admin/emails` with full CRUD operations for campaigns and `/send-user-credentials` for credential distribution
+  - **Database**: New tables `email_campaigns` (campaign metadata) and `email_logs` (delivery tracking with status, errors, notisend_id)
+  - **Frontend**: `AdminEmailManager` component in admin panel with campaign creation, editing, and sending UI
+  - **Navigation**: Added "Email-рассылки" section to admin sidebar with Mail icon
+- **Email Workflow**:
+  1. Admin creates campaign in ЛАБС with name, type, subject, template_id
+  2. Templates designed in Notisend visual editor (external platform)
+  3. Admin sends campaign via ЛАБС → Notisend API → email delivery
+  4. Delivery logs stored in `email_logs` with status tracking
+- **Campaign Types**: credentials (user credentials), news (newsletters), marketing (promotions), transactional (system emails)
+- **Critical Bug Fix**: `sendTemplateEmail` initially sent empty `subject` causing Notisend API rejection
+  - **Solution**: Added optional `subject` parameter with fallback to 'Уведомление' for template-based sends
+  - **Template sends now pass**: `campaign.subject || 'Уведомление'` to ensure API compatibility
+- **Security**: Admin-only endpoints with JWT verification, content sanitization via DOMPurify, rate limiting
+- **API Key Management**: `NOTISEND_API_KEY` and `NOTISEND_PROJECT_NAME` stored in Replit Secrets
+- **Architect Review**: PASS - "Integration reliably supplies subject for all template sends, preventing API rejection"
+- **Files Created**: `server/utils/notisend-client.ts`, `server/routes/admin/emails.routes.ts`, `src/components/AdminEmailManager.tsx`
+- **Files Modified**: `server/init-db.ts` (email tables), `server/index.ts` (routes), `src/components/AdminPanel.tsx`, `src/components/AdminSidebar.tsx`, `src/api/client.ts` (API methods)
