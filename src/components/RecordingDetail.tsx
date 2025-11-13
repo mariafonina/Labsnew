@@ -8,6 +8,7 @@ import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { LoomEmbed } from "./LoomEmbed";
 import type { Recording } from "../contexts/AppContext";
+import { validateAndNormalizeLoomUrl } from "../utils/loom-validator";
 
 interface RecordingDetailProps {
   recording: Recording;
@@ -148,6 +149,15 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
     }
   };
 
+  const normalizedLoomUrl = recording.loom_embed_url 
+    ? validateAndNormalizeLoomUrl(recording.loom_embed_url)
+    : recording.videoUrl 
+      ? validateAndNormalizeLoomUrl(recording.videoUrl)
+      : null;
+
+  const hasLoomVideo = !!normalizedLoomUrl;
+  const hasRegularVideo = recording.videoUrl && !normalizedLoomUrl;
+
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -192,8 +202,15 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
         )}
       </div>
 
-      {/* Video */}
-      {recording.videoUrl && (
+      {/* Loom Video Embed */}
+      {hasLoomVideo && normalizedLoomUrl && (
+        <div className="mb-10">
+          <LoomEmbed url={normalizedLoomUrl} />
+        </div>
+      )}
+
+      {/* Regular Video */}
+      {hasRegularVideo && (
         <div className="mb-10">
           <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-gray-100">
             <div className="relative w-full bg-black" style={{ paddingBottom: "56.25%" }}>
@@ -205,13 +222,6 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
               />
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Loom Video Embed */}
-      {recording.loom_embed_url && (
-        <div className="mb-10">
-          <LoomEmbed url={recording.loom_embed_url} />
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { verifyToken, requireAdmin, AuthRequest } from '../../auth';
 import { query } from '../../db';
 import { createLimiter } from '../../utils/rate-limit';
@@ -10,13 +10,13 @@ import { uploadRecordingImage } from '../../utils/multer-config';
 const router = Router();
 
 // Get all recordings
-router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
   const result = await query('SELECT * FROM labs.recordings ORDER BY created_at DESC');
   res.json(result.rows);
 }));
 
 // Create recording with image upload
-router.post('/', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.single('thumbnail'), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.single('thumbnail'), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { title, date, duration, instructor, description, video_url, loom_embed_url } = req.body;
 
   if (!title || !date || !instructor) {
@@ -38,7 +38,7 @@ router.post('/', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.
 }));
 
 // Update recording with optional image upload
-router.put('/:id', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.single('thumbnail'), asyncHandler(async (req: AuthRequest, res) => {
+router.put('/:id', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.single('thumbnail'), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const { title, date, duration, instructor, description, video_url, loom_embed_url } = req.body;
 
@@ -105,7 +105,7 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, uploadRecordingImag
 }));
 
 // Delete recording
-router.delete('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+router.delete('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   
   const result = await query('DELETE FROM labs.recordings WHERE id = $1 RETURNING id', [id]);
