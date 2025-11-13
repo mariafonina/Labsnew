@@ -48,23 +48,13 @@ router.post(
 
     for (const user of users) {
       try {
-        const existingToken = await query(
-          `SELECT token FROM labs.initial_password_tokens 
-           WHERE user_id = $1 AND used = FALSE AND expires_at > NOW()
-           ORDER BY created_at DESC LIMIT 1`,
+        await query(
+          `DELETE FROM labs.initial_password_tokens 
+           WHERE user_id = $1 AND used = FALSE`,
           [user.id]
         );
 
-        let token: string;
-        
-        if (existingToken.rows.length > 0) {
-          token = existingToken.rows[0].token;
-          console.log(`Using existing token for user ${user.username}`);
-        } else {
-          token = await generateInitialPasswordToken(user.id);
-          console.log(`Generated new token for user ${user.username}`);
-        }
-
+        const token = await generateInitialPasswordToken(user.id);
         await sendInitialPasswordEmail(user.email, user.username, token);
         results.sent++;
         
