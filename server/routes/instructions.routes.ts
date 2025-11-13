@@ -4,6 +4,7 @@ import { verifyToken, AuthRequest } from '../auth';
 import { sanitizeHtml } from '../utils/sanitize';
 import { asyncHandler } from '../utils/async-handler';
 import { findOneOrFail, deleteOneOrFail } from '../utils/db-helpers';
+import { validateAndNormalizeLoomUrl } from '../utils/loom-validator';
 
 const router = Router();
 
@@ -36,17 +37,18 @@ router.get('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
 }));
 
 router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
-  const { title, content, category, tags, image_url } = req.body;
+  const { title, content, category, tags, image_url, loom_embed_url } = req.body;
 
   if (!title || !content) {
     return res.status(400).json({ error: 'Title and content are required' });
   }
 
   const sanitizedContent = sanitizeHtml(content);
+  const validatedLoomUrl = validateAndNormalizeLoomUrl(loom_embed_url);
 
   const result = await query(
-    'INSERT INTO labs.instructions (user_id, title, content, category, tags, image_url) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-    [req.userId, title, sanitizedContent, category, tags, image_url]
+    'INSERT INTO labs.instructions (user_id, title, content, category, tags, image_url, loom_embed_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+    [req.userId, title, sanitizedContent, category, tags, image_url, validatedLoomUrl]
   );
 
   res.status(201).json(result.rows[0]);
@@ -54,13 +56,14 @@ router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
 
 router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
   const { id } = req.params;
-  const { title, content, category, tags, image_url } = req.body;
+  const { title, content, category, tags, image_url, loom_embed_url } = req.body;
 
   const sanitizedContent = sanitizeHtml(content);
+  const validatedLoomUrl = loom_embed_url !== undefined ? validateAndNormalizeLoomUrl(loom_embed_url) : undefined;
 
   const result = await query(
-    'UPDATE labs.instructions SET title = $1, content = $2, category = $3, tags = $4, image_url = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6 AND user_id = $7 RETURNING *',
-    [title, sanitizedContent, category, tags, image_url, id, req.userId]
+    'UPDATE labs.instructions SET title = $1, content = $2, category = $3, tags = $4, image_url = $5, loom_embed_url = COALESCE($6, loom_embed_url), updated_at = CURRENT_TIMESTAMP WHERE id = $7 AND user_id = $8 RETURNING *',
+    [title, sanitizedContent, category, tags, image_url, validatedLoomUrl, id, req.userId]
   );
 
   if (result.rows.length === 0) {

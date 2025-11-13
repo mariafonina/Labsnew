@@ -265,6 +265,10 @@ export async function initializeDatabase() {
       console.log('Migrated labs.initial_password_tokens to token_hash');
     }
 
+    await query(`ALTER TABLE labs.recordings ADD COLUMN IF NOT EXISTS loom_embed_url TEXT`);
+    await query(`ALTER TABLE labs.instructions ADD COLUMN IF NOT EXISTS loom_embed_url TEXT`);
+    console.log('Added loom_embed_url columns to recordings and instructions');
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
