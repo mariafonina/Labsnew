@@ -1,10 +1,19 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
 import { pool } from '../db';
 import { asyncHandler } from '../utils/async-handler';
 import { 
   verifyInitialPasswordToken 
 } from '../utils/initial-password';
+
+function hashToken(token: string): string {
+  const secret = process.env.INITIAL_PASSWORD_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error('INITIAL_PASSWORD_TOKEN_SECRET is not configured');
+  }
+  return crypto.createHmac('sha256', secret).update(token).digest('hex');
+}
 
 const router = Router();
 
@@ -37,38 +46,30 @@ router.post(
     try {
       await client.query('BEGIN');
 
-      const tokenHash = await bcrypt.hash(token, 10);
+      const tokenHash = hashToken(token);
 
       const tokenResult = await client.query(
-        `SELECT user_id, expires_at, used, token_hash 
+        `SELECT user_id, expires_at, used 
          FROM labs.initial_password_tokens 
-         WHERE user_id IN (
-           SELECT user_id FROM labs.initial_password_tokens
-         )
-         FOR UPDATE`
+         WHERE token_hash = $1
+         FOR UPDATE`,
+        [tokenHash]
       );
 
-      let validToken = null;
-      for (const row of tokenResult.rows) {
-        const isMatch = await bcrypt.compare(token, row.token_hash);
-        if (isMatch) {
-          validToken = row;
-          break;
-        }
-      }
-
-      if (!validToken) {
+      if (tokenResult.rows.length === 0) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Токен не найден' });
       }
 
-      if (validToken.used) {
+      const tokenData = tokenResult.rows[0];
+
+      if (tokenData.used) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Токен уже использован' });
       }
 
       const now = new Date();
-      const expiresAt = new Date(validToken.expires_at);
+      const expiresAt = new Date(tokenData.expires_at);
 
       if (now > expiresAt) {
         await client.query('ROLLBACK');
@@ -81,14 +82,14 @@ router.post(
         `UPDATE labs.users 
          SET password_hash = $1, updated_at = CURRENT_TIMESTAMP 
          WHERE id = $2`,
-        [passwordHash, validToken.user_id]
+        [passwordHash, tokenData.user_id]
       );
 
       await client.query(
         `UPDATE labs.initial_password_tokens 
          SET used = TRUE 
-         WHERE user_id = $1 AND used = FALSE`,
-        [validToken.user_id]
+         WHERE token_hash = $1`,
+        [tokenHash]
       );
 
       await client.query('COMMIT');

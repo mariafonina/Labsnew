@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Users,
   Mail,
+  KeyRound,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -46,6 +47,7 @@ export function AdminSidebar({
     { id: "recordings", label: "Записи", icon: Video },
     { id: "faq", label: "FAQ", icon: HelpCircle },
     { id: "emails", label: "Email-рассылки", icon: Mail },
+    { id: "initial-passwords", label: "Первичные пароли", icon: KeyRound },
     { id: "questions", label: "Вопросы", icon: MessageCircle, badge: userQuestionsCount },
     { id: "users", label: "Пользователи", icon: Users },
   ];

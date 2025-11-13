@@ -251,6 +251,20 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.initial_password_tokens" created');
 
+    const tokenHashExists = await query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_schema = 'labs' 
+      AND table_name = 'initial_password_tokens' 
+      AND column_name = 'token_hash'
+    `);
+
+    if (tokenHashExists.rows.length === 0) {
+      await query(`ALTER TABLE labs.initial_password_tokens ADD COLUMN IF NOT EXISTS token_hash VARCHAR(255)`);
+      await query(`ALTER TABLE labs.initial_password_tokens DROP COLUMN IF EXISTS token`);
+      console.log('Migrated labs.initial_password_tokens to token_hash');
+    }
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
@@ -272,6 +286,7 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON labs.password_reset_tokens(token)');
     await query('CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON labs.password_reset_tokens(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_initial_password_tokens_user_id ON labs.initial_password_tokens(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_initial_password_tokens_token_hash ON labs.initial_password_tokens(token_hash)');
     console.log('Indexes created');
 
     console.log('Database initialization completed successfully!');

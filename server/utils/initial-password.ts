@@ -4,15 +4,24 @@ import { notisendClient } from './notisend-client';
 
 const INITIAL_TOKEN_EXPIRY_DAYS = 7;
 
+function hashToken(token: string): string {
+  const secret = process.env.INITIAL_PASSWORD_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error('INITIAL_PASSWORD_TOKEN_SECRET is not configured');
+  }
+  return crypto.createHmac('sha256', secret).update(token).digest('hex');
+}
+
 export async function generateInitialPasswordToken(userId: number): Promise<string> {
   const token = crypto.randomBytes(32).toString('hex');
+  const tokenHash = hashToken(token);
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + INITIAL_TOKEN_EXPIRY_DAYS);
 
   await query(
-    `INSERT INTO labs.initial_password_tokens (user_id, token, expires_at)
+    `INSERT INTO labs.initial_password_tokens (user_id, token_hash, expires_at)
      VALUES ($1, $2, $3)`,
-    [userId, token, expiresAt]
+    [userId, tokenHash, expiresAt]
   );
 
   return token;
@@ -67,11 +76,13 @@ export async function sendInitialPasswordEmail(email: string, username: string, 
 }
 
 export async function verifyInitialPasswordToken(token: string): Promise<{ valid: boolean; userId?: number; message?: string }> {
+  const tokenHash = hashToken(token);
+  
   const result = await query(
     `SELECT user_id, expires_at, used 
      FROM labs.initial_password_tokens 
-     WHERE token = $1`,
-    [token]
+     WHERE token_hash = $1`,
+    [tokenHash]
   );
 
   if (result.rows.length === 0) {
@@ -95,11 +106,13 @@ export async function verifyInitialPasswordToken(token: string): Promise<{ valid
 }
 
 export async function markInitialTokenAsUsed(token: string): Promise<void> {
+  const tokenHash = hashToken(token);
+  
   await query(
     `UPDATE labs.initial_password_tokens 
      SET used = TRUE 
-     WHERE token = $1`,
-    [token]
+     WHERE token_hash = $1`,
+    [tokenHash]
   );
 }
 
