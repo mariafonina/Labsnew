@@ -35,8 +35,8 @@ export function AdminQuestions() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  // Получаем все вопросы (без ответов)
-  const allQuestions = comments.filter((c) => !c.parentId);
+  // Получаем все вопросы от пользователей (без ответов от админа)
+  const allQuestions = comments.filter((c) => !c.parentId && c.authorRole === "user");
 
   // Фильтруем вопросы
   const filteredQuestions = allQuestions.filter((question) => {
