@@ -22,6 +22,7 @@ interface Recording {
   views: number;
   description?: string;
   video_url?: string;
+  loom_embed_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +44,7 @@ export function AdminRecordingsManager() {
     views: 0,
     description: "",
     video_url: "",
+    loom_embed_url: "",
   });
 
   useEffect(() => {
@@ -72,6 +74,7 @@ export function AdminRecordingsManager() {
       views: 0,
       description: "",
       video_url: "",
+      loom_embed_url: "",
     });
     setIsAdding(false);
     setEditingItem(null);
@@ -138,6 +141,7 @@ export function AdminRecordingsManager() {
       views: item.views,
       description: item.description || "",
       video_url: item.video_url || "",
+      loom_embed_url: item.loom_embed_url || "",
     });
     setIsAdding(false);
   };
@@ -309,6 +313,13 @@ export function AdminRecordingsManager() {
                 value={recordingForm.video_url}
                 onChange={(e) => setRecordingForm({ ...recordingForm, video_url: e.target.value })}
                 placeholder="https://..."
+              />
+            </AdminFormField>
+            <AdminFormField label="Loom видео (ссылка для встраивания)">
+              <Input
+                value={recordingForm.loom_embed_url}
+                onChange={(e) => setRecordingForm({ ...recordingForm, loom_embed_url: e.target.value })}
+                placeholder="https://www.loom.com/embed/... или https://www.loom.com/share/..."
               />
             </AdminFormField>
             <AdminFormField label="Просмотры">

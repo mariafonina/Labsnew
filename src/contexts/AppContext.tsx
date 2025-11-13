@@ -89,7 +89,7 @@ export interface Instruction {
   content?: string;
   downloadUrl?: string;
   order: number; // порядок внутри категории
-  loomVideoUrl?: string; // URL Loom видео
+  loom_embed_url?: string; // URL Loom видео для встраивания
   imageUrl?: string; // URL изображения на всю ширину
 }
 
@@ -111,6 +111,7 @@ export interface Recording {
   views: number;
   description: string;
   videoUrl?: string;
+  loom_embed_url?: string;
 }
 
 export interface FAQItem {

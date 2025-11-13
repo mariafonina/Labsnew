@@ -417,6 +417,7 @@ export function AdminInstructionsManager() {
     description: "",
     content: "",
     downloadUrl: "",
+    loom_embed_url: "",
     updatedAt: new Date().toISOString().split("T")[0],
   });
 
@@ -452,6 +453,7 @@ export function AdminInstructionsManager() {
       description: "",
       content: "",
       downloadUrl: "",
+      loom_embed_url: "",
       updatedAt: new Date().toISOString().split("T")[0],
     });
     setIsAddingInstruction(false);
@@ -471,6 +473,7 @@ export function AdminInstructionsManager() {
       description: "",
       content: "",
       downloadUrl: "",
+      loom_embed_url: "",
       updatedAt: new Date().toISOString().split("T")[0],
     });
     setEditingInstruction(null);
@@ -502,6 +505,7 @@ export function AdminInstructionsManager() {
       description: "",
       content: "",
       downloadUrl: "",
+      loom_embed_url: "",
       updatedAt: new Date().toISOString().split("T")[0],
     });
   };
@@ -718,6 +722,25 @@ export function AdminInstructionsManager() {
                 </div>
 
                 <div>
+                  <Label htmlFor="instruction-loom" className="text-base mb-2 block">
+                    Loom видео (ссылка для встраивания)
+                  </Label>
+                  <Input
+                    id="instruction-loom"
+                    type="url"
+                    value={instructionForm.loom_embed_url}
+                    onChange={(e) =>
+                      setInstructionForm({ ...instructionForm, loom_embed_url: e.target.value })
+                    }
+                    placeholder="https://www.loom.com/embed/... или https://www.loom.com/share/..."
+                    className="text-base h-12"
+                  />
+                  <p className="text-xs lg:text-sm text-gray-500 mt-1">
+                    🎥 Ссылка на Loom видео для встраивания в инструкцию
+                  </p>
+                </div>
+
+                <div>
                   <Label htmlFor="instruction-date" className="text-base mb-2 block">
                     Дата обновления
                   </Label>
@@ -792,6 +815,7 @@ export function AdminInstructionsManager() {
                     description: instr.description,
                     content: instr.content || "",
                     downloadUrl: instr.downloadUrl || "",
+                    loom_embed_url: instr.loom_embed_url || "",
                     updatedAt: instr.updatedAt,
                   });
                 }}
