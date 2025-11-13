@@ -5,6 +5,7 @@ import path from 'path';
 import { initializeDatabase } from './init-db';
 import { globalLimiter, burstLimiter, requestSizeLimiter } from './utils/rate-limit';
 import authRoutes from './routes/auth.routes';
+import profileRoutes from './routes/profile.routes';
 import instructionsRoutes from './routes/instructions.routes';
 import eventsRoutes from './routes/events.routes';
 import favoritesRoutes from './routes/favorites.routes';
@@ -52,6 +53,7 @@ app.use('/api/', requestSizeLimiter);
 
 // API routes
 app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
 app.use('/api', passwordResetRoutes);
 app.use('/api', setupPasswordRoutes);
 app.use('/api/instructions', instructionsRoutes);

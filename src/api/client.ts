@@ -100,6 +100,17 @@ class ApiClient {
     this.clearToken();
   }
 
+  async getProfile() {
+    return this.request<any>('/profile');
+  }
+
+  async updateProfile(data: { first_name?: string; last_name?: string; email?: string }) {
+    return this.request<any>('/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   async getInstructions(params?: { category?: string; search?: string }) {
     const queryString = params
       ? '?' + new URLSearchParams(params as any).toString()
@@ -300,6 +311,20 @@ class ApiClient {
 
   async getUsers() {
     return this.request<any[]>('/admin/users');
+  }
+
+  async createUser(data: { username: string; email: string; password?: string; first_name?: string; last_name?: string; role?: 'user' | 'admin' }) {
+    return this.request<any>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateUser(id: number, data: { username?: string; email?: string; password?: string; first_name?: string; last_name?: string; role?: 'user' | 'admin' }) {
+    return this.request<any>(`/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async updateUserRole(id: number, role: 'user' | 'admin') {

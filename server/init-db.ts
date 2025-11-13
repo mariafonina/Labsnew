@@ -13,12 +13,23 @@ export async function initializeDatabase() {
         username VARCHAR(50) UNIQUE NOT NULL,
         email VARCHAR(100) UNIQUE NOT NULL,
         password_hash VARCHAR(255) NOT NULL,
+        first_name VARCHAR(100),
+        last_name VARCHAR(100),
         role VARCHAR(20) DEFAULT 'user',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('Table "labs.users" created');
+
+    // Migrate existing users table to add name fields
+    try {
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100)`);
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100)`);
+      console.log('Added first_name and last_name columns to labs.users');
+    } catch (err) {
+      // Columns already exist, that's fine
+    }
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.instructions (

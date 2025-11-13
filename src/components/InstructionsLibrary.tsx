@@ -119,7 +119,7 @@ export function InstructionsLibrary() {
   };
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-16">
       {sortedCategories.length === 0 ? (
         <Card className="p-12 text-center">
           <p className="text-gray-500 text-lg">
