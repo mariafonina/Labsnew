@@ -264,6 +264,14 @@ class ApiClient {
     });
   }
 
+  async createRecordingWithImage(formData: FormData) {
+    return this.requestFormData<any>('/admin/recordings', formData, 'POST');
+  }
+
+  async updateRecordingWithImage(id: number, formData: FormData) {
+    return this.requestFormData<any>(`/admin/recordings/${id}`, formData, 'PUT');
+  }
+
   async deleteRecording(id: number) {
     return this.request<any>(`/admin/recordings/${id}`, {
       method: 'DELETE',

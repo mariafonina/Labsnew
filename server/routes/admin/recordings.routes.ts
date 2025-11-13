@@ -5,6 +5,7 @@ import { createLimiter } from '../../utils/rate-limit';
 import { asyncHandler } from '../../utils/async-handler';
 import { sanitizeText } from '../../utils/sanitize';
 import { validateAndNormalizeLoomUrl } from '../../utils/loom-validator';
+import { uploadRecordingImage } from '../../utils/multer-config';
 
 const router = Router();
 
@@ -14,9 +15,9 @@ router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest,
   res.json(result.rows);
 }));
 
-// Create recording
-router.post('/', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res) => {
-  const { title, date, duration, instructor, thumbnail, views, description, video_url, loom_embed_url } = req.body;
+// Create recording with image upload
+router.post('/', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.single('thumbnail'), asyncHandler(async (req: AuthRequest, res) => {
+  const { title, date, duration, instructor, description, video_url, loom_embed_url } = req.body;
 
   if (!title || !date || !instructor) {
     return res.status(400).json({ error: 'Title, date, and instructor are required' });
@@ -26,24 +27,26 @@ router.post('/', verifyToken, requireAdmin, createLimiter, asyncHandler(async (r
   const sanitizedInstructor = sanitizeText(instructor);
   const sanitizedDescription = description ? sanitizeText(description) : null;
   const validatedLoomUrl = validateAndNormalizeLoomUrl(loom_embed_url);
+  const thumbnail = req.file ? `/uploads/recordings/${req.file.filename}` : null;
 
   const result = await query(
     'INSERT INTO labs.recordings (title, date, duration, instructor, thumbnail, views, description, video_url, loom_embed_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-    [sanitizedTitle, date, duration, sanitizedInstructor, thumbnail, views ?? 0, sanitizedDescription, video_url, validatedLoomUrl]
+    [sanitizedTitle, date, duration, sanitizedInstructor, thumbnail, 0, sanitizedDescription, video_url, validatedLoomUrl]
   );
 
   res.status(201).json(result.rows[0]);
 }));
 
-// Update recording
-router.put('/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res) => {
+// Update recording with optional image upload
+router.put('/:id', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.single('thumbnail'), asyncHandler(async (req: AuthRequest, res) => {
   const { id } = req.params;
-  const { title, date, duration, instructor, thumbnail, views, description, video_url, loom_embed_url } = req.body;
+  const { title, date, duration, instructor, description, video_url, loom_embed_url } = req.body;
 
   const sanitizedTitle = title ? sanitizeText(title) : undefined;
   const sanitizedInstructor = instructor ? sanitizeText(instructor) : undefined;
   const sanitizedDescription = description ? sanitizeText(description) : undefined;
   const validatedLoomUrl = loom_embed_url !== undefined ? validateAndNormalizeLoomUrl(loom_embed_url) : undefined;
+  const thumbnail = req.file ? `/uploads/recordings/${req.file.filename}` : undefined;
 
   const updateParts = [];
   const values = [];
@@ -68,10 +71,6 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async 
   if (thumbnail !== undefined) {
     updateParts.push(`thumbnail = $${paramIndex++}`);
     values.push(thumbnail);
-  }
-  if (views !== undefined) {
-    updateParts.push(`views = $${paramIndex++}`);
-    values.push(views);
   }
   if (sanitizedDescription !== undefined) {
     updateParts.push(`description = $${paramIndex++}`);

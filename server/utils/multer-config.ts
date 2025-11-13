@@ -2,20 +2,36 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-const uploadsDir = path.join(process.cwd(), 'uploads', 'news');
+const newsUploadsDir = path.join(process.cwd(), 'uploads', 'news');
+const recordingsUploadsDir = path.join(process.cwd(), 'uploads', 'recordings');
 
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+if (!fs.existsSync(newsUploadsDir)) {
+  fs.mkdirSync(newsUploadsDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
+if (!fs.existsSync(recordingsUploadsDir)) {
+  fs.mkdirSync(recordingsUploadsDir, { recursive: true });
+}
+
+const newsStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadsDir);
+    cb(null, newsUploadsDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     const ext = path.extname(file.originalname);
     cb(null, `news-${uniqueSuffix}${ext}`);
+  }
+});
+
+const recordingsStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, recordingsUploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(file.originalname);
+    cb(null, `recording-${uniqueSuffix}${ext}`);
   }
 });
 
@@ -32,7 +48,15 @@ const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCa
 };
 
 export const uploadNewsImage = multer({
-  storage,
+  storage: newsStorage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024
+  }
+});
+
+export const uploadRecordingImage = multer({
+  storage: recordingsStorage,
   fileFilter,
   limits: {
     fileSize: 5 * 1024 * 1024

@@ -283,7 +283,7 @@ export function AdminNewsManager() {
         </div>
       )}
 
-      <Dialog open={isAdding || !!editingItem} onOpenChange={(open) => !open && resetForm()}>
+      <Dialog open={isAdding || !!editingItem} onOpenChange={(open: boolean) => !open && resetForm()}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingItem ? "Редактировать новость" : "Добавить новость"}</DialogTitle>
@@ -351,7 +351,7 @@ export function AdminNewsManager() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+      <AlertDialog open={!!deletingId} onOpenChange={(open: boolean) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить новость?</AlertDialogTitle>
