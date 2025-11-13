@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { apiClient } from "../api/client";
+import { validateAndNormalizeLoomUrl } from "../utils/loom-validator";
 
 export interface FavoriteItem {
   id: string;
@@ -315,7 +316,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [instructions, setInstructions] = useState<Instruction[]>(() => {
     const saved = localStorage.getItem("instructions");
-    return saved ? JSON.parse(saved) : [
+    const parsed = (saved && saved !== "undefined") ? JSON.parse(saved) : [
       {
         id: "instr-1",
         title: "Полное руководство по эффективному обучению",
@@ -476,6 +477,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         order: 1
       }
     ];
+    
+    return parsed.map((instr: Instruction) => ({
+      ...instr,
+      loom_embed_url: validateAndNormalizeLoomUrl(instr.loom_embed_url),
+    }));
   });
 
   const [recordings, setRecordings] = useState<Recording[]>(() => {
@@ -1035,13 +1041,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       id: `instr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       views: 0,
       order: maxOrder + 1,
+      loom_embed_url: validateAndNormalizeLoomUrl(instruction.loom_embed_url),
     };
     setInstructions((prev) => [...prev, newInstruction]);
   };
 
   const updateInstruction = (id: string, updates: Partial<Instruction>) => {
+    const normalizedUpdates = {
+      ...updates,
+      ...(updates.loom_embed_url !== undefined && {
+        loom_embed_url: validateAndNormalizeLoomUrl(updates.loom_embed_url),
+      }),
+    };
     setInstructions((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+      prev.map((item) => (item.id === id ? { ...item, ...normalizedUpdates } : item))
     );
   };
 
