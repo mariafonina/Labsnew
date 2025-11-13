@@ -15,6 +15,7 @@ import { UserSidebar } from "./components/UserSidebar";
 import { Logo } from "./components/Logo";
 import { MigrationBanner } from "./components/MigrationBanner";
 import { ResetPassword } from "./pages/ResetPassword";
+import { SetupPassword } from "./pages/SetupPassword";
 import { Calendar, BookOpen, Video, Newspaper, HelpCircle, MessageSquare, Bookmark, FileText } from "lucide-react";
 import { useApp } from "./contexts/AppContext";
 import { useAuth } from "./contexts/AuthContext";
@@ -566,6 +567,7 @@ export default function App() {
       <Toaster position="top-center" />
       <Routes>
         <Route path="/reset-password/:token" element={<ResetPassword />} />
+        <Route path="/setup-password/:token" element={<SetupPassword />} />
         <Route path="*" element={<AppContent />} />
       </Routes>
     </>

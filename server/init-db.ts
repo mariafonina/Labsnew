@@ -239,6 +239,18 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.password_reset_tokens" created');
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.initial_password_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(255) NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        used BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.initial_password_tokens" created');
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
@@ -259,6 +271,7 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_email_logs_status ON labs.email_logs(status)');
     await query('CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON labs.password_reset_tokens(token)');
     await query('CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON labs.password_reset_tokens(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_initial_password_tokens_user_id ON labs.initial_password_tokens(user_id)');
     console.log('Indexes created');
 
     console.log('Database initialization completed successfully!');

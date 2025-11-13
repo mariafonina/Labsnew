@@ -19,12 +19,17 @@ import adminRecordingsRoutes from './routes/admin/recordings.routes';
 import adminFaqRoutes from './routes/admin/faq.routes';
 import adminUsersRoutes from './routes/admin/users.routes';
 import adminEmailsRoutes from './routes/admin/emails.routes';
+import adminInitialPasswordsRoutes from './routes/admin/initial-passwords.routes';
 import passwordResetRoutes from './routes/password-reset.routes';
+import setupPasswordRoutes from './routes/setup-password.routes';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 // Use port 5000 in production (for deployment), 3001 in development
 const PORT = parseInt(process.env.PORT || (isProduction ? '5000' : '3001'), 10);
+
+// Trust proxy for rate limiting behind reverse proxy (Replit)
+app.set('trust proxy', 1);
 
 app.use(helmet({
   contentSecurityPolicy: false,
@@ -48,6 +53,7 @@ app.use('/api/', requestSizeLimiter);
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api', passwordResetRoutes);
+app.use('/api', setupPasswordRoutes);
 app.use('/api/instructions', instructionsRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/favorites', favoritesRoutes);
@@ -66,6 +72,7 @@ app.use('/api/admin/recordings', adminRecordingsRoutes);
 app.use('/api/admin/faq', adminFaqRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin/emails', adminEmailsRoutes);
+app.use('/api/admin', adminInitialPasswordsRoutes);
 
 // Root endpoint - always return fast JSON for health checks
 app.get('/', (req, res) => {

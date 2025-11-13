@@ -379,6 +379,24 @@ class ApiClient {
   async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
     return this.post('/reset-password', { token, newPassword });
   }
+
+  // Initial password setup methods (admin only)
+  async sendInitialPasswords(): Promise<{ sent: number; failed: number; total: number; message: string }> {
+    return this.post('/admin/send-initial-passwords');
+  }
+
+  async getInitialPasswordStats(): Promise<{ stats: { total: number; used: number; active: number; expired: number } }> {
+    return this.get('/admin/initial-passwords/stats');
+  }
+
+  // Setup password (for initial password creation)
+  async verifySetupToken(token: string): Promise<{ valid: boolean; message?: string }> {
+    return this.get(`/verify-setup-token/${token}`);
+  }
+
+  async setupPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    return this.post('/setup-password', { token, newPassword });
+  }
 }
 
 export const apiClient = new ApiClient();
