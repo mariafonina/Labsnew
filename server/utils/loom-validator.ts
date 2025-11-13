@@ -8,12 +8,12 @@ export function validateAndNormalizeLoomUrl(url: string | null | undefined): str
     return null;
   }
 
-  const loomEmbedPattern = /^https:\/\/www\.loom\.com\/embed\/([a-zA-Z0-9]+)$/;
-  const loomSharePattern = /^https:\/\/www\.loom\.com\/share\/([a-zA-Z0-9]+)/;
+  const loomEmbedPattern = /^https:\/\/www\.loom\.com\/embed\/([a-zA-Z0-9]+)(?:\?.*)?$/;
+  const loomSharePattern = /^https:\/\/www\.loom\.com\/share\/([a-zA-Z0-9]+)(?:\?.*)?$/;
 
   let match = trimmed.match(loomEmbedPattern);
   if (match) {
-    return trimmed;
+    return `https://www.loom.com/embed/${match[1]}`;
   }
 
   match = trimmed.match(loomSharePattern);

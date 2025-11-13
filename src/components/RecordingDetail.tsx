@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { ArrowLeft, Bookmark, ThumbsUp, Send, Download } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
+import { LoomEmbed } from "./LoomEmbed";
 import type { Recording } from "../contexts/AppContext";
 
 interface RecordingDetailProps {
@@ -204,6 +205,13 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
               />
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Loom Video Embed */}
+      {recording.loom_embed_url && (
+        <div className="mb-10">
+          <LoomEmbed url={recording.loom_embed_url} />
         </div>
       )}
 

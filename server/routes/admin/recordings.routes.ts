@@ -45,9 +45,57 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async 
   const sanitizedDescription = description ? sanitizeText(description) : undefined;
   const validatedLoomUrl = loom_embed_url !== undefined ? validateAndNormalizeLoomUrl(loom_embed_url) : undefined;
 
+  const updateParts = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (sanitizedTitle !== undefined) {
+    updateParts.push(`title = $${paramIndex++}`);
+    values.push(sanitizedTitle);
+  }
+  if (date !== undefined) {
+    updateParts.push(`date = $${paramIndex++}`);
+    values.push(date);
+  }
+  if (duration !== undefined) {
+    updateParts.push(`duration = $${paramIndex++}`);
+    values.push(duration);
+  }
+  if (sanitizedInstructor !== undefined) {
+    updateParts.push(`instructor = $${paramIndex++}`);
+    values.push(sanitizedInstructor);
+  }
+  if (thumbnail !== undefined) {
+    updateParts.push(`thumbnail = $${paramIndex++}`);
+    values.push(thumbnail);
+  }
+  if (views !== undefined) {
+    updateParts.push(`views = $${paramIndex++}`);
+    values.push(views);
+  }
+  if (sanitizedDescription !== undefined) {
+    updateParts.push(`description = $${paramIndex++}`);
+    values.push(sanitizedDescription);
+  }
+  if (video_url !== undefined) {
+    updateParts.push(`video_url = $${paramIndex++}`);
+    values.push(video_url);
+  }
+  if (validatedLoomUrl !== undefined) {
+    updateParts.push(`loom_embed_url = $${paramIndex++}`);
+    values.push(validatedLoomUrl);
+  }
+
+  if (updateParts.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  updateParts.push(`updated_at = CURRENT_TIMESTAMP`);
+  values.push(id);
+
   const result = await query(
-    'UPDATE labs.recordings SET title = COALESCE($1, title), date = COALESCE($2, date), duration = COALESCE($3, duration), instructor = COALESCE($4, instructor), thumbnail = COALESCE($5, thumbnail), views = COALESCE($6, views), description = COALESCE($7, description), video_url = COALESCE($8, video_url), loom_embed_url = COALESCE($9, loom_embed_url), updated_at = CURRENT_TIMESTAMP WHERE id = $10 RETURNING *',
-    [sanitizedTitle, date, duration, sanitizedInstructor, thumbnail, views, sanitizedDescription, video_url, validatedLoomUrl, id]
+    `UPDATE labs.recordings SET ${updateParts.join(', ')} WHERE id = $${paramIndex} RETURNING *`,
+    values
   );
 
   if (result.rows.length === 0) {

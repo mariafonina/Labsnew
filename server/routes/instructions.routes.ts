@@ -58,12 +58,49 @@ router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
   const { id } = req.params;
   const { title, content, category, tags, image_url, loom_embed_url } = req.body;
 
-  const sanitizedContent = sanitizeHtml(content);
+  const sanitizedContent = content !== undefined ? sanitizeHtml(content) : undefined;
   const validatedLoomUrl = loom_embed_url !== undefined ? validateAndNormalizeLoomUrl(loom_embed_url) : undefined;
 
+  const updateParts = [];
+  const values = [];
+  let paramIndex = 1;
+
+  if (title !== undefined) {
+    updateParts.push(`title = $${paramIndex++}`);
+    values.push(title);
+  }
+  if (sanitizedContent !== undefined) {
+    updateParts.push(`content = $${paramIndex++}`);
+    values.push(sanitizedContent);
+  }
+  if (category !== undefined) {
+    updateParts.push(`category = $${paramIndex++}`);
+    values.push(category);
+  }
+  if (tags !== undefined) {
+    updateParts.push(`tags = $${paramIndex++}`);
+    values.push(tags);
+  }
+  if (image_url !== undefined) {
+    updateParts.push(`image_url = $${paramIndex++}`);
+    values.push(image_url);
+  }
+  if (validatedLoomUrl !== undefined) {
+    updateParts.push(`loom_embed_url = $${paramIndex++}`);
+    values.push(validatedLoomUrl);
+  }
+
+  if (updateParts.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  updateParts.push(`updated_at = CURRENT_TIMESTAMP`);
+  values.push(id);
+  values.push(req.userId);
+
   const result = await query(
-    'UPDATE labs.instructions SET title = $1, content = $2, category = $3, tags = $4, image_url = $5, loom_embed_url = COALESCE($6, loom_embed_url), updated_at = CURRENT_TIMESTAMP WHERE id = $7 AND user_id = $8 RETURNING *',
-    [title, sanitizedContent, category, tags, image_url, validatedLoomUrl, id, req.userId]
+    `UPDATE labs.instructions SET ${updateParts.join(', ')} WHERE id = $${paramIndex++} AND user_id = $${paramIndex} RETURNING *`,
+    values
   );
 
   if (result.rows.length === 0) {

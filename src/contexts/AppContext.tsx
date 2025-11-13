@@ -635,7 +635,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             thumbnail: item.thumbnail,
             views: item.views || 0,
             description: item.description || '',
-            videoUrl: item.video_url
+            videoUrl: item.video_url,
+            loom_embed_url: item.loom_embed_url
           })));
         }
 
