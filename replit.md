@@ -21,16 +21,16 @@ The backend is an Express.js server written in TypeScript, running on Node.js. I
 - **UI/UX:** Figma-imported design with custom ЛАБС branding, focusing on improved spacing and readability.
 - **Admin Panel:** Refactored with a composition pattern for content managers (News, Recordings, FAQ, Events) using API-first data flow and optimistic updates.
 - **Backend Utilities:** DRY principles applied with reusable utilities for error handling (`async-handler`), database operations (`db-helpers`), and a unified middleware (`text-content-middleware`) for security and content processing.
-- **Security:** Multi-layer rate limiting (global, burst, auth, create, read), content spam detection, user/IP-based throttling, request size validation, and XSS protection via DOMPurify. All user data queries are filtered by `user_id` for multi-tenant isolation.
+- **Security:** Multi-layer rate limiting (global, burst, auth, create, read), content spam detection, user/IP-based throttling, request size validation, and XSS protection via DOMPurify. All user data queries are filtered by `user_id` for multi-tenant isolation. HMAC-SHA-256 token hashing for initial password setup tokens with dedicated transaction isolation using SELECT FOR UPDATE locks to prevent race conditions.
 - **Data Flow:** Transitioned from `localStorage` to API-driven data loading for admin-created content to ensure immediate visibility and consistency. Centralized data prefetching in `AppContext` uses parallel loading to eliminate loading delays and redundant API calls.
 - **Multi-Tenant Isolation:** Implemented a `requestId` pattern to prevent data leakage across users during rapid login/logout sequences, ensuring that stale API responses cannot update state. User-specific data is no longer stored in `localStorage`.
 - **Deployment:** Optimized for Autoscale health checks, with a lean root endpoint and production mode bypassing database initialization for quick startups.
 
 **Feature Specifications:**
-- **Authentication:** JWT-based login/logout, session management, and secure password handling with a complete password reset flow.
+- **Authentication:** JWT-based login/logout, session management, and secure password handling with a complete password reset flow. Initial password setup system for new users via secure HMAC-SHA-256 tokenized links (7-day expiry).
 - **Content Management:** CRUD operations for instructions, events, favorites, notes, questions, and user progress. Direct image upload for admin news.
-- **Admin Functionality:** Dedicated API endpoints and managers for news, recordings, FAQ, events, and email campaigns. Public read-only API endpoints for general user access to admin-managed content.
-- **Email Marketing:** Integration with Notisend API for mass communications, news distribution, credential delivery, and transactional emails.
+- **Admin Functionality:** Dedicated API endpoints and managers for news, recordings, FAQ, events, email campaigns, and initial password distribution. Public read-only API endpoints for general user access to admin-managed content. Mass initial password email distribution to all users without passwords.
+- **Email Marketing:** Integration with Notisend API for mass communications, news distribution, credential delivery, initial password setup links, and transactional emails.
 - **User Features:** Notes, favorites, progress tracking, user profiles, and an event calendar.
 
 ## External Dependencies
