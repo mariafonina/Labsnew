@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Package, Edit, Trash2, DollarSign, Users } from 'lucide-react';
+import { Plus, Package, Edit, Trash2, DollarSign, Users, UserCheck, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,6 +7,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ProductForm } from '@/components/admin/ProductForm';
 import { TiersList } from '@/components/admin/TiersList';
 import { CohortsList } from '@/components/admin/CohortsList';
+import { EnrollmentManager } from '@/components/admin/EnrollmentManager';
+import { ResourcesManager } from '@/components/admin/ResourcesManager';
 import { apiClient } from '@/api/client';
 import { toast } from 'sonner';
 
@@ -35,6 +37,7 @@ export function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [tiers, setTiers] = useState<Tier[]>([]);
+  const [cohorts, setCohorts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -46,6 +49,7 @@ export function Products() {
   useEffect(() => {
     if (selectedProduct) {
       loadTiers(selectedProduct.id);
+      loadCohorts(selectedProduct.id);
     }
   }, [selectedProduct]);
 
@@ -77,6 +81,15 @@ export function Products() {
     } catch (error) {
       console.error('Failed to load tiers:', error);
       toast.error('Не удалось загрузить тарифы');
+    }
+  };
+
+  const loadCohorts = async (productId: number) => {
+    try {
+      const cohorts = await apiClient.getCohorts(productId);
+      setCohorts(cohorts);
+    } catch (error) {
+      console.error('Failed to load cohorts:', error);
     }
   };
 
@@ -275,6 +288,14 @@ export function Products() {
                     <Users className="w-4 h-4 mr-2" />
                     Потоки
                   </TabsTrigger>
+                  <TabsTrigger value="enrollments">
+                    <UserCheck className="w-4 h-4 mr-2" />
+                    Зачисления
+                  </TabsTrigger>
+                  <TabsTrigger value="resources">
+                    <BookOpen className="w-4 h-4 mr-2" />
+                    Материалы
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="tiers" className="mt-4">
                   <TiersList
@@ -285,6 +306,23 @@ export function Products() {
                 </TabsContent>
                 <TabsContent value="cohorts" className="mt-4">
                   <CohortsList productId={selectedProduct.id} />
+                </TabsContent>
+                <TabsContent value="enrollments" className="mt-4">
+                  <EnrollmentManager
+                    productId={selectedProduct.id}
+                    tiers={tiers}
+                    cohorts={cohorts}
+                    onRefresh={() => {
+                      loadTiers(selectedProduct.id);
+                      loadCohorts(selectedProduct.id);
+                    }}
+                  />
+                </TabsContent>
+                <TabsContent value="resources" className="mt-4">
+                  <ResourcesManager
+                    productId={selectedProduct.id}
+                    tiers={tiers}
+                  />
                 </TabsContent>
               </Tabs>
             </Card>
