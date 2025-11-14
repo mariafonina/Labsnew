@@ -1,6 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
-import { apiClient } from "../api/client";
-import { validateAndNormalizeLoomUrl } from "../utils/loom-validator";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
 export interface FavoriteItem {
   id: string;
@@ -38,8 +36,8 @@ export interface Notification {
   type: "answer_received";
   commentId: string; // ID ответа
   questionId: string; // ID вопроса пользователя
-  eventId: string; // ID материала (эфир/урок/запись/faq)
-  eventType: "event" | "instruction" | "recording" | "faq";
+  eventId: string; // ID материала (эфир/урок/запись)
+  eventType: "event" | "instruction" | "recording";
   eventTitle: string;
   answerAuthor: string;
   answerPreview: string;
@@ -73,7 +71,6 @@ export interface Event {
   description: string;
   date: string;
   time: string;
-  location?: string;
   duration: string;
   instructor: string;
   type: "upcoming" | "past";
@@ -90,7 +87,7 @@ export interface Instruction {
   content?: string;
   downloadUrl?: string;
   order: number; // порядок внутри категории
-  loom_embed_url?: string; // URL Loom видео для встраивания
+  loomVideoUrl?: string; // URL Loom видео
   imageUrl?: string; // URL изображения на всю ширину
 }
 
@@ -112,7 +109,6 @@ export interface Recording {
   views: number;
   description: string;
   videoUrl?: string;
-  loom_embed_url?: string;
 }
 
 export interface FAQItem {
@@ -199,12 +195,30 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  // User-specific data loaded from API after authentication (no localStorage for security)
-  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [likes, setLikes] = useState<string[]>([]);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [completedInstructions, setCompletedInstructions] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<FavoriteItem[]>(() => {
+    const saved = localStorage.getItem("favorites");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const saved = localStorage.getItem("notes");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [likes, setLikes] = useState<string[]>(() => {
+    const saved = localStorage.getItem("likes");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [comments, setComments] = useState<Comment[]>(() => {
+    const saved = localStorage.getItem("comments");
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [completedInstructions, setCompletedInstructions] = useState<string[]>(() => {
+    const saved = localStorage.getItem("completedInstructions");
+    return saved ? JSON.parse(saved) : [];
+  });
 
   const [auth, setAuth] = useState<AuthData>(() => {
     const saved = localStorage.getItem("auth");
@@ -267,7 +281,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         description: "Разберём методики постановки целей и создания плана действий",
         date: "2024-11-15",
         time: "19:00",
-        location: "Онлайн",
         duration: "2 часа",
         instructor: "Анна Смирнова",
         type: "upcoming",
@@ -279,7 +292,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         description: "Практическое занятие с разбором реальных кейсов",
         date: "2024-11-18",
         time: "20:00",
-        location: "Онлайн",
         duration: "1.5 часа",
         instructor: "Дмитрий Козлов",
         type: "upcoming"
@@ -316,7 +328,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [instructions, setInstructions] = useState<Instruction[]>(() => {
     const saved = localStorage.getItem("instructions");
-    const parsed = (saved && saved !== "undefined") ? JSON.parse(saved) : [
+    return saved ? JSON.parse(saved) : [
       {
         id: "instr-1",
         title: "Полное руководство по эффективному обучению",
@@ -477,11 +489,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         order: 1
       }
     ];
-    
-    return parsed.map((instr: Instruction) => ({
-      ...instr,
-      loom_embed_url: validateAndNormalizeLoomUrl(instr.loom_embed_url),
-    }));
   });
 
   const [recordings, setRecordings] = useState<Recording[]>(() => {
@@ -549,8 +556,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : [];
   });
 
-  // User-specific data NO LONGER persisted to localStorage for security (loaded from API)
-  // Only auth persisted for rememberMe functionality
+  useEffect(() => {
+    localStorage.setItem("favorites", JSON.stringify(favorites));
+  }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem("notes", JSON.stringify(notes));
+  }, [notes]);
+
+  useEffect(() => {
+    localStorage.setItem("likes", JSON.stringify(likes));
+  }, [likes]);
+
+  useEffect(() => {
+    localStorage.setItem("comments", JSON.stringify(comments));
+  }, [comments]);
+
+  useEffect(() => {
+    localStorage.setItem("completedInstructions", JSON.stringify(completedInstructions));
+  }, [completedInstructions]);
+
   useEffect(() => {
     localStorage.setItem("auth", JSON.stringify(auth));
   }, [auth]);
@@ -586,212 +611,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem("users", JSON.stringify(users));
   }, [users]);
-
-  // Centralized data prefetching on mount for instant display
-  useEffect(() => {
-    const loadPublicData = async () => {
-      try {
-        const [newsData, eventsData, recordingsData, faqData] = await Promise.allSettled([
-          apiClient.getNews(),
-          apiClient.getEvents(),
-          apiClient.getRecordings(),
-          apiClient.getFAQ()
-        ]);
-
-        if (newsData.status === 'fulfilled' && newsData.value.length > 0) {
-          setNewsItems(newsData.value.map((item: any) => ({
-            id: String(item.id),
-            title: item.title,
-            content: item.content,
-            author: item.author,
-            authorAvatar: item.author_avatar,
-            date: item.date,
-            category: item.category,
-            image: item.image,
-            isNew: item.is_new
-          })));
-        }
-
-        if (eventsData.status === 'fulfilled' && eventsData.value.length > 0) {
-          setEvents(eventsData.value.map((item: any) => {
-            const eventDate = new Date(item.event_date);
-            const now = new Date();
-            return {
-              id: String(item.id),
-              title: item.title,
-              description: item.description || '',
-              date: item.event_date,
-              time: item.event_time || '',
-              location: item.location || '',
-              duration: '',
-              instructor: '',
-              type: (eventDate >= now ? 'upcoming' : 'past') as 'upcoming' | 'past',
-              link: ''
-            };
-          }));
-        }
-
-        if (recordingsData.status === 'fulfilled' && recordingsData.value.length > 0) {
-          setRecordings(recordingsData.value.map((item: any) => ({
-            id: String(item.id),
-            title: item.title,
-            date: item.date,
-            duration: item.duration || '',
-            instructor: item.instructor,
-            thumbnail: item.thumbnail,
-            views: item.views || 0,
-            description: item.description || '',
-            videoUrl: item.video_url,
-            loom_embed_url: item.loom_embed_url
-          })));
-        }
-
-        if (faqData.status === 'fulfilled' && faqData.value.length > 0) {
-          setFaqItems(faqData.value.map((item: any) => ({
-            id: String(item.id),
-            question: item.question,
-            answer: item.answer,
-            category: item.category,
-            helpful: item.helpful || 0
-          })));
-        }
-      } catch (error) {
-        console.error('Failed to prefetch public data:', error);
-      }
-    };
-
-    loadPublicData();
-  }, []);
-
-  // Load user-specific data when authenticated (critical for multi-tenant security)
-  const requestIdRef = useRef(0);
-
-  useEffect(() => {
-    if (!auth.isAuthenticated) {
-      // Clear user data when not authenticated to prevent cross-tenant leakage
-      setNotes([]);
-      setFavorites([]);
-      setCompletedInstructions([]);
-      setComments([]);
-      requestIdRef.current++; // Invalidate any in-flight requests
-      return;
-    }
-
-    // Increment request ID - only this ID can update state
-    requestIdRef.current++;
-    const currentRequestId = requestIdRef.current;
-
-    const loadUserData = async () => {
-      try {
-        const [notesData, favoritesData, progressData, commentsData] = await Promise.allSettled([
-          apiClient.getAllNotes(),
-          apiClient.getFavorites(),
-          apiClient.getProgress(),
-          apiClient.getAllComments()
-        ]);
-
-        // CRITICAL: Only update if this is still the latest request
-        if (currentRequestId !== requestIdRef.current) {
-          // Stale request - newer one started (logout then login)
-          return;
-        }
-
-        // CRITICAL: Always clear state to prevent cross-tenant leakage, even on errors
-        if (notesData.status === 'fulfilled') {
-          if (notesData.value.length > 0) {
-            setNotes(notesData.value.map((item: any) => ({
-              id: String(item.id),
-              title: item.title || '',
-              content: item.content,
-              linkedItem: item.linked_item || null,
-              createdAt: item.created_at,
-              updatedAt: item.updated_at
-            })));
-          } else {
-            setNotes([]);
-          }
-        } else {
-          // API call failed - clear to prevent stale data
-          setNotes([]);
-        }
-
-        if (favoritesData.status === 'fulfilled') {
-          if (favoritesData.value.length > 0) {
-            setFavorites(favoritesData.value.map((item: any) => ({
-              id: item.item_id || String(item.id),
-              title: item.title || '',
-              type: item.item_type || 'instruction',
-              description: item.description || '',
-              date: item.date || item.created_at,
-              addedAt: item.created_at
-            })));
-          } else {
-            setFavorites([]);
-          }
-        } else {
-          setFavorites([]);
-        }
-
-        if (progressData.status === 'fulfilled') {
-          if (progressData.value.length > 0) {
-            const completedIds = progressData.value
-              .filter((item: any) => item.completed)
-              .map((item: any) => String(item.instruction_id));
-            setCompletedInstructions(completedIds);
-          } else {
-            setCompletedInstructions([]);
-          }
-        } else {
-          setCompletedInstructions([]);
-        }
-
-        if (commentsData.status === 'fulfilled') {
-          if (commentsData.value.length > 0) {
-            setComments(commentsData.value.map((item: any) => ({
-              id: String(item.id),
-              userId: String(item.user_id),
-              eventId: item.event_id,
-              eventType: item.event_type || 'event',
-              eventTitle: item.event_title || '',
-              authorName: item.author_name,
-              authorRole: item.author_role as 'admin' | 'user',
-              content: item.content,
-              createdAt: item.created_at,
-              likes: item.likes || 0,
-              parentId: item.parent_id ? String(item.parent_id) : undefined
-            })));
-          } else {
-            setComments([]);
-          }
-        } else {
-          setComments([]);
-        }
-      } catch (error) {
-        console.error('Failed to load user data:', error);
-        // Clear on error only if this is still the current request
-        if (currentRequestId === requestIdRef.current) {
-          setNotes([]);
-          setFavorites([]);
-          setCompletedInstructions([]);
-          setComments([]);
-        }
-      }
-    };
-
-    loadUserData();
-
-    // Cleanup: invalidate this request and clear state
-    return () => {
-      // Increment to invalidate this fetch (in case it completes after unmount)
-      if (currentRequestId === requestIdRef.current) {
-        requestIdRef.current++;
-      }
-      setNotes([]);
-      setFavorites([]);
-      setCompletedInstructions([]);
-      setComments([]);
-    };
-  }, [auth.isAuthenticated]);
 
   const addToFavorites = (item: FavoriteItem) => {
     setFavorites((prev) => {
@@ -939,7 +758,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const logout = () => {
-    // Clear user authentication
     setAuth({
       email: "",
       password: "",
@@ -947,22 +765,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       rememberMe: false,
       isAdmin: false,
     });
-    
-    // Clear all user-specific data from state
-    setFavorites([]);
-    setNotes([]);
-    setLikes([]);
-    setComments([]);
-    setCompletedInstructions([]);
-    
-    // Clear all user-specific data from localStorage to prevent multi-tenant leakage
     localStorage.removeItem("auth");
-    localStorage.removeItem("favorites");
-    localStorage.removeItem("notes");
-    localStorage.removeItem("likes");
-    localStorage.removeItem("comments");
-    localStorage.removeItem("completedInstructions");
-    localStorage.removeItem("notifications");
   };
 
   const changePassword = (oldPassword: string, newPassword: string): boolean => {
@@ -1041,20 +844,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       id: `instr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       views: 0,
       order: maxOrder + 1,
-      loom_embed_url: validateAndNormalizeLoomUrl(instruction.loom_embed_url),
     };
     setInstructions((prev) => [...prev, newInstruction]);
   };
 
   const updateInstruction = (id: string, updates: Partial<Instruction>) => {
-    const normalizedUpdates = {
-      ...updates,
-      ...(updates.loom_embed_url !== undefined && {
-        loom_embed_url: validateAndNormalizeLoomUrl(updates.loom_embed_url),
-      }),
-    };
     setInstructions((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...normalizedUpdates } : item))
+      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
     );
   };
 

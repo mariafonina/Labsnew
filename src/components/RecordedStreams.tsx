@@ -4,9 +4,10 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Play, Clock, Calendar, Bookmark, Eye } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
-import { useApp, type Recording } from "../contexts/AppContext";
+import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { RecordingDetail } from "./RecordingDetail";
+import type { Recording } from "../contexts/AppContext";
 
 export function RecordedStreams() {
   const { recordings, addToFavorites, removeFromFavorites, isFavorite } = useApp();
@@ -108,7 +109,7 @@ export function RecordedStreams() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={(e: React.MouseEvent) => handleToggleFavorite(recording, e)}
+                    onClick={(e) => handleToggleFavorite(recording, e)}
                     className={isFavorite(recording.id) ? "text-pink-500" : "text-gray-400"}
                   >
                     <Bookmark
@@ -155,7 +156,7 @@ export function RecordedStreams() {
                 <div className="flex gap-2">
                   {recording.videoUrl && (
                     <Button
-                      onClick={(e: React.MouseEvent) => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         window.open(recording.videoUrl, "_blank");
                       }}

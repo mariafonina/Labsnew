@@ -5,7 +5,8 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
-import { Plus, Pencil, Trash2, Video, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Video, Search, Eye } from "lucide-react";
+import { AdminFormWrapper } from "./AdminFormWrapper";
 import { AdminFormField } from "./AdminFormField";
 import { AdminEmptyState } from "./AdminEmptyState";
 import { apiClient } from "../api/client";
@@ -21,7 +22,6 @@ interface Recording {
   views: number;
   description?: string;
   video_url?: string;
-  loom_embed_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -39,12 +39,11 @@ export function AdminRecordingsManager() {
     date: "",
     duration: "",
     instructor: "",
+    thumbnail: "",
+    views: 0,
     description: "",
     video_url: "",
-    loom_embed_url: "",
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string>("");
 
   useEffect(() => {
     loadRecordings();
@@ -69,26 +68,13 @@ export function AdminRecordingsManager() {
       date: "",
       duration: "",
       instructor: "",
+      thumbnail: "",
+      views: 0,
       description: "",
       video_url: "",
-      loom_embed_url: "",
     });
-    setImageFile(null);
-    setImagePreview("");
     setIsAdding(false);
     setEditingItem(null);
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const handleAdd = async () => {
@@ -98,17 +84,7 @@ export function AdminRecordingsManager() {
     }
 
     try {
-      const formData = new FormData();
-      formData.append("title", recordingForm.title);
-      formData.append("date", recordingForm.date);
-      formData.append("instructor", recordingForm.instructor);
-      if (recordingForm.duration) formData.append("duration", recordingForm.duration);
-      if (recordingForm.description) formData.append("description", recordingForm.description);
-      if (recordingForm.video_url) formData.append("video_url", recordingForm.video_url);
-      if (recordingForm.loom_embed_url) formData.append("loom_embed_url", recordingForm.loom_embed_url);
-      if (imageFile) formData.append("thumbnail", imageFile);
-
-      const newItem = await apiClient.createRecordingWithImage(formData);
+      const newItem = await apiClient.createRecording(recordingForm);
       setRecordings([newItem, ...recordings]);
       resetForm();
       toast.success("Запись добавлена");
@@ -127,17 +103,7 @@ export function AdminRecordingsManager() {
     }
 
     try {
-      const formData = new FormData();
-      formData.append("title", recordingForm.title);
-      formData.append("date", recordingForm.date);
-      formData.append("instructor", recordingForm.instructor);
-      if (recordingForm.duration) formData.append("duration", recordingForm.duration);
-      if (recordingForm.description) formData.append("description", recordingForm.description);
-      if (recordingForm.video_url) formData.append("video_url", recordingForm.video_url);
-      if (recordingForm.loom_embed_url) formData.append("loom_embed_url", recordingForm.loom_embed_url);
-      if (imageFile) formData.append("thumbnail", imageFile);
-
-      const updated = await apiClient.updateRecordingWithImage(editingItem.id, formData);
+      const updated = await apiClient.updateRecording(editingItem.id, recordingForm);
       setRecordings(recordings.map((item) => (item.id === editingItem.id ? updated : item)));
       resetForm();
       toast.success("Запись обновлена");
@@ -168,11 +134,11 @@ export function AdminRecordingsManager() {
       date: item.date,
       duration: item.duration || "",
       instructor: item.instructor,
+      thumbnail: item.thumbnail || "",
+      views: item.views,
       description: item.description || "",
       video_url: item.video_url || "",
-      loom_embed_url: item.loom_embed_url || "",
     });
-    setImagePreview(item.thumbnail || "");
     setIsAdding(false);
   };
 
@@ -245,7 +211,7 @@ export function AdminRecordingsManager() {
                       <p className="text-gray-600 mb-3 line-clamp-2">{item.description}</p>
                     )}
                     <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span>Спикер: {item.instructor}</span>
+                      <span>Инструктор: {item.instructor}</span>
                       <span>•</span>
                       <span>{item.date}</span>
                       {item.duration && (
@@ -254,6 +220,11 @@ export function AdminRecordingsManager() {
                           <span>{item.duration}</span>
                         </>
                       )}
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3 w-3" />
+                        {item.views}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -279,7 +250,7 @@ export function AdminRecordingsManager() {
         </div>
       )}
 
-      <Dialog open={isAdding || !!editingItem} onOpenChange={(open: boolean) => !open && resetForm()}>
+      <Dialog open={isAdding || !!editingItem} onOpenChange={(open) => !open && resetForm()}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingItem ? "Редактировать запись" : "Добавить запись"}</DialogTitle>
@@ -311,11 +282,11 @@ export function AdminRecordingsManager() {
                 />
               </AdminFormField>
             </div>
-            <AdminFormField label="Спикер" required>
+            <AdminFormField label="Инструктор" required>
               <Input
                 value={recordingForm.instructor}
                 onChange={(e) => setRecordingForm({ ...recordingForm, instructor: e.target.value })}
-                placeholder="Имя спикера"
+                placeholder="Имя инструктора"
               />
             </AdminFormField>
             <AdminFormField label="Описание">
@@ -326,24 +297,12 @@ export function AdminRecordingsManager() {
                 rows={4}
               />
             </AdminFormField>
-            <AdminFormField label="Превью изображения">
-              <div className="space-y-2">
-                <Input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="cursor-pointer"
-                />
-                {imagePreview && (
-                  <div className="relative w-full h-40 rounded-lg overflow-hidden border">
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
-              </div>
+            <AdminFormField label="Превью (URL)">
+              <Input
+                value={recordingForm.thumbnail}
+                onChange={(e) => setRecordingForm({ ...recordingForm, thumbnail: e.target.value })}
+                placeholder="https://..."
+              />
             </AdminFormField>
             <AdminFormField label="Ссылка на видео">
               <Input
@@ -352,11 +311,12 @@ export function AdminRecordingsManager() {
                 placeholder="https://..."
               />
             </AdminFormField>
-            <AdminFormField label="Loom видео (ссылка для встраивания)">
+            <AdminFormField label="Просмотры">
               <Input
-                value={recordingForm.loom_embed_url}
-                onChange={(e) => setRecordingForm({ ...recordingForm, loom_embed_url: e.target.value })}
-                placeholder="https://www.loom.com/embed/... или https://www.loom.com/share/..."
+                type="number"
+                value={recordingForm.views}
+                onChange={(e) => setRecordingForm({ ...recordingForm, views: parseInt(e.target.value) || 0 })}
+                placeholder="0"
               />
             </AdminFormField>
           </div>
@@ -374,7 +334,7 @@ export function AdminRecordingsManager() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deletingId} onOpenChange={(open: boolean) => !open && setDeletingId(null)}>
+      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить запись?</AlertDialogTitle>

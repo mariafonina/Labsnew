@@ -7,7 +7,6 @@ import { ArrowLeft, Bookmark, ThumbsUp, Send } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { sanitizeHtml } from "../utils/sanitize";
-import { LoomEmbed } from "./LoomEmbed";
 import type { Instruction } from "../contexts/AppContext";
 
 interface InstructionDetailProps {
@@ -167,10 +166,19 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
       {/* Title */}
       <h1 className="font-black text-4xl text-gray-900 mb-8">{instruction.title}</h1>
 
-      {/* Loom Video Embed */}
-      {instruction.loom_embed_url && (
+      {/* Loom Video */}
+      {instruction.loomVideoUrl && (
         <div className="mb-10">
-          <LoomEmbed url={instruction.loom_embed_url} />
+          <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-gray-100">
+            <div className="relative w-full bg-black" style={{ paddingBottom: "56.25%" }}>
+              <iframe
+                src={instruction.loomVideoUrl}
+                frameBorder="0"
+                allowFullScreen
+                className="absolute top-0 left-0 w-full h-full"
+              />
+            </div>
+          </div>
         </div>
       )}
 
