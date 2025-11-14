@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { query } from '../db';
 import { verifyToken, AuthRequest } from '../auth';
 import { sanitizeHtml } from '../utils/sanitize';
@@ -8,7 +8,7 @@ import { validateAndNormalizeLoomUrl } from '../utils/loom-validator';
 
 const router = Router();
 
-router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { category, search } = req.query;
   let queryText = 'SELECT * FROM labs.instructions WHERE user_id = $1';
   const params: any[] = [req.userId];
@@ -30,13 +30,13 @@ router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
   res.json(result.rows);
 }));
 
-router.get('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const instruction = await findOneOrFail('instructions', { id: req.params.id, user_id: req.userId! }, res);
   if (!instruction) return;
   res.json(instruction);
 }));
 
-router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { title, content, category, tags, image_url, loom_embed_url } = req.body;
 
   if (!title || !content) {
@@ -54,7 +54,7 @@ router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
   res.status(201).json(result.rows[0]);
 }));
 
-router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const { title, content, category, tags, image_url, loom_embed_url } = req.body;
 
@@ -110,7 +110,7 @@ router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
   res.json(result.rows[0]);
 }));
 
-router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const deleted = await deleteOneOrFail('instructions', { id: req.params.id, user_id: req.userId! }, res);
   if (!deleted) return;
   res.json({ message: 'Instruction deleted successfully' });

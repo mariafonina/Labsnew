@@ -21,6 +21,11 @@ import adminFaqRoutes from './routes/admin/faq.routes';
 import adminUsersRoutes from './routes/admin/users.routes';
 import adminEmailsRoutes from './routes/admin/emails.routes';
 import adminInitialPasswordsRoutes from './routes/admin/initial-passwords.routes';
+import adminProductsRoutes from './routes/admin/products.routes';
+import adminCohortsRoutes from './routes/admin/cohorts.routes';
+import adminEnrollmentsRoutes from './routes/admin/enrollments.routes';
+import adminResourcesRoutes from './routes/admin/resources.routes';
+import catalogRoutes from './routes/catalog.routes';
 import passwordResetRoutes from './routes/password-reset.routes';
 import setupPasswordRoutes from './routes/setup-password.routes';
 
@@ -67,6 +72,7 @@ app.use('/api/comments', commentsRoutes);
 app.use('/api/news', newsRoutes);
 app.use('/api/recordings', recordingsRoutes);
 app.use('/api/faq', faqRoutes);
+app.use('/api/catalog', catalogRoutes);
 
 // Admin routes
 app.use('/api/admin/news', adminNewsRoutes);
@@ -74,6 +80,10 @@ app.use('/api/admin/recordings', adminRecordingsRoutes);
 app.use('/api/admin/faq', adminFaqRoutes);
 app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin/emails', adminEmailsRoutes);
+app.use('/api/admin/products', adminProductsRoutes);
+app.use('/api/admin/cohorts', adminCohortsRoutes);
+app.use('/api/admin/enrollments', adminEnrollmentsRoutes);
+app.use('/api/admin/resources', adminResourcesRoutes);
 app.use('/api/admin', adminInitialPasswordsRoutes);
 
 // Root endpoint - always return fast JSON for health checks

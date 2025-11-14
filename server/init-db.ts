@@ -280,6 +280,96 @@ export async function initializeDatabase() {
     await query(`ALTER TABLE labs.instructions ADD COLUMN IF NOT EXISTS loom_embed_url TEXT`);
     console.log('Added loom_embed_url columns to recordings and instructions');
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.products (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        description TEXT,
+        type VARCHAR(50) NOT NULL,
+        duration_weeks INTEGER,
+        default_price DECIMAL(10, 2),
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.products" created');
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.pricing_tiers (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER REFERENCES labs.products(id) ON DELETE CASCADE,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        price DECIMAL(10, 2) NOT NULL,
+        tier_level INTEGER NOT NULL,
+        features JSONB,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(product_id, tier_level)
+      )
+    `);
+    console.log('Table "labs.pricing_tiers" created');
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.cohorts (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER REFERENCES labs.products(id) ON DELETE CASCADE,
+        name VARCHAR(200) NOT NULL,
+        description TEXT,
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        max_participants INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.cohorts" created');
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.product_resources (
+        id SERIAL PRIMARY KEY,
+        product_id INTEGER REFERENCES labs.products(id) ON DELETE CASCADE,
+        resource_type VARCHAR(50) NOT NULL,
+        resource_id INTEGER NOT NULL,
+        min_tier_level INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(product_id, resource_type, resource_id)
+      )
+    `);
+    console.log('Table "labs.product_resources" created');
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.user_enrollments (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
+        product_id INTEGER REFERENCES labs.products(id) ON DELETE CASCADE,
+        pricing_tier_id INTEGER REFERENCES labs.pricing_tiers(id) ON DELETE SET NULL,
+        cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE SET NULL,
+        status VARCHAR(20) DEFAULT 'active',
+        enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, product_id, cohort_id)
+      )
+    `);
+    console.log('Table "labs.user_enrollments" created');
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.cohort_members (
+        id SERIAL PRIMARY KEY,
+        cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE,
+        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        left_at TIMESTAMP,
+        UNIQUE(cohort_id, user_id)
+      )
+    `);
+    console.log('Table "labs.cohort_members" created');
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
@@ -302,7 +392,78 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON labs.password_reset_tokens(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_initial_password_tokens_user_id ON labs.initial_password_tokens(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_initial_password_tokens_token_hash ON labs.initial_password_tokens(token_hash)');
+    await query('CREATE INDEX IF NOT EXISTS idx_products_type ON labs.products(type)');
+    await query('CREATE INDEX IF NOT EXISTS idx_products_is_active ON labs.products(is_active)');
+    await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_product_id ON labs.pricing_tiers(product_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_tier_level ON labs.pricing_tiers(tier_level)');
+    await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_tier_lookup ON labs.pricing_tiers(product_id, tier_level)');
+    await query('CREATE INDEX IF NOT EXISTS idx_cohorts_product_id ON labs.cohorts(product_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_cohorts_dates ON labs.cohorts(start_date, end_date)');
+    await query('CREATE INDEX IF NOT EXISTS idx_cohorts_active ON labs.cohorts(is_active, product_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_product_resources_product ON labs.product_resources(product_id, resource_type)');
+    await query('CREATE INDEX IF NOT EXISTS idx_product_resources_resource ON labs.product_resources(resource_type, resource_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_product_resources_tier_level ON labs.product_resources(min_tier_level)');
+    await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_user_id ON labs.user_enrollments(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_product_id ON labs.user_enrollments(product_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_pricing_tier_id ON labs.user_enrollments(pricing_tier_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_cohort_id ON labs.user_enrollments(cohort_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_status ON labs.user_enrollments(status)');
+    await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_user_product ON labs.user_enrollments(user_id, product_id, status)');
+    await query('CREATE INDEX IF NOT EXISTS idx_cohort_members_cohort_id ON labs.cohort_members(cohort_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_cohort_members_user_id ON labs.cohort_members(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_cohort_members_active ON labs.cohort_members(cohort_id, user_id) WHERE left_at IS NULL');
     console.log('Indexes created');
+
+    const defaultProduct = await query(`
+      SELECT id FROM labs.products WHERE name = 'Общая программа' LIMIT 1
+    `);
+
+    if (defaultProduct.rows.length === 0) {
+      const product = await query(`
+        INSERT INTO labs.products (name, description, type, is_active)
+        VALUES ('Общая программа', 'Универсальная образовательная программа для всех пользователей', 'general', TRUE)
+        RETURNING id
+      `);
+      console.log('Default product "Общая программа" created');
+
+      const productId = product.rows[0].id;
+
+      const tier = await query(`
+        INSERT INTO labs.pricing_tiers (product_id, name, description, price, tier_level, is_active)
+        VALUES ($1, 'Стандартный', 'Полный доступ ко всем материалам', 0.00, 1, TRUE)
+        RETURNING id
+      `, [productId]);
+      console.log('Default pricing tier created');
+
+      const tierId = tier.rows[0].id;
+
+      const cohort = await query(`
+        INSERT INTO labs.cohorts (product_id, name, description, start_date, end_date, is_active)
+        VALUES ($1, 'Основной поток', 'Основной поток для всех пользователей', '2024-01-01', '2099-12-31', TRUE)
+        RETURNING id
+      `, [productId]);
+      console.log('Default cohort created');
+
+      const cohortId = cohort.rows[0].id;
+
+      const users = await query('SELECT id FROM labs.users');
+      
+      for (const user of users.rows) {
+        await query(`
+          INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status)
+          VALUES ($1, $2, $3, $4, 'active')
+          ON CONFLICT (user_id, product_id, cohort_id) DO NOTHING
+        `, [user.id, productId, tierId, cohortId]);
+
+        await query(`
+          INSERT INTO labs.cohort_members (cohort_id, user_id)
+          VALUES ($1, $2)
+          ON CONFLICT (cohort_id, user_id) DO NOTHING
+        `, [cohortId, user.id]);
+      }
+      
+      console.log(`Enrolled ${users.rows.length} existing users into default product`);
+    }
 
     console.log('Database initialization completed successfully!');
   } catch (error) {
