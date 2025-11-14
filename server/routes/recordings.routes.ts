@@ -1,13 +1,21 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { query } from '../db';
 import { asyncHandler } from '../utils/async-handler';
+import { verifyToken, AuthRequest } from '../auth';
+import { filterResourcesByAccess } from '../utils/access-control';
 
 const router = Router();
 
-// Public endpoint - get all recordings (no authentication required)
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const result = await query('SELECT * FROM labs.recordings ORDER BY created_at DESC');
-  res.json(result.rows);
+  
+  const filteredRecordings = await filterResourcesByAccess(
+    req.userId!,
+    'recording',
+    result.rows
+  );
+  
+  res.json(filteredRecordings);
 }));
 
 export default router;
