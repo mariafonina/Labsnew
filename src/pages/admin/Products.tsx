@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { ProductForm } from '@/components/admin/ProductForm';
 import { TiersList } from '@/components/admin/TiersList';
+import { CohortsList } from '@/components/admin/CohortsList';
 import { apiClient } from '@/api/client';
 import { toast } from 'sonner';
 
@@ -52,7 +53,13 @@ export function Products() {
     try {
       const products = await apiClient.getProducts();
       setProducts(products);
-      if (products.length > 0 && !selectedProduct) {
+      
+      if (selectedProduct) {
+        const stillExists = products.find(p => p.id === selectedProduct.id);
+        if (!stillExists) {
+          setSelectedProduct(products[0] || null);
+        }
+      } else if (products.length > 0) {
         setSelectedProduct(products[0]);
       }
     } catch (error) {
@@ -106,7 +113,7 @@ export function Products() {
       await apiClient.deleteProduct(productId);
       toast.success('Продукт удален');
       if (selectedProduct?.id === productId) {
-        setSelectedProduct(products[0] || null);
+        setSelectedProduct(null);
       }
       loadProducts();
     } catch (error) {
@@ -277,9 +284,7 @@ export function Products() {
                   />
                 </TabsContent>
                 <TabsContent value="cohorts" className="mt-4">
-                  <div className="text-center py-8 text-muted-foreground">
-                    Управление потоками (в разработке)
-                  </div>
+                  <CohortsList productId={selectedProduct.id} />
                 </TabsContent>
               </Tabs>
             </Card>
