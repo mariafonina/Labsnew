@@ -1,46 +1,51 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Button } from "./ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
-import { User, Instagram, Send, Mail, Phone, Calendar as CalendarIcon, Lock, Eye, EyeOff, LogOut } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, LogOut } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "../contexts/AuthContext";
+import { apiClient } from "../api/client";
 
 export interface UserProfileData {
-  nickname: string;
-  gender: "male" | "female" | "";
-  instagram: string;
-  telegram: string;
+  first_name: string;
+  last_name: string;
   email: string;
-  phone: string;
-  birthdate: string;
+  username?: string;
 }
 
 export function UserProfile() {
   const { logout } = useAuth();
-  
-  const [profile, setProfile] = useState<UserProfileData>(() => {
-    const saved = localStorage.getItem("userProfile");
-    return saved
-      ? JSON.parse(saved)
-      : {
-          nickname: "",
-          gender: "",
-          instagram: "",
-          telegram: "",
-          email: "",
-          phone: "",
-          birthdate: "",
-        };
+  const [loading, setLoading] = useState(false);
+  const [profile, setProfile] = useState<UserProfileData>({
+    first_name: "",
+    last_name: "",
+    email: "",
+    username: "",
   });
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setLoading(true);
+        const data = await apiClient.getProfile();
+        setProfile({
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          email: data.email || "",
+          username: data.username || "",
+        });
+      } catch (error) {
+        console.error("Failed to load profile:", error);
+        toast.error("Не удалось загрузить профиль");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, []);
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -49,9 +54,27 @@ export function UserProfile() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSave = () => {
-    localStorage.setItem("userProfile", JSON.stringify(profile));
-    toast.success("Профиль успешно сохранён");
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const updated = await apiClient.updateProfile({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        email: profile.email,
+      });
+      setProfile({
+        first_name: updated.first_name || "",
+        last_name: updated.last_name || "",
+        email: updated.email || "",
+        username: updated.username || profile.username || "",
+      });
+      toast.success("Профиль успешно сохранён");
+    } catch (error: any) {
+      console.error("Failed to save profile:", error);
+      toast.error(error.message || "Не удалось сохранить профиль");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (field: keyof UserProfileData, value: string) => {
@@ -102,67 +125,50 @@ export function UserProfile() {
         </div>
 
         <div className="space-y-6">
-          {/* Nickname */}
+          {/* Username (read-only) */}
           <div className="space-y-2">
-            <Label htmlFor="nickname" className="flex items-center gap-2 font-semibold text-gray-700">
+            <Label htmlFor="username" className="flex items-center gap-2 font-semibold text-gray-700">
               <User className="h-4 w-4" />
-              Никнейм
+              Имя пользователя
             </Label>
             <Input
-              id="nickname"
-              placeholder="Введите ваш никнейм"
-              value={profile.nickname}
-              onChange={(e) => handleChange("nickname", e.target.value)}
-              className="h-12"
+              id="username"
+              placeholder="Имя пользователя"
+              value={profile.username}
+              disabled
+              className="h-12 bg-gray-50"
             />
           </div>
 
-          {/* Gender */}
+          {/* First Name */}
           <div className="space-y-2">
-            <Label htmlFor="gender" className="font-semibold text-gray-700">
-              Пол
-            </Label>
-            <Select
-              value={profile.gender}
-              onValueChange={(value) => handleChange("gender", value)}
-            >
-              <SelectTrigger id="gender" className="h-12">
-                <SelectValue placeholder="Выберите пол" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="male">Мужчина</SelectItem>
-                <SelectItem value="female">Женщина</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Instagram */}
-          <div className="space-y-2">
-            <Label htmlFor="instagram" className="flex items-center gap-2 font-semibold text-gray-700">
-              <Instagram className="h-4 w-4" />
-              Instagram
+            <Label htmlFor="first_name" className="flex items-center gap-2 font-semibold text-gray-700">
+              <User className="h-4 w-4" />
+              Имя
             </Label>
             <Input
-              id="instagram"
-              placeholder="@username"
-              value={profile.instagram}
-              onChange={(e) => handleChange("instagram", e.target.value)}
+              id="first_name"
+              placeholder="Введите ваше имя"
+              value={profile.first_name}
+              onChange={(e) => handleChange("first_name", e.target.value)}
               className="h-12"
+              disabled={loading}
             />
           </div>
 
-          {/* Telegram */}
+          {/* Last Name */}
           <div className="space-y-2">
-            <Label htmlFor="telegram" className="flex items-center gap-2 font-semibold text-gray-700">
-              <Send className="h-4 w-4" />
-              Telegram
+            <Label htmlFor="last_name" className="flex items-center gap-2 font-semibold text-gray-700">
+              <User className="h-4 w-4" />
+              Фамилия
             </Label>
             <Input
-              id="telegram"
-              placeholder="@username"
-              value={profile.telegram}
-              onChange={(e) => handleChange("telegram", e.target.value)}
+              id="last_name"
+              placeholder="Введите вашу фамилию"
+              value={profile.last_name}
+              onChange={(e) => handleChange("last_name", e.target.value)}
               className="h-12"
+              disabled={loading}
             />
           </div>
 
@@ -179,39 +185,7 @@ export function UserProfile() {
               value={profile.email}
               onChange={(e) => handleChange("email", e.target.value)}
               className="h-12"
-            />
-          </div>
-
-          {/* Phone */}
-          <div className="space-y-2">
-            <Label htmlFor="phone" className="flex items-center gap-2 font-semibold text-gray-700">
-              <Phone className="h-4 w-4" />
-              Телефон
-            </Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="+7 (999) 123-45-67"
-              value={profile.phone}
-              onChange={(e) => handleChange("phone", e.target.value)}
-              className="h-12"
-            />
-          </div>
-
-          {/* Birthdate */}
-          <div className="space-y-2">
-            <Label htmlFor="birthdate" className="flex items-center gap-2 font-semibold text-gray-700">
-              <CalendarIcon className="h-4 w-4" />
-              Дата рождения
-            </Label>
-            <Input
-              id="birthdate"
-              type="date"
-              value={profile.birthdate}
-              onChange={(e) => handleChange("birthdate", e.target.value)}
-              className="h-12"
-              placeholder="дд.мм.гггг"
-              lang="ru"
+              disabled={loading}
             />
           </div>
         </div>
@@ -219,9 +193,10 @@ export function UserProfile() {
         <div className="flex justify-end pt-6 border-t border-gray-200">
           <Button
             onClick={handleSave}
-            className="h-12 w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 border-0 font-extrabold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+            disabled={loading}
+            className="h-12 w-full bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 border-0 font-extrabold shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Сохранить изменения
+            {loading ? "Сохранение..." : "Сохранить изменения"}
           </Button>
         </div>
       </Card>

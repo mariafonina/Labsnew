@@ -53,6 +53,34 @@ class ApiClient {
     return response.json();
   }
 
+  private async requestFormData<T>(
+    endpoint: string,
+    formData: FormData,
+    method: 'POST' | 'PUT' = 'POST'
+  ): Promise<T> {
+    const headers: Record<string, string> = {};
+
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      const err: any = new Error(error.error || `HTTP ${response.status}`);
+      err.status = response.status;
+      err.response = { status: response.status };
+      throw err;
+    }
+
+    return response.json();
+  }
+
   async register(username: string, email: string, password: string) {
     return this.request<{ token: string; user: any }>('/auth/register', {
       method: 'POST',
@@ -70,6 +98,17 @@ class ApiClient {
   async logout() {
     await this.request('/auth/logout', { method: 'POST' });
     this.clearToken();
+  }
+
+  async getProfile() {
+    return this.request<any>('/profile');
+  }
+
+  async updateProfile(data: { first_name?: string; last_name?: string; email?: string }) {
+    return this.request<any>('/profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async getInstructions(params?: { category?: string; search?: string }) {
@@ -144,6 +183,10 @@ class ApiClient {
     });
   }
 
+  async getAllNotes() {
+    return this.request<any[]>('/notes');
+  }
+
   async getNote(instructionId: number) {
     return this.request<any>(`/notes/${instructionId}`);
   }
@@ -172,11 +215,24 @@ class ApiClient {
     });
   }
 
-  // Admin API methods
-  async getNews() {
-    return this.request<any[]>('/admin/news');
+  async getAllComments() {
+    return this.request<any[]>('/comments');
   }
 
+  // Public content API methods (no auth required for reading)
+  async getNews() {
+    return this.request<any[]>('/news');
+  }
+
+  async getRecordings() {
+    return this.request<any[]>('/recordings');
+  }
+
+  async getFAQ() {
+    return this.request<any[]>('/faq');
+  }
+
+  // Admin API methods (auth required for write operations)
   async createNews(data: any) {
     return this.request<any>('/admin/news', {
       method: 'POST',
@@ -197,8 +253,12 @@ class ApiClient {
     });
   }
 
-  async getRecordings() {
-    return this.request<any[]>('/admin/recordings');
+  async createNewsWithImage(formData: FormData) {
+    return this.requestFormData<any>('/admin/news', formData, 'POST');
+  }
+
+  async updateNewsWithImage(id: number, formData: FormData) {
+    return this.requestFormData<any>(`/admin/news/${id}`, formData, 'PUT');
   }
 
   async createRecording(data: any) {
@@ -215,14 +275,18 @@ class ApiClient {
     });
   }
 
+  async createRecordingWithImage(formData: FormData) {
+    return this.requestFormData<any>('/admin/recordings', formData, 'POST');
+  }
+
+  async updateRecordingWithImage(id: number, formData: FormData) {
+    return this.requestFormData<any>(`/admin/recordings/${id}`, formData, 'PUT');
+  }
+
   async deleteRecording(id: number) {
     return this.request<any>(`/admin/recordings/${id}`, {
       method: 'DELETE',
     });
-  }
-
-  async getFAQ() {
-    return this.request<any[]>('/admin/faq');
   }
 
   async createFAQ(data: any) {
@@ -249,6 +313,20 @@ class ApiClient {
     return this.request<any[]>('/admin/users');
   }
 
+  async createUser(data: { username: string; email: string; password?: string; first_name?: string; last_name?: string; role?: 'user' | 'admin' }) {
+    return this.request<any>('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateUser(id: number, data: { username?: string; email?: string; password?: string; first_name?: string; last_name?: string; role?: 'user' | 'admin' }) {
+    return this.request<any>(`/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   async updateUserRole(id: number, role: 'user' | 'admin') {
     return this.request<any>(`/admin/users/${id}/role`, {
       method: 'PATCH',
@@ -259,6 +337,41 @@ class ApiClient {
   async deleteUser(id: number) {
     return this.request<any>(`/admin/users/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  async getEmailCampaigns() {
+    return this.request<any[]>('/admin/emails');
+  }
+
+  async getEmailCampaignDetails(id: number) {
+    return this.request<any>(`/admin/emails/${id}`);
+  }
+
+  async createEmailCampaign(data: any) {
+    return this.request<any>('/admin/emails', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateEmailCampaign(id: number, data: any) {
+    return this.request<any>(`/admin/emails/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteEmailCampaign(id: number) {
+    return this.request<any>(`/admin/emails/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async sendEmailCampaign(id: number, testMode: boolean = false, recipients?: string[]) {
+    return this.request<any>(`/admin/emails/${id}/send`, {
+      method: 'POST',
+      body: JSON.stringify({ test_mode: testMode, recipients }),
     });
   }
 
@@ -285,6 +398,157 @@ class ApiClient {
     return this.request<T>(endpoint, {
       method: 'DELETE',
     });
+  }
+
+  // Password reset methods
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    return this.post('/forgot-password', { email });
+  }
+
+  async verifyResetToken(token: string): Promise<{ valid: boolean; message?: string }> {
+    return this.get(`/verify-reset-token/${token}`);
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    return this.post('/reset-password', { token, newPassword });
+  }
+
+  // Initial password setup methods (admin only)
+  async sendInitialPasswords(): Promise<{ sent: number; failed: number; total: number; message: string }> {
+    return this.post('/admin/send-initial-passwords');
+  }
+
+  async getInitialPasswordStats(): Promise<{ stats: { total: number; used: number; active: number; expired: number } }> {
+    return this.get('/admin/initial-passwords/stats');
+  }
+
+  // Setup password (for initial password creation)
+  async verifySetupToken(token: string): Promise<{ valid: boolean; message?: string }> {
+    return this.get(`/verify-setup-token/${token}`);
+  }
+
+  async setupPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    return this.post('/setup-password', { token, newPassword });
+  }
+
+  // Products management
+  async getProducts() {
+    return this.get<any[]>('/admin/products');
+  }
+
+  async getProduct(id: number) {
+    return this.get<any>(`/admin/products/${id}`);
+  }
+
+  async createProduct(data: any) {
+    return this.post<any>('/admin/products', data);
+  }
+
+  async updateProduct(id: number, data: any) {
+    return this.put<any>(`/admin/products/${id}`, data);
+  }
+
+  async deleteProduct(id: number) {
+    return this.delete(`/admin/products/${id}`);
+  }
+
+  // Pricing tiers management
+  async getProductTiers(productId: number) {
+    return this.get<any[]>(`/admin/products/${productId}/tiers`);
+  }
+
+  async createProductTier(productId: number, data: any) {
+    return this.post<any>(`/admin/products/${productId}/tiers`, data);
+  }
+
+  async updateProductTier(productId: number, tierId: number, data: any) {
+    return this.put<any>(`/admin/products/${productId}/tiers/${tierId}`, data);
+  }
+
+  async deleteProductTier(productId: number, tierId: number) {
+    return this.delete(`/admin/products/${productId}/tiers/${tierId}`);
+  }
+
+  // Cohorts management
+  async getCohorts(productId?: number) {
+    const query = productId ? `?product_id=${productId}` : '';
+    return this.get<any[]>(`/admin/cohorts${query}`);
+  }
+
+  async getCohort(id: number) {
+    return this.get<any>(`/admin/cohorts/${id}`);
+  }
+
+  async createCohort(data: any) {
+    return this.post<any>('/admin/cohorts', data);
+  }
+
+  async updateCohort(id: number, data: any) {
+    return this.put<any>(`/admin/cohorts/${id}`, data);
+  }
+
+  async deleteCohort(id: number) {
+    return this.delete(`/admin/cohorts/${id}`);
+  }
+
+  async getCohortMembers(cohortId: number) {
+    return this.get<any[]>(`/admin/cohorts/${cohortId}/members`);
+  }
+
+  async addCohortMembers(cohortId: number, userIds: number[]) {
+    return this.post<any>(`/admin/cohorts/${cohortId}/members`, { user_ids: userIds });
+  }
+
+  async removeCohortMembers(cohortId: number, userIds: number[]) {
+    return this.post<any>(`/admin/cohorts/${cohortId}/members/remove`, { user_ids: userIds });
+  }
+
+  // User enrollments management
+  async getEnrollments(userId?: number, productId?: number) {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId.toString());
+    if (productId) params.append('product_id', productId.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.get<any[]>(`/admin/enrollments${query}`);
+  }
+
+  async createEnrollment(data: any) {
+    return this.post<any>('/admin/enrollments', data);
+  }
+
+  async updateEnrollment(id: number, data: any) {
+    return this.put<any>(`/admin/enrollments/${id}`, data);
+  }
+
+  async deleteEnrollment(id: number) {
+    return this.delete(`/admin/enrollments/${id}`);
+  }
+
+  // Product resources (materials assignment)
+  async getProductResources(productId: number, resourceType?: string) {
+    const query = resourceType ? `?resource_type=${resourceType}` : '';
+    return this.get<any[]>(`/admin/resources/${productId}${query}`);
+  }
+
+  async assignProductResource(productId: number, data: any) {
+    return this.post<any>(`/admin/resources/${productId}`, data);
+  }
+
+  async assignProductResourcesBatch(productId: number, resources: any[]) {
+    return this.post<any>(`/admin/resources/${productId}/batch`, { resources });
+  }
+
+  async removeProductResource(productId: number, resourceId: number) {
+    return this.delete(`/admin/resources/${productId}/${resourceId}`);
+  }
+
+  // Public catalog
+  async getCatalogProducts() {
+    return this.get<any[]>('/catalog/products');
+  }
+
+  async getCatalogProduct(id: number) {
+    return this.get<any>(`/catalog/products/${id}`);
   }
 }
 

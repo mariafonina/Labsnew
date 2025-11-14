@@ -9,6 +9,9 @@ import { AdminNewsManager } from "./AdminNewsManager";
 import { AdminRecordingsManager } from "./AdminRecordingsManager";
 import { AdminFAQManager } from "./AdminFAQManager";
 import { AdminEventsManager } from "./AdminEventsManager";
+import { AdminEmailManager } from "./AdminEmailManager";
+import { AdminInitialPasswordsManager } from "./AdminInitialPasswordsManager";
+import { Products } from "../pages/admin/Products";
 
 export function AdminPanel() {
   const { user, logout } = useAuth();
@@ -30,6 +33,8 @@ export function AdminPanel() {
 
   const renderContent = () => {
     switch (activeSection) {
+      case "products":
+        return <Products />;
       case "news":
         return <AdminNewsManager />;
       case "events":
@@ -40,6 +45,10 @@ export function AdminPanel() {
         return <AdminRecordingsManager />;
       case "faq":
         return <AdminFAQManager />;
+      case "emails":
+        return <AdminEmailManager />;
+      case "initial-passwords":
+        return <AdminInitialPasswordsManager />;
       case "questions":
         return <AdminQuestions />;
       case "users":

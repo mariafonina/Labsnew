@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (savedUser && token) {
       try {
         setUser(JSON.parse(savedUser));
+        apiClient.setToken(token);
       } catch (error) {
         console.error('Failed to parse saved user:', error);
         localStorage.removeItem('user');
@@ -44,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     apiClient.setToken(response.token);
     setUser(response.user);
     localStorage.setItem('user', JSON.stringify(response.user));
+    localStorage.setItem('auth_token', response.token);
   };
 
   const register = async (username: string, email: string, password: string) => {
@@ -51,12 +53,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     apiClient.setToken(response.token);
     setUser(response.user);
     localStorage.setItem('user', JSON.stringify(response.user));
+    localStorage.setItem('auth_token', response.token);
   };
 
   const logout = async () => {
     await apiClient.logout();
+    apiClient.clearToken();
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
   };
 
   return (

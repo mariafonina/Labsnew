@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { query } from '../db';
 import { verifyToken, AuthRequest } from '../auth';
 import { asyncHandler } from '../utils/async-handler';
@@ -6,7 +6,14 @@ import { deleteOneOrFail } from '../utils/db-helpers';
 
 const router = Router();
 
-router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/', asyncHandler(async (req: Request, res: Response) => {
+  const result = await query(
+    'SELECT * FROM labs.events ORDER BY event_date ASC, event_time ASC'
+  );
+  res.json(result.rows);
+}));
+
+router.get('/my', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const result = await query(
     'SELECT * FROM labs.events WHERE user_id = $1 ORDER BY event_date ASC, event_time ASC',
     [req.userId]
@@ -14,7 +21,7 @@ router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
   res.json(result.rows);
 }));
 
-router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { title, description, event_date, event_time, location } = req.body;
 
   if (!title || !event_date) {
@@ -29,7 +36,7 @@ router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
   res.status(201).json(result.rows[0]);
 }));
 
-router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const { title, description, event_date, event_time, location } = req.body;
 
@@ -45,7 +52,7 @@ router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
   res.json(result.rows[0]);
 }));
 
-router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const deleted = await deleteOneOrFail('events', { id: req.params.id, user_id: req.userId! }, res);
   if (!deleted) return;
   res.json({ message: 'Event deleted successfully' });

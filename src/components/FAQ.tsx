@@ -8,7 +8,7 @@ import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Search, HelpCircle, ThumbsUp } from "lucide-react";
+import { Search, ThumbsUp } from "lucide-react";
 import { useState, useMemo } from "react";
 import { useApp } from "../contexts/AppContext";
 

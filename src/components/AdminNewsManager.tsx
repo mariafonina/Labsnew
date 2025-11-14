@@ -6,7 +6,6 @@ import { Textarea } from "./ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
 import { Plus, Pencil, Trash2, Newspaper, Search, Tag } from "lucide-react";
-import { AdminFormWrapper } from "./AdminFormWrapper";
 import { AdminFormField } from "./AdminFormField";
 import { AdminEmptyState } from "./AdminEmptyState";
 import { apiClient } from "../api/client";
@@ -38,13 +37,11 @@ export function AdminNewsManager() {
   const [newsForm, setNewsForm] = useState({
     title: "",
     content: "",
-    author: "",
-    author_avatar: "",
     category: "",
     image: "",
-    date: "Сегодня",
-    is_new: true,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
 
   useEffect(() => {
     loadNews();
@@ -67,25 +64,43 @@ export function AdminNewsManager() {
     setNewsForm({
       title: "",
       content: "",
-      author: "",
-      author_avatar: "",
       category: "",
       image: "",
-      date: "Сегодня",
-      is_new: true,
     });
+    setImageFile(null);
+    setImagePreview("");
     setIsAdding(false);
     setEditingItem(null);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAdd = async () => {
-    if (!newsForm.title || !newsForm.content || !newsForm.author || !newsForm.category) {
+    if (!newsForm.title || !newsForm.content || !newsForm.category) {
       toast.error("Заполните обязательные поля");
       return;
     }
 
     try {
-      const newItem = await apiClient.createNews(newsForm);
+      const formData = new FormData();
+      formData.append("title", newsForm.title);
+      formData.append("content", newsForm.content);
+      formData.append("category", newsForm.category);
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+
+      const newItem = await apiClient.createNewsWithImage(formData);
       setNewsItems([newItem, ...newsItems]);
       resetForm();
       toast.success("Новость добавлена");
@@ -98,13 +113,21 @@ export function AdminNewsManager() {
   const handleUpdate = async () => {
     if (!editingItem) return;
 
-    if (!newsForm.title || !newsForm.content || !newsForm.author || !newsForm.category) {
+    if (!newsForm.title || !newsForm.content || !newsForm.category) {
       toast.error("Заполните обязательные поля");
       return;
     }
 
     try {
-      const updated = await apiClient.updateNews(editingItem.id, newsForm);
+      const formData = new FormData();
+      formData.append("title", newsForm.title);
+      formData.append("content", newsForm.content);
+      formData.append("category", newsForm.category);
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+
+      const updated = await apiClient.updateNewsWithImage(editingItem.id, formData);
       setNewsItems(newsItems.map((item) => (item.id === editingItem.id ? updated : item)));
       resetForm();
       toast.success("Новость обновлена");
@@ -133,13 +156,11 @@ export function AdminNewsManager() {
     setNewsForm({
       title: item.title,
       content: item.content,
-      author: item.author,
-      author_avatar: item.author_avatar || "",
       category: item.category,
       image: item.image || "",
-      date: item.date,
-      is_new: item.is_new,
     });
+    setImageFile(null);
+    setImagePreview(item.image || "");
     setIsAdding(false);
   };
 
@@ -262,7 +283,7 @@ export function AdminNewsManager() {
         </div>
       )}
 
-      <Dialog open={isAdding || !!editingItem} onOpenChange={(open) => !open && resetForm()}>
+      <Dialog open={isAdding || !!editingItem} onOpenChange={(open: boolean) => !open && resetForm()}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingItem ? "Редактировать новость" : "Добавить новость"}</DialogTitle>
@@ -286,57 +307,35 @@ export function AdminNewsManager() {
                 rows={6}
               />
             </AdminFormField>
-            <div className="grid grid-cols-2 gap-4">
-              <AdminFormField label="Автор" required>
-                <Input
-                  value={newsForm.author}
-                  onChange={(e) => setNewsForm({ ...newsForm, author: e.target.value })}
-                  placeholder="Имя автора"
-                />
-              </AdminFormField>
-              <AdminFormField label="Категория" required>
-                <Input
-                  value={newsForm.category}
-                  onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
-                  placeholder="Категория"
-                />
-              </AdminFormField>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <AdminFormField label="Дата">
-                <Input
-                  value={newsForm.date}
-                  onChange={(e) => setNewsForm({ ...newsForm, date: e.target.value })}
-                  placeholder="Сегодня"
-                />
-              </AdminFormField>
-              <AdminFormField label="Аватар автора">
-                <Input
-                  value={newsForm.author_avatar}
-                  onChange={(e) => setNewsForm({ ...newsForm, author_avatar: e.target.value })}
-                  placeholder="URL аватара"
-                />
-              </AdminFormField>
-            </div>
-            <AdminFormField label="Изображение">
+            <AdminFormField label="Категория" required>
               <Input
-                value={newsForm.image}
-                onChange={(e) => setNewsForm({ ...newsForm, image: e.target.value })}
-                placeholder="URL изображения"
+                value={newsForm.category}
+                onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
+                placeholder="Например: Обновления, События, Анонсы"
               />
             </AdminFormField>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="is_new"
-                checked={newsForm.is_new}
-                onChange={(e) => setNewsForm({ ...newsForm, is_new: e.target.checked })}
-                className="w-4 h-4"
-              />
-              <label htmlFor="is_new" className="text-sm font-medium">
-                Отметить как новое
-              </label>
-            </div>
+            <AdminFormField label="Изображение">
+              <div className="space-y-3">
+                <Input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="cursor-pointer"
+                />
+                {imagePreview && (
+                  <div className="relative w-full h-48 rounded-lg overflow-hidden border">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <p className="text-xs text-gray-500">
+                  Загрузите изображение для новости (опционально)
+                </p>
+              </div>
+            </AdminFormField>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>
@@ -352,7 +351,7 @@ export function AdminNewsManager() {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deletingId} onOpenChange={(open) => !open && setDeletingId(null)}>
+      <AlertDialog open={!!deletingId} onOpenChange={(open: boolean) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Удалить новость?</AlertDialogTitle>

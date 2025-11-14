@@ -119,7 +119,7 @@ export function InstructionsLibrary() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-16">
       {sortedCategories.length === 0 ? (
         <Card className="p-12 text-center">
           <p className="text-gray-500 text-lg">
@@ -134,12 +134,12 @@ export function InstructionsLibrary() {
           if (categoryInstructions.length === 0) return null;
           
           return (
-            <div key={category.id} className="space-y-4">
-              <div>
+            <div key={category.id} className="space-y-5">
+              <div className="mb-2">
                 <h2 className="font-black text-2xl text-gray-900">{category.name}</h2>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {categoryInstructions.map((instruction) => {
                   const isCompleted = completedInstructions.has(instruction.id);
                   
@@ -147,9 +147,9 @@ export function InstructionsLibrary() {
                     <Card
                       key={instruction.id}
                       onClick={() => setSelectedInstruction(instruction)}
-                      className="border-gray-200/60 bg-white/60 backdrop-blur-sm rounded-xl px-5 py-3.5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
+                      className="border-gray-200/60 bg-white/60 backdrop-blur-sm rounded-xl px-6 py-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
                     >
-                      <div className="flex items-center gap-3.5">
+                      <div className="flex items-center gap-4">
                         <Checkbox
                           checked={isCompleted}
                           onCheckedChange={() => {
@@ -160,18 +160,18 @@ export function InstructionsLibrary() {
                         />
                         
                         <div className="flex-1 min-w-0">
-                          <h3 className={`font-semibold text-base leading-tight ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                          <h3 className={`font-semibold text-base leading-relaxed ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                             {instruction.title}
                           </h3>
                         </div>
                         
-                        <div className="flex items-center gap-1 shrink-0">
+                        <div className="flex items-center gap-2 shrink-0">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               handleToggleFavorite(instruction);
                             }}
-                            className={`p-2 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors ${isFavorite(instruction.id) ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`p-2.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors ${isFavorite(instruction.id) ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
                             title={isFavorite(instruction.id) ? "Удалить из избранного" : "Добавить в избранное"}
                           >
                             <Bookmark className={`h-5 w-5 ${isFavorite(instruction.id) ? 'fill-pink-500' : ''}`} />
@@ -181,7 +181,7 @@ export function InstructionsLibrary() {
                               e.stopPropagation();
                               setSelectedInstruction(instruction);
                             }}
-                            className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                            className="p-2.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
                             title="Просмотр"
                           >
                             <Eye className="h-5 w-5" />
