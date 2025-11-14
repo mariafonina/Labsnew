@@ -430,6 +430,126 @@ class ApiClient {
   async setupPassword(token: string, newPassword: string): Promise<{ message: string }> {
     return this.post('/setup-password', { token, newPassword });
   }
+
+  // Products management
+  async getProducts() {
+    return this.get<any[]>('/admin/products');
+  }
+
+  async getProduct(id: number) {
+    return this.get<any>(`/admin/products/${id}`);
+  }
+
+  async createProduct(data: any) {
+    return this.post<any>('/admin/products', data);
+  }
+
+  async updateProduct(id: number, data: any) {
+    return this.put<any>(`/admin/products/${id}`, data);
+  }
+
+  async deleteProduct(id: number) {
+    return this.delete(`/admin/products/${id}`);
+  }
+
+  // Pricing tiers management
+  async getProductTiers(productId: number) {
+    return this.get<any[]>(`/admin/products/${productId}/tiers`);
+  }
+
+  async createProductTier(productId: number, data: any) {
+    return this.post<any>(`/admin/products/${productId}/tiers`, data);
+  }
+
+  async updateProductTier(productId: number, tierId: number, data: any) {
+    return this.put<any>(`/admin/products/${productId}/tiers/${tierId}`, data);
+  }
+
+  async deleteProductTier(productId: number, tierId: number) {
+    return this.delete(`/admin/products/${productId}/tiers/${tierId}`);
+  }
+
+  // Cohorts management
+  async getCohorts(productId?: number) {
+    const query = productId ? `?product_id=${productId}` : '';
+    return this.get<any[]>(`/admin/cohorts${query}`);
+  }
+
+  async getCohort(id: number) {
+    return this.get<any>(`/admin/cohorts/${id}`);
+  }
+
+  async createCohort(data: any) {
+    return this.post<any>('/admin/cohorts', data);
+  }
+
+  async updateCohort(id: number, data: any) {
+    return this.put<any>(`/admin/cohorts/${id}`, data);
+  }
+
+  async deleteCohort(id: number) {
+    return this.delete(`/admin/cohorts/${id}`);
+  }
+
+  async getCohortMembers(cohortId: number) {
+    return this.get<any[]>(`/admin/cohorts/${cohortId}/members`);
+  }
+
+  async addCohortMembers(cohortId: number, userIds: number[]) {
+    return this.post<any>(`/admin/cohorts/${cohortId}/members`, { user_ids: userIds });
+  }
+
+  async removeCohortMembers(cohortId: number, userIds: number[]) {
+    return this.post<any>(`/admin/cohorts/${cohortId}/members/remove`, { user_ids: userIds });
+  }
+
+  // User enrollments management
+  async getEnrollments(userId?: number, productId?: number) {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId.toString());
+    if (productId) params.append('product_id', productId.toString());
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.get<any[]>(`/admin/enrollments${query}`);
+  }
+
+  async createEnrollment(data: any) {
+    return this.post<any>('/admin/enrollments', data);
+  }
+
+  async updateEnrollment(id: number, data: any) {
+    return this.put<any>(`/admin/enrollments/${id}`, data);
+  }
+
+  async deleteEnrollment(id: number) {
+    return this.delete(`/admin/enrollments/${id}`);
+  }
+
+  // Product resources (materials assignment)
+  async getProductResources(productId: number, resourceType?: string) {
+    const query = resourceType ? `?resource_type=${resourceType}` : '';
+    return this.get<any[]>(`/admin/resources/${productId}${query}`);
+  }
+
+  async assignProductResource(productId: number, data: any) {
+    return this.post<any>(`/admin/resources/${productId}`, data);
+  }
+
+  async assignProductResourcesBatch(productId: number, resources: any[]) {
+    return this.post<any>(`/admin/resources/${productId}/batch`, { resources });
+  }
+
+  async removeProductResource(productId: number, resourceId: number) {
+    return this.delete(`/admin/resources/${productId}/${resourceId}`);
+  }
+
+  // Public catalog
+  async getCatalogProducts() {
+    return this.get<any[]>('/catalog/products');
+  }
+
+  async getCatalogProduct(id: number) {
+    return this.get<any>(`/catalog/products/${id}`);
+  }
 }
 
 export const apiClient = new ApiClient();

@@ -10,6 +10,7 @@ import {
   Users,
   Mail,
   KeyRound,
+  Package,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -41,6 +42,7 @@ export function AdminSidebar({
   ).length;
 
   const menuItems = [
+    { id: "products", label: "Продукты", icon: Package },
     { id: "news", label: "Новости", icon: Newspaper },
     { id: "events", label: "События", icon: Calendar },
     { id: "instructions", label: "Инструкции", icon: BookOpen },
