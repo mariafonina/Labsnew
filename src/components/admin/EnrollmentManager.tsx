@@ -129,7 +129,7 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">
           Зачисленные пользователи ({enrollments.length})
@@ -141,8 +141,8 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
       </div>
 
       {showAddForm && (
-        <div className="border rounded-lg p-4 bg-muted/50">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="border rounded-lg p-6 bg-muted/50">
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <Label>Пользователь *</Label>
               <Input
@@ -223,7 +223,7 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Button type="submit">Зачислить</Button>
               <Button type="button" variant="outline" onClick={() => {
                 setShowAddForm(false);
@@ -248,20 +248,20 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
           Нет зачисленных пользователей
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {enrollments.map((enrollment) => (
             <div
               key={enrollment.id}
-              className="border rounded-lg p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+              className="border rounded-lg p-5 flex items-center justify-between hover:bg-muted/50 transition-colors"
             >
               <div className="flex-1">
                 <div className="font-medium">
                   {enrollment.first_name} {enrollment.last_name}
                 </div>
-                <div className="text-sm text-muted-foreground">
+                <div className="text-sm text-muted-foreground mt-1">
                   {enrollment.email} • {enrollment.username}
                 </div>
-                <div className="flex gap-4 mt-2 text-sm">
+                <div className="flex gap-4 mt-3 text-sm">
                   <span className="text-muted-foreground">
                     Тариф: <span className="font-medium text-foreground">{enrollment.tier_name}</span> (уровень {enrollment.tier_level})
                   </span>
@@ -273,7 +273,7 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                 <Select
                   value={enrollment.status}
                   onValueChange={(value: string) => handleUpdateStatus(enrollment.id, value)}

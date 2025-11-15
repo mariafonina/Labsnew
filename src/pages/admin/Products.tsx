@@ -157,11 +157,11 @@ export function Products() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Управление продуктами</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="text-muted-foreground mt-2">
             Создавайте и управляйте образовательными продуктами, тарифами и потоками
           </p>
         </div>
@@ -183,9 +183,9 @@ export function Products() {
 
       <div className="grid grid-cols-12 gap-6">
         <div className="col-span-4 space-y-4">
-          <Card className="p-4">
-            <h3 className="font-semibold mb-4">Список продуктов</h3>
-            <div className="space-y-2">
+          <Card className="p-6">
+            <h3 className="font-semibold mb-6">Список продуктов</h3>
+            <div className="space-y-3">
               {products.map((product) => (
                 <div
                   key={product.id}
@@ -202,10 +202,10 @@ export function Products() {
                         <Package className="w-4 h-4 text-gray-400" />
                         <span className="font-medium">{product.name}</span>
                       </div>
-                      <div className="text-sm text-muted-foreground mt-1">
+                      <div className="text-sm text-muted-foreground mt-2">
                         {product.type} • {product.duration_weeks} недель
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center gap-2 mt-3">
                         <span
                           className={`text-xs px-2 py-1 rounded ${
                             product.is_active
@@ -232,14 +232,14 @@ export function Products() {
         <div className="col-span-8">
           {selectedProduct ? (
             <Card className="p-6">
-              <div className="flex items-start justify-between mb-6">
+              <div className="flex items-start justify-between mb-8">
                 <div>
                   <h2 className="text-2xl font-bold">{selectedProduct.name}</h2>
-                  <p className="text-muted-foreground mt-1">
+                  <p className="text-muted-foreground mt-2">
                     {selectedProduct.description}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <Dialog open={!!editingProduct} onOpenChange={(open: boolean) => !open && setEditingProduct(null)}>
                     <DialogTrigger asChild>
                       <Button
@@ -297,17 +297,17 @@ export function Products() {
                     Материалы
                   </TabsTrigger>
                 </TabsList>
-                <TabsContent value="tiers" className="mt-4">
+                <TabsContent value="tiers" className="mt-6">
                   <TiersList
                     productId={selectedProduct.id}
                     tiers={tiers}
                     onUpdate={() => loadTiers(selectedProduct.id)}
                   />
                 </TabsContent>
-                <TabsContent value="cohorts" className="mt-4">
+                <TabsContent value="cohorts" className="mt-6">
                   <CohortsList productId={selectedProduct.id} />
                 </TabsContent>
-                <TabsContent value="enrollments" className="mt-4">
+                <TabsContent value="enrollments" className="mt-6">
                   <EnrollmentManager
                     productId={selectedProduct.id}
                     tiers={tiers}
@@ -318,7 +318,7 @@ export function Products() {
                     }}
                   />
                 </TabsContent>
-                <TabsContent value="resources" className="mt-4">
+                <TabsContent value="resources" className="mt-6">
                   <ResourcesManager
                     productId={selectedProduct.id}
                     tiers={tiers}
