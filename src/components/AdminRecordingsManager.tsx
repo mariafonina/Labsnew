@@ -295,7 +295,7 @@ export function AdminRecordingsManager() {
                 placeholder="Введите название записи"
               />
             </AdminFormField>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
               <AdminFormField label="Дата" required>
                 <Input
                   value={recordingForm.date}

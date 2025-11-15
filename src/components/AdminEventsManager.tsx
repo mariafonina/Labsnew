@@ -276,7 +276,7 @@ export function AdminEventsManager() {
                 rows={4}
               />
             </AdminFormField>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-6">
               <AdminFormField label="Дата" required>
                 <Input
                   type="date"
