@@ -5,12 +5,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
+type ProductStatus = 'not_for_sale' | 'pre_registration' | 'for_sale' | 'active';
+
 interface ProductFormData {
   name: string;
   description: string;
   type: string;
   duration_weeks: number;
   default_price: number;
+  status: ProductStatus;
+  project_start_date?: string;
+  project_end_date?: string;
 }
 
 interface ProductFormProps {
@@ -23,9 +28,12 @@ export function ProductForm({ product, onSubmit }: ProductFormProps) {
     defaultValues: product || {
       name: '',
       description: '',
-      type: 'intensive',
+      type: '',
       duration_weeks: 4,
-      default_price: 0
+      default_price: 0,
+      status: 'not_for_sale',
+      project_start_date: '',
+      project_end_date: ''
     }
   });
 
@@ -56,21 +64,17 @@ export function ProductForm({ product, onSubmit }: ProductFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="type">Тип продукта *</Label>
-          <Select
-            defaultValue={product?.type || 'intensive'}
-            onValueChange={(value: string) => setValue('type', value)}
-          >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="intensive">Интенсив</SelectItem>
-              <SelectItem value="course">Курс</SelectItem>
-              <SelectItem value="webinar">Вебинар</SelectItem>
-              <SelectItem value="mentorship">Менторство</SelectItem>
-              <SelectItem value="workshop">Воркшоп</SelectItem>
-            </SelectContent>
-          </Select>
+          <Input
+            id="type"
+            {...register('type', { required: 'Тип продукта обязателен' })}
+            placeholder="Интенсив по Вайбкодингу"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Например: Интенсив, Курс, Вебинар, Менторство
+          </p>
+          {errors.type && (
+            <p className="text-sm text-red-500 mt-1">{errors.type.message}</p>
+          )}
         </div>
 
         <div>
@@ -104,6 +108,47 @@ export function ProductForm({ product, onSubmit }: ProductFormProps) {
         {errors.default_price && (
           <p className="text-sm text-red-500 mt-1">{errors.default_price.message}</p>
         )}
+      </div>
+
+      <div>
+        <Label htmlFor="status">Статус продукта *</Label>
+        <Select
+          defaultValue={product?.status || 'not_for_sale'}
+          onValueChange={(value: string) => setValue('status', value as ProductStatus)}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="not_for_sale">Не продается</SelectItem>
+            <SelectItem value="pre_registration">Предрегистрация</SelectItem>
+            <SelectItem value="for_sale">В продаже</SelectItem>
+            <SelectItem value="active">Проведение проекта</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-gray-500 mt-1">
+          Статус определяет видимость продукта на главной странице
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="project_start_date">Дата начала проекта</Label>
+          <Input
+            id="project_start_date"
+            type="date"
+            {...register('project_start_date')}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="project_end_date">Дата окончания проекта</Label>
+          <Input
+            id="project_end_date"
+            type="date"
+            {...register('project_end_date')}
+          />
+        </div>
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

@@ -9,8 +9,11 @@ import { TiersList } from '@/components/admin/TiersList';
 import { CohortsList } from '@/components/admin/CohortsList';
 import { EnrollmentManager } from '@/components/admin/EnrollmentManager';
 import { ResourcesManager } from '@/components/admin/ResourcesManager';
+import { ProductStatusBadge } from '@/components/shared';
 import { apiClient } from '@/api/client';
 import { toast } from 'sonner';
+
+type ProductStatus = 'not_for_sale' | 'pre_registration' | 'for_sale' | 'active';
 
 interface Product {
   id: number;
@@ -19,6 +22,9 @@ interface Product {
   type: string;
   duration_weeks: number;
   default_price: number;
+  status: ProductStatus;
+  project_start_date?: string;
+  project_end_date?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -189,34 +195,47 @@ export function Products() {
               {products.map((product) => (
                 <div
                   key={product.id}
-                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                  className={`p-3 rounded-lg border transition-colors ${
                     selectedProduct?.id === product.id
                       ? 'bg-blue-50 border-blue-200'
                       : 'hover:bg-gray-50'
                   }`}
-                  onClick={() => setSelectedProduct(product)}
                 >
-                  <div className="flex items-start justify-between">
+                  <div
+                    className="flex items-start justify-between cursor-pointer"
+                    onClick={() => setSelectedProduct(product)}
+                  >
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <Package className="w-4 h-4 text-gray-400" />
                         <span className="font-medium">{product.name}</span>
                       </div>
                       <div className="text-sm text-muted-foreground mt-2">
-                        {product.type} • {product.duration_weeks} недель
+                        {product.type}
                       </div>
                       <div className="flex items-center gap-2 mt-3">
-                        <span
-                          className={`text-xs px-2 py-1 rounded ${
-                            product.is_active
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}
-                        >
-                          {product.is_active ? 'Активен' : 'Неактивен'}
-                        </span>
+                        <ProductStatusBadge status={product.status} />
+                        {!product.is_active && (
+                          <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
+                            Скрыт
+                          </span>
+                        )}
                       </div>
                     </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        setEditingProduct(product);
+                      }}
+                      className="flex-1"
+                    >
+                      <Edit className="w-3 h-3 mr-1" />
+                      Редактировать
+                    </Button>
                   </div>
                 </div>
               ))}
