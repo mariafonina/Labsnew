@@ -57,21 +57,16 @@
       // Using esbuild (built into Vite) instead of terser for faster builds
       minify: 'esbuild',
     },
-    server: {
-      host: '0.0.0.0',
-      port: 5000,
-      strictPort: true,
-      allowedHosts: true,
-      hmr: {
-        clientPort: 443,
-        protocol: 'wss',
-      },
-      proxy: {
-        '/api': {
-          target: 'http://localhost:3001',
-          changeOrigin: true,
-          secure: false,
-        },
+  server: {
+    host: 'localhost',
+    port: 5173,
+    strictPort: false,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        secure: false,
       },
     },
+  },
   });
