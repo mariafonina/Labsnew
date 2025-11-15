@@ -181,11 +181,11 @@ export function AdminNewsManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-black">Управление новостями</h2>
-          <p className="text-gray-500 mt-1">Создавайте и редактируйте новости</p>
+          <p className="text-gray-500 mt-2">Создавайте и редактируйте новости</p>
         </div>
         <Button
           onClick={() => setIsAdding(true)}
@@ -198,7 +198,7 @@ export function AdminNewsManager() {
       </div>
 
       {newsItems.length > 0 && (
-        <div className="flex gap-3">
+        <div className="flex gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -208,7 +208,7 @@ export function AdminNewsManager() {
               className="pl-10"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Button
               variant={categoryFilter === "all" ? "default" : "outline"}
               onClick={() => setCategoryFilter("all")}
@@ -237,12 +237,12 @@ export function AdminNewsManager() {
           onAction={() => setIsAdding(true)}
         />
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           {filteredNews.map((item) => (
             <Card key={item.id} className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center gap-3 mb-4">
                     <h3 className="font-bold text-xl">{item.title}</h3>
                     {item.is_new && (
                       <span className="px-2 py-1 bg-pink-100 text-pink-600 text-xs font-bold rounded">
@@ -254,14 +254,14 @@ export function AdminNewsManager() {
                       {item.category}
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-3 line-clamp-2">{item.content}</p>
+                  <p className="text-gray-600 mb-4 line-clamp-2">{item.content}</p>
                   <div className="flex items-center gap-4 text-sm text-gray-500">
                     <span>Автор: {item.author}</span>
                     <span>•</span>
                     <span>{item.date}</span>
                   </div>
                 </div>
-                <div className="flex gap-2 ml-4">
+                <div className="flex gap-3 ml-6">
                   <Button
                     variant="outline"
                     size="sm"
@@ -291,7 +291,7 @@ export function AdminNewsManager() {
               {editingItem ? "Обновите информацию о новости" : "Заполните данные для новой новости"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <AdminFormField label="Заголовок" required>
               <Input
                 value={newsForm.title}
@@ -337,7 +337,7 @@ export function AdminNewsManager() {
               </div>
             </AdminFormField>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-3">
             <Button variant="outline" onClick={resetForm}>
               Отмена
             </Button>
