@@ -190,11 +190,11 @@ export function AdminRecordingsManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-black">Управление записями</h2>
-          <p className="text-gray-500 mt-1">Добавляйте записи прошедших эфиров</p>
+          <p className="text-gray-500 mt-2">Добавляйте записи прошедших эфиров</p>
         </div>
         <Button
           onClick={() => setIsAdding(true)}
@@ -227,7 +227,7 @@ export function AdminRecordingsManager() {
           onAction={() => setIsAdding(true)}
         />
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-6">
           {filteredRecordings.map((item) => (
             <Card key={item.id} className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start justify-between">
@@ -240,9 +240,9 @@ export function AdminRecordingsManager() {
                     />
                   )}
                   <div className="flex-1">
-                    <h3 className="font-bold text-xl mb-2">{item.title}</h3>
+                    <h3 className="font-bold text-xl mb-4">{item.title}</h3>
                     {item.description && (
-                      <p className="text-gray-600 mb-3 line-clamp-2">{item.description}</p>
+                      <p className="text-gray-600 mb-4 line-clamp-2">{item.description}</p>
                     )}
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span>Спикер: {item.instructor}</span>
@@ -257,7 +257,7 @@ export function AdminRecordingsManager() {
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-2 ml-4">
+                <div className="flex gap-3 ml-6">
                   <Button
                     variant="outline"
                     size="sm"
@@ -287,7 +287,7 @@ export function AdminRecordingsManager() {
               {editingItem ? "Обновите информацию о записи" : "Заполните данные для новой записи"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-6">
             <AdminFormField label="Название" required>
               <Input
                 value={recordingForm.title}
@@ -360,7 +360,7 @@ export function AdminRecordingsManager() {
               />
             </AdminFormField>
           </div>
-          <DialogFooter>
+          <DialogFooter className="gap-3">
             <Button variant="outline" onClick={resetForm}>
               Отмена
             </Button>
