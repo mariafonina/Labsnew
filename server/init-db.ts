@@ -285,15 +285,24 @@ export async function initializeDatabase() {
         id SERIAL PRIMARY KEY,
         name VARCHAR(200) NOT NULL,
         description TEXT,
-        type VARCHAR(50) NOT NULL,
+        type VARCHAR(200) NOT NULL,
         duration_weeks INTEGER,
         default_price DECIMAL(10, 2),
+        status VARCHAR(50) DEFAULT 'not_for_sale',
+        project_start_date DATE,
+        project_end_date DATE,
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('Table "labs.products" created');
+    
+    await query(`ALTER TABLE labs.products ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'not_for_sale'`);
+    await query(`ALTER TABLE labs.products ADD COLUMN IF NOT EXISTS project_start_date DATE`);
+    await query(`ALTER TABLE labs.products ADD COLUMN IF NOT EXISTS project_end_date DATE`);
+    await query(`ALTER TABLE labs.products ALTER COLUMN type TYPE VARCHAR(200)`);
+    console.log('Added product status and project dates columns');
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.pricing_tiers (
@@ -304,6 +313,8 @@ export async function initializeDatabase() {
         price DECIMAL(10, 2) NOT NULL,
         tier_level INTEGER NOT NULL,
         features JSONB,
+        access_start_date DATE,
+        access_end_date DATE,
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -311,6 +322,10 @@ export async function initializeDatabase() {
       )
     `);
     console.log('Table "labs.pricing_tiers" created');
+    
+    await query(`ALTER TABLE labs.pricing_tiers ADD COLUMN IF NOT EXISTS access_start_date DATE`);
+    await query(`ALTER TABLE labs.pricing_tiers ADD COLUMN IF NOT EXISTS access_end_date DATE`);
+    console.log('Added access dates to pricing tiers');
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.cohorts (
@@ -370,6 +385,20 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.cohort_members" created');
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.content_access (
+        id SERIAL PRIMARY KEY,
+        content_type VARCHAR(50) NOT NULL,
+        content_id INTEGER NOT NULL,
+        cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE,
+        tier_id INTEGER REFERENCES labs.pricing_tiers(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(content_type, content_id, cohort_id),
+        UNIQUE(content_type, content_id, tier_id)
+      )
+    `);
+    console.log('Table "labs.content_access" created for cohort/tier-based content visibility');
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
@@ -412,6 +441,10 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_cohort_members_cohort_id ON labs.cohort_members(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_cohort_members_user_id ON labs.cohort_members(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_cohort_members_active ON labs.cohort_members(cohort_id, user_id) WHERE left_at IS NULL');
+    await query('CREATE INDEX IF NOT EXISTS idx_content_access_content ON labs.content_access(content_type, content_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_content_access_cohort ON labs.content_access(cohort_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_content_access_tier ON labs.content_access(tier_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_products_status ON labs.products(status)');
     console.log('Indexes created');
 
     const defaultProduct = await query(`
