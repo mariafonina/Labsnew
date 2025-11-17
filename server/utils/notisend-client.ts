@@ -166,6 +166,8 @@ class NotisendClient {
     templateId: string,
     templateData: Record<string, any>,
     subject?: string,
+    from_email: string = 'noreply@mariafonina.ru',
+    from_name: string = 'ЛАБС',
   ): Promise<any> {
     return this.sendEmail({
       to,
@@ -173,6 +175,8 @@ class NotisendClient {
       html: "",
       template_id: templateId,
       template_data: templateData,
+      from_email,
+      from_name,
     });
   }
 
@@ -181,6 +185,8 @@ class NotisendClient {
     templateId: string,
     templateDataMap: Record<string, any> = {},
     subject?: string,
+    from_email: string = 'noreply@mariafonina.ru',
+    from_name: string = 'ЛАБС',
   ): Promise<any> {
     const results = [];
     const errors = [];
@@ -193,6 +199,8 @@ class NotisendClient {
           templateId,
           templateData,
           subject,
+          from_email,
+          from_name,
         );
         results.push({ email: recipient, status: "sent", result });
       } catch (error: any) {

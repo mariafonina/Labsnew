@@ -73,6 +73,8 @@ export async function sendPasswordResetEmail(email: string, username: string, to
       to: email,
       subject,
       html: htmlBody,
+      from_email: 'noreply@mariafonina.ru',
+      from_name: 'ЛАБС',
     });
   } catch (error) {
     console.error('Failed to send password reset email:', error);
