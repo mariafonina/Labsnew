@@ -76,19 +76,18 @@ class NotisendClient {
             : JSON.stringify(params.template_data);
       }
 
-      const signature = this.generateSignature(emailData);
-      emailData.sign = signature;
-
       console.log(
         `[Notisend] Sending email to ${params.to}, project: ${this.projectName}`,
       );
       console.log(`[Notisend] Request URL: ${this.baseUrl}/email/messages`);
+      console.log(`[Notisend] Using Bearer token auth`);
 
       const response = await fetch(`${this.baseUrl}/email/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify(emailData),
       });

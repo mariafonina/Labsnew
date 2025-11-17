@@ -85,6 +85,8 @@ export async function sendInitialPasswordEmail(email: string, username: string, 
       to: email,
       subject,
       html: htmlBody,
+      from_email: 'noreply@mariafonina.ru',
+      from_name: 'ЛАБС',
     });
   } catch (error) {
     console.error('Failed to send initial password email:', error);
