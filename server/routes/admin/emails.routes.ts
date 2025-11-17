@@ -137,6 +137,8 @@ router.post('/:id/send', verifyToken, requireAdmin, createLimiter, asyncHandler(
       subject: campaign.subject || 'Notification',
       html: campaign.html_content || '',
       text: campaign.text_content,
+      from_email: 'noreply@mariafonina.ru',
+      from_name: 'ЛАБС',
     });
   }
 
