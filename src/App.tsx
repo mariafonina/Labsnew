@@ -112,113 +112,113 @@ function AppContent() {
         >
           <div className="max-w-7xl mx-auto pl-16 pr-8 py-12">
             {activeTab === "news" && (
-              <div>
-                <div className="mb-12">
-                  <h2 className="text-gray-900 mb-3 font-black text-4xl">что нового</h2>
-                  <p className="text-gray-600 text-lg">
-                    Актуальные обновления и анонсы от преподавателей
-                  </p>
+                <div>
+                  <div className="mb-12">
+                    <h2 className="text-gray-900 mb-3 font-black text-4xl">что нового</h2>
+                    <p className="text-gray-600 text-lg">
+                      Актуальные обновления и анонсы от преподавателей
+                    </p>
+                  </div>
+                  <div className="max-w-2xl">
+                    <NewsFeed onNavigateToQuestion={handleNavigateToQuestion} />
+                  </div>
                 </div>
-                <div className="max-w-2xl">
-                  <NewsFeed onNavigateToQuestion={handleNavigateToQuestion} />
-                </div>
-              </div>
-            )}
+              )}
 
-            {activeTab === "calendar" && (
-              <div>
-                <div className="mb-12">
-                  <h2 className="text-gray-900 mb-3 font-black text-4xl">Расписание</h2>
-                  <p className="text-gray-600 text-lg">
-                    Предстоящие занятия и события курса
-                  </p>
+              {activeTab === "calendar" && (
+                <div>
+                  <div className="mb-12">
+                    <h2 className="text-gray-900 mb-3 font-black text-4xl">Расписание</h2>
+                    <p className="text-gray-600 text-lg">
+                      Предстоящие занятия и события курса
+                    </p>
+                  </div>
+                  <EventsCalendar />
                 </div>
-                <EventsCalendar />
-              </div>
-            )}
+              )}
 
-            {activeTab === "library" && (
-              <div>
-                <div className="mb-12">
-                  <h2 className="text-gray-900 mb-3 font-black text-4xl">База знаний</h2>
-                  <p className="text-gray-600 text-lg">
-                    Инструкции, гайды и материалы по всем темам курса
-                  </p>
+              {activeTab === "library" && (
+                <div>
+                  <div className="mb-12">
+                    <h2 className="text-gray-900 mb-3 font-black text-4xl">База знаний</h2>
+                    <p className="text-gray-600 text-lg">
+                      Инструкции, гайды и материалы по всем темам курса
+                    </p>
+                  </div>
+                  <InstructionsLibrary />
                 </div>
-                <InstructionsLibrary />
-              </div>
-            )}
+              )}
 
-            {activeTab === "recordings" && (
-              <div>
-                <div className="mb-12">
-                  <h2 className="text-gray-900 mb-3 font-black text-4xl">Записи эфиров</h2>
-                  <p className="text-gray-600 text-lg">
-                    Все прошедшие занятия доступны для просмотра
-                  </p>
+              {activeTab === "recordings" && (
+                <div>
+                  <div className="mb-12">
+                    <h2 className="text-gray-900 mb-3 font-black text-4xl">Записи эфиров</h2>
+                    <p className="text-gray-600 text-lg">
+                      Все прошедшие занятия доступны для просмотра
+                    </p>
+                  </div>
+                  <RecordedStreams />
                 </div>
-                <RecordedStreams />
-              </div>
-            )}
+              )}
 
-            {activeTab === "faq" && (
-              <div>
-                <div className="mb-12">
-                  <h2 className="text-gray-900 mb-3 font-black text-4xl">Вопрос-ответ (FAQ)</h2>
-                  <p className="text-gray-600 text-lg">
-                    Ответы на часто задаваемые вопросы о курсе
-                  </p>
+              {activeTab === "faq" && (
+                <div>
+                  <div className="mb-12">
+                    <h2 className="text-gray-900 mb-3 font-black text-4xl">Вопрос-ответ (FAQ)</h2>
+                    <p className="text-gray-600 text-lg">
+                      Ответы на часто задаваемые вопросы о курсе
+                    </p>
+                  </div>
+                  <FAQ />
                 </div>
-                <FAQ />
-              </div>
-            )}
+              )}
 
-            {activeTab === "favorites" && (
-              <div>
-                <div className="mb-12">
-                  <h2 className="text-gray-900 mb-3 font-black text-4xl">Избранное</h2>
-                  <p className="text-gray-600 text-lg">
-                    Сохранённые материалы для быстрого доступа
-                  </p>
+              {activeTab === "favorites" && (
+                <div>
+                  <div className="mb-12">
+                    <h2 className="text-gray-900 mb-3 font-black text-4xl">Избранное</h2>
+                    <p className="text-gray-600 text-lg">
+                      Сохранённые материалы для быстрого доступа
+                    </p>
+                  </div>
+                  <Favorites />
                 </div>
-                <Favorites />
-              </div>
-            )}
+              )}
 
-            {activeTab === "notes" && (
-              <div>
-                <div className="mb-12">
-                  <h2 className="text-gray-900 mb-3 font-black text-4xl">Мои заметки</h2>
-                  <p className="text-gray-600 text-lg">
-                    Ваши личные заметки и идеи
-                  </p>
+              {activeTab === "notes" && (
+                <div>
+                  <div className="mb-12">
+                    <h2 className="text-gray-900 mb-3 font-black text-4xl">Мои заметки</h2>
+                    <p className="text-gray-600 text-lg">
+                      Ваши личные заметки и идеи
+                    </p>
+                  </div>
+                  <Notes onNavigateToItem={(type) => {
+                    const tabMap: Record<string, string> = {
+                      'news': 'news',
+                      'instruction': 'instructions',
+                      'recording': 'recordings',
+                      'event': 'calendar'
+                    };
+                    const tab = tabMap[type];
+                    if (tab) {
+                      setActiveTab(tab);
+                    }
+                  }} />
                 </div>
-                <Notes onNavigateToItem={(type) => {
-                  const tabMap: Record<string, string> = {
-                    'news': 'news',
-                    'instruction': 'instructions',
-                    'recording': 'recordings',
-                    'event': 'calendar'
-                  };
-                  const tab = tabMap[type];
-                  if (tab) {
-                    setActiveTab(tab);
-                  }
-                }} />
-              </div>
-            )}
+              )}
 
-            {activeTab === "profile" && (
-              <div>
-                <div className="mb-12">
-                  <h2 className="text-gray-900 mb-3 font-black text-4xl">Мой профиль</h2>
-                  <p className="text-gray-600 text-lg">
-                    Управление личной информацией и настройками
-                  </p>
+              {activeTab === "profile" && (
+                <div>
+                  <div className="mb-12">
+                    <h2 className="text-gray-900 mb-3 font-black text-4xl">Мой профиль</h2>
+                    <p className="text-gray-600 text-lg">
+                      Управление личной информацией и настройками
+                    </p>
+                  </div>
+                  <UserProfile />
                 </div>
-                <UserProfile />
-              </div>
-            )}
+              )}
           </div>
 
           {/* Footer */}
