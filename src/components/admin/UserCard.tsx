@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, User, Mail, Calendar, Package, Users, BookOpen, Heart, MessageSquare, FileText, Video, UserPlus } from 'lucide-react';
+import { X, User, Mail, Package, Users, BookOpen, Heart, MessageSquare, FileText, Video, UserPlus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -64,7 +64,7 @@ export function UserCard({ user, onClose }: UserCardProps) {
   const loadProductData = async (productId: number) => {
     try {
       const [tiersData, cohortsData] = await Promise.all([
-        apiClient.getTiers(productId),
+        apiClient.getProductTiers(productId),
         apiClient.getCohorts(productId)
       ]);
       setTiers(tiersData);
@@ -211,7 +211,7 @@ export function UserCard({ user, onClose }: UserCardProps) {
                         <Label htmlFor="tier">Тариф *</Label>
                         <Select 
                           value={enrollFormData.pricing_tier_id} 
-                          onValueChange={(value) => setEnrollFormData({ ...enrollFormData, pricing_tier_id: value })}
+                          onValueChange={(value: string) => setEnrollFormData({ ...enrollFormData, pricing_tier_id: value })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите тариф" />
@@ -231,14 +231,14 @@ export function UserCard({ user, onClose }: UserCardProps) {
                       <div>
                         <Label htmlFor="cohort">Поток (необязательно)</Label>
                         <Select 
-                          value={enrollFormData.cohort_id} 
-                          onValueChange={(value) => setEnrollFormData({ ...enrollFormData, cohort_id: value })}
+                          value={enrollFormData.cohort_id || "none"} 
+                          onValueChange={(value: string) => setEnrollFormData({ ...enrollFormData, cohort_id: value === "none" ? "" : value })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Выберите поток" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Без потока</SelectItem>
+                            <SelectItem value="none">Без потока</SelectItem>
                             {cohorts.map((cohort) => (
                               <SelectItem key={cohort.id} value={cohort.id.toString()}>
                                 {cohort.name}
@@ -253,7 +253,7 @@ export function UserCard({ user, onClose }: UserCardProps) {
                       <Label htmlFor="status">Статус</Label>
                       <Select 
                         value={enrollFormData.status} 
-                        onValueChange={(value) => setEnrollFormData({ ...enrollFormData, status: value })}
+                        onValueChange={(value: string) => setEnrollFormData({ ...enrollFormData, status: value })}
                       >
                         <SelectTrigger>
                           <SelectValue />

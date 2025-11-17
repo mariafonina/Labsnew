@@ -24,26 +24,27 @@ router.get(
     let paramIndex = 1;
     const conditions: string[] = [];
 
-    // Фильтрация по потоку
+    // // Фильтрация по потоку
     if (cohort_id) {
       queryText += ` JOIN labs.cohort_members cm ON u.id = cm.user_id AND cm.cohort_id = $${paramIndex} AND cm.left_at IS NULL`;
       params.push(cohort_id);
       paramIndex++;
     }
 
-    // Фильтрация по продукту
-    if (product_id) {
-      queryText += ` JOIN labs.user_enrollments ue ON u.id = ue.user_id AND ue.product_id = $${paramIndex} AND ue.status = 'active'`;
-      params.push(product_id);
-      paramIndex++;
-    }
+    // // Фильтрация по продукту
+    // if (product_id) {
+    //   queryText += ` JOIN labs.user_enrollments ue ON u.id = ue.user_id AND ue.product_id = $${paramIndex} AND ue.status = 'active'`;
+    //   params.push(product_id);
+    //   paramIndex++;
+    // }
 
-    if (conditions.length > 0) {
-      queryText += ` WHERE ${conditions.join(" AND ")}`;
-    }
+    // if (conditions.length > 0) {
+    //   queryText += ` WHERE ${conditions.join(" AND ")}`;
+    // }
 
     // Сортировка: администраторы первыми, затем по дате создания
-    queryText += ` ORDER BY CASE WHEN u.role = 'admin' THEN 0 ELSE 1 END, u.created_at DESC`;
+    // queryText += ` ORDER BY CASE WHEN u.role = 'admin' THEN 0 ELSE 1 END, u.created_at DESC`;
+    queryText += ` ORDER BY u.created_at DESC`;
     console.log(queryText);
     const result = await query(queryText, params);
     res.json(result.rows);
@@ -352,7 +353,7 @@ router.get(
 
     const notes = await query(
       `
-    SELECT id, title, content, linked_item_type, linked_item_id, created_at, updated_at
+    SELECT id, title, content, linked_item, created_at, updated_at
     FROM labs.notes
     WHERE user_id = $1
     ORDER BY updated_at DESC

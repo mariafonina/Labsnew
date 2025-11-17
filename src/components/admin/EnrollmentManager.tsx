@@ -184,12 +184,12 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
 
             <div>
               <Label>Поток (опционально)</Label>
-              <Select value={formData.cohort_id} onValueChange={(value: string) => setFormData({ ...formData, cohort_id: value })}>
+              <Select value={formData.cohort_id || "none"} onValueChange={(value: string) => setFormData({ ...formData, cohort_id: value === "none" ? "" : value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Без потока" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Без потока</SelectItem>
+                  <SelectItem value="none">Без потока</SelectItem>
                   {cohorts.filter(c => c.is_active).map((cohort) => (
                     <SelectItem key={cohort.id} value={cohort.id.toString()}>
                       {cohort.name} ({cohort.start_date} - {cohort.end_date})

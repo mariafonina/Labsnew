@@ -398,12 +398,12 @@ export function AdminUsers() {
                 className="h-12 pl-12 text-base"
               />
             </div>
-            <Select value={selectedCohortId} onValueChange={setSelectedCohortId}>
+            <Select value={selectedCohortId || "all"} onValueChange={(value: string) => setSelectedCohortId(value === "all" ? "" : value)}>
               <SelectTrigger className="w-[200px] h-12">
                 <SelectValue placeholder="Все потоки" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Все потоки</SelectItem>
+                <SelectItem value="all">Все потоки</SelectItem>
                 {cohorts.map((cohort) => (
                   <SelectItem key={cohort.id} value={cohort.id.toString()}>
                     {cohort.name}
@@ -411,12 +411,12 @@ export function AdminUsers() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+            <Select value={selectedProductId || "all"} onValueChange={(value: string) => setSelectedProductId(value === "all" ? "" : value)}>
               <SelectTrigger className="w-[200px] h-12">
                 <SelectValue placeholder="Все продукты" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Все продукты</SelectItem>
+                <SelectItem value="all">Все продукты</SelectItem>
                 {products.map((product) => (
                   <SelectItem key={product.id} value={product.id.toString()}>
                     {product.name}
