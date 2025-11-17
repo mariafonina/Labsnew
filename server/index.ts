@@ -87,8 +87,8 @@ app.use('/api/admin/enrollments', adminEnrollmentsRoutes);
 app.use('/api/admin/resources', adminResourcesRoutes);
 app.use('/api/admin', adminInitialPasswordsRoutes);
 
-// Root endpoint - always return fast JSON for health checks
-app.get('/', (req, res) => {
+// Health check endpoint for monitoring
+app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: 'ЛАБС Server',
@@ -97,8 +97,12 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// API 404 handler - must come after all API routes
+app.all(['/api', '/api/*'], (req, res) => {
+  res.status(404).json({ 
+    error: 'API endpoint not found',
+    path: req.path 
+  });
 });
 
 // In production, serve static assets and handle SPA routing
@@ -108,11 +112,25 @@ if (isProduction) {
   console.log(`Serving static files from: ${buildPath}`);
   
   // Serve static assets (CSS, JS, images, etc.)
-  app.use(express.static(buildPath));
+  app.use(express.static(buildPath, {
+    maxAge: '1y',
+    etag: true,
+    lastModified: true
+  }));
   
-  // Handle SPA routing for all other requests (except those already handled above)
-  app.use((req, res) => {
+  // Handle SPA routing - send index.html for all non-API routes
+  app.get('*', (req, res) => {
     res.sendFile(path.join(buildPath, 'index.html'));
+  });
+} else {
+  // In development, show simple status on root
+  app.get('/', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      message: 'ЛАБС Development Server',
+      environment: 'development',
+      timestamp: new Date().toISOString() 
+    });
   });
 }
 
