@@ -119,7 +119,8 @@ if (isProduction) {
   }));
   
   // Handle SPA routing - send index.html for all non-API routes
-  app.get('*', (req, res) => {
+  // Use regex instead of '*' for compatibility with path-to-regexp
+  app.get(/.*/, (req, res) => {
     res.sendFile(path.join(buildPath, 'index.html'));
   });
 } else {
