@@ -353,7 +353,7 @@ router.get(
 
     const notes = await query(
       `
-    SELECT id, title, content, linked_item_type, linked_item_id, created_at, updated_at
+      SELECT id, title, content, linked_item, created_at, updated_at
     FROM labs.notes
     WHERE user_id = $1
     ORDER BY updated_at DESC
@@ -394,41 +394,41 @@ router.get(
           WHEN c.event_type = 'faq' THEN f.question
         END as event_title
       FROM labs.comments c
-      LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id = e.id
-      LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id = i.id
-      LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id = r.id
-      LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id = f.id
+      LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id::INTEGER = e.id
+      LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id::INTEGER = i.id
+      LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id::INTEGER = r.id
+      LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id::INTEGER = f.id
       WHERE c.user_id = $1
       ORDER BY c.created_at DESC
     `,
       [id],
     );
 
-    //   const likedComments = await query(
-    //     `
-    //   SELECT
-    //     c.id,
-    //     c.event_id,
-    //     c.event_type,
-    //     c.content,
-    //     c.likes,
-    //     c.created_at,
-    //     CASE
-    //       WHEN c.event_type = 'event' THEN e.title
-    //       WHEN c.event_type = 'instruction' THEN i.title
-    //       WHEN c.event_type = 'recording' THEN r.title
-    //       WHEN c.event_type = 'faq' THEN f.question
-    //     END as event_title
-    //   FROM labs.comments c
-    //   LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id = e.id
-    //   LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id = i.id
-    //   LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id = r.id
-    //   LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id = f.id
-    //   WHERE c.likes > 0 AND c.user_id = $1
-    //   ORDER BY c.likes DESC, c.created_at DESC
-    // `,
-    //     [id],
-    //   );
+    const likedComments = await query(
+      `
+      SELECT
+        c.id,
+        c.event_id,
+        c.event_type,
+        c.content,
+        c.likes,
+        c.created_at,
+        CASE
+          WHEN c.event_type = 'event' THEN e.title
+          WHEN c.event_type = 'instruction' THEN i.title
+          WHEN c.event_type = 'recording' THEN r.title
+          WHEN c.event_type = 'faq' THEN f.question
+        END as event_title
+      FROM labs.comments c
+      LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id::INTEGER = e.id
+      LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id::INTEGER = i.id
+      LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id::INTEGER = r.id
+      LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id::INTEGER = f.id
+      WHERE c.likes > 0 AND c.user_id = $1
+      ORDER BY c.likes DESC, c.created_at DESC
+    `,
+      [id],
+    );
 
     // Получаем просмотренные записи
     const recordingViews = await query(
@@ -458,10 +458,8 @@ router.get(
         recordingViews: recordingViews.rows,
         notes: notes.rows,
         favorites: favorites.rows,
-        // comments: [],
         comments: comments.rows,
-        likedComments: [],
-        // likedComments: likedComments.rows,
+        likedComments: likedComments.rows,
       },
     });
   }),

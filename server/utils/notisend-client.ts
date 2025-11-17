@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 
 interface NotisendEmailParams {
   to: string;
@@ -25,24 +25,29 @@ interface NotisendBulkEmailParams {
 class NotisendClient {
   private apiKey: string;
   private projectName: string;
-  private baseUrl: string = 'https://api.notisend.ru/v1';
+  private baseUrl: string = "https://api.notisend.ru/v1";
 
   constructor() {
-    this.apiKey = process.env.NOTISEND_API_KEY || '';
-    this.projectName = process.env.NOTISEND_PROJECT_NAME || '';
+    this.apiKey = process.env.NOTISEND_API_KEY || "";
+    this.projectName = process.env.NOTISEND_PROJECT_NAME || "";
 
     if (!this.apiKey || !this.projectName) {
-      throw new Error('NOTISEND_API_KEY and NOTISEND_PROJECT_NAME must be set in environment variables');
+      throw new Error(
+        "NOTISEND_API_KEY and NOTISEND_PROJECT_NAME must be set in environment variables",
+      );
     }
   }
 
   private generateSignature(params: Record<string, any>): string {
     const sortedKeys = Object.keys(params).sort();
-    const values = sortedKeys.map(key => params[key]);
+    const values = sortedKeys.map((key) => params[key]);
     values.push(this.apiKey);
-    const concatenated = values.join(';');
-    const sha1Hash = crypto.createHash('sha1').update(concatenated).digest('hex');
-    const md5Hash = crypto.createHash('md5').update(sha1Hash).digest('hex');
+    const concatenated = values.join(";");
+    const sha1Hash = crypto
+      .createHash("sha1")
+      .update(concatenated)
+      .digest("hex");
+    const md5Hash = crypto.createHash("md5").update(sha1Hash).digest("hex");
     return md5Hash;
   }
 
@@ -57,7 +62,7 @@ class NotisendClient {
         project: this.projectName,
         to: params.to,
         subject: params.subject,
-        html: params.html || '',
+        html: params.html || "",
       };
 
       if (params.text) emailData.text = params.text;
@@ -65,29 +70,34 @@ class NotisendClient {
       if (params.from_name) emailData.from_name = params.from_name;
       if (params.template_id) emailData.template_id = params.template_id;
       if (params.template_data) {
-        emailData.template_data = typeof params.template_data === 'string' 
-          ? params.template_data 
-          : JSON.stringify(params.template_data);
+        emailData.template_data =
+          typeof params.template_data === "string"
+            ? params.template_data
+            : JSON.stringify(params.template_data);
       }
 
       const signature = this.generateSignature(emailData);
       emailData.sign = signature;
 
-      console.log(`[Notisend] Sending email to ${params.to}, project: ${this.projectName}`);
-      console.log(`[Notisend] Request URL: ${this.baseUrl}/email/send`);
+      console.log(
+        `[Notisend] Sending email to ${params.to}, project: ${this.projectName}`,
+      );
+      console.log(`[Notisend] Request URL: ${this.baseUrl}/email/messages`);
 
-      const response = await fetch(`${this.baseUrl}/email/send`, {
-        method: 'POST',
+      const response = await fetch(`${this.baseUrl}/email/messages`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          "Content-Type": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(emailData),
       });
 
       const responseText = await response.text();
       console.log(`[Notisend] Response status: ${response.status}`);
-      console.log(`[Notisend] Response body: ${responseText.substring(0, 200)}`);
+      console.log(
+        `[Notisend] Response body: ${responseText.substring(0, 200)}`,
+      );
 
       if (!response.ok) {
         let errorMessage = `Notisend API error: ${response.status}`;
@@ -106,8 +116,8 @@ class NotisendClient {
         return { success: true, message: responseText };
       }
     } catch (error: any) {
-      console.error('[Notisend] sendEmail error:', error);
-      console.error('[Notisend] Error details:', {
+      console.error("[Notisend] sendEmail error:", error);
+      console.error("[Notisend] Error details:", {
         message: error.message,
         stack: error.stack,
         project: this.projectName,
@@ -133,9 +143,13 @@ class NotisendClient {
           template_id: params.template_id,
           template_data: params.template_data,
         });
-        results.push({ email: recipient, status: 'sent', result });
+        results.push({ email: recipient, status: "sent", result });
       } catch (error: any) {
-        errors.push({ email: recipient, status: 'failed', error: error.message });
+        errors.push({
+          email: recipient,
+          status: "failed",
+          error: error.message,
+        });
       }
     }
 
@@ -148,27 +162,46 @@ class NotisendClient {
     };
   }
 
-  async sendTemplateEmail(to: string, templateId: string, templateData: Record<string, any>, subject?: string): Promise<any> {
+  async sendTemplateEmail(
+    to: string,
+    templateId: string,
+    templateData: Record<string, any>,
+    subject?: string,
+  ): Promise<any> {
     return this.sendEmail({
       to,
-      subject: subject || 'Уведомление', 
-      html: '',
+      subject: subject || "Уведомление",
+      html: "",
       template_id: templateId,
       template_data: templateData,
     });
   }
 
-  async sendBulkTemplateEmail(recipients: string[], templateId: string, templateDataMap: Record<string, any> = {}, subject?: string): Promise<any> {
+  async sendBulkTemplateEmail(
+    recipients: string[],
+    templateId: string,
+    templateDataMap: Record<string, any> = {},
+    subject?: string,
+  ): Promise<any> {
     const results = [];
     const errors = [];
 
     for (const recipient of recipients) {
       try {
         const templateData = templateDataMap[recipient] || {};
-        const result = await this.sendTemplateEmail(recipient, templateId, templateData, subject);
-        results.push({ email: recipient, status: 'sent', result });
+        const result = await this.sendTemplateEmail(
+          recipient,
+          templateId,
+          templateData,
+          subject,
+        );
+        results.push({ email: recipient, status: "sent", result });
       } catch (error: any) {
-        errors.push({ email: recipient, status: 'failed', error: error.message });
+        errors.push({
+          email: recipient,
+          status: "failed",
+          error: error.message,
+        });
       }
     }
 
