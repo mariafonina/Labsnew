@@ -78,6 +78,29 @@ export function ProductForm({ product, onSubmit }: ProductFormProps) {
         </div>
 
         <div>
+          <Label htmlFor="status">Статус продукта *</Label>
+          <Select
+            defaultValue={product?.status || 'not_for_sale'}
+            onValueChange={(value: string) => setValue('status', value as ProductStatus)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="not_for_sale">Нет в продаже</SelectItem>
+              <SelectItem value="pre_registration">Возможна предзапись</SelectItem>
+              <SelectItem value="for_sale">В продаже</SelectItem>
+              <SelectItem value="active">Активен (проведение проекта)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-gray-500 mt-1">
+            Статус определяет видимость продукта на главной странице
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
           <Label htmlFor="duration_weeks">Длительность (недели) *</Label>
           <Input
             id="duration_weeks"
@@ -92,48 +115,27 @@ export function ProductForm({ product, onSubmit }: ProductFormProps) {
             <p className="text-sm text-red-500 mt-1">{errors.duration_weeks.message}</p>
           )}
         </div>
-      </div>
 
-      <div>
-        <Label htmlFor="default_price">Базовая цена (₽)</Label>
-        <Input
-          id="default_price"
-          type="number"
-          step="0.01"
-          {...register('default_price', {
-            min: { value: 0, message: 'Цена не может быть отрицательной' }
-          })}
-          placeholder="25000"
-        />
-        {errors.default_price && (
-          <p className="text-sm text-red-500 mt-1">{errors.default_price.message}</p>
-        )}
-      </div>
-
-      <div>
-        <Label htmlFor="status">Статус продукта *</Label>
-        <Select
-          defaultValue={product?.status || 'not_for_sale'}
-          onValueChange={(value: string) => setValue('status', value as ProductStatus)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="not_for_sale">Не продается</SelectItem>
-            <SelectItem value="pre_registration">Предрегистрация</SelectItem>
-            <SelectItem value="for_sale">В продаже</SelectItem>
-            <SelectItem value="active">Проведение проекта</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-gray-500 mt-1">
-          Статус определяет видимость продукта на главной странице
-        </p>
+        <div>
+          <Label htmlFor="default_price">Базовая цена (₽)</Label>
+          <Input
+            id="default_price"
+            type="number"
+            step="0.01"
+            {...register('default_price', {
+              min: { value: 0, message: 'Цена не может быть отрицательной' }
+            })}
+            placeholder="25000"
+          />
+          {errors.default_price && (
+            <p className="text-sm text-red-500 mt-1">{errors.default_price.message}</p>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label htmlFor="project_start_date">Дата начала проекта</Label>
+          <Label htmlFor="project_start_date">Начало проведения проекта</Label>
           <Input
             id="project_start_date"
             type="date"
@@ -142,7 +144,7 @@ export function ProductForm({ product, onSubmit }: ProductFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="project_end_date">Дата окончания проекта</Label>
+          <Label htmlFor="project_end_date">Конец проведения проекта</Label>
           <Input
             id="project_end_date"
             type="date"

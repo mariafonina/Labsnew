@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Package, Edit, Trash2, DollarSign, Users, UserCheck, BookOpen } from 'lucide-react';
+import { Plus, Package, Edit, Trash2, DollarSign, Users, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ProductForm } from '@/components/admin/ProductForm';
 import { TiersList } from '@/components/admin/TiersList';
 import { CohortsList } from '@/components/admin/CohortsList';
-import { EnrollmentManager } from '@/components/admin/EnrollmentManager';
 import { ResourcesManager } from '@/components/admin/ResourcesManager';
 import { ProductStatusBadge } from '@/components/shared';
 import { apiClient } from '@/api/client';
@@ -221,6 +220,19 @@ export function Products() {
                           </span>
                         )}
                       </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingProduct(product);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Редактировать
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-3">
@@ -307,10 +319,6 @@ export function Products() {
                     <Users className="w-4 h-4 mr-2" />
                     Потоки
                   </TabsTrigger>
-                  <TabsTrigger value="enrollments">
-                    <UserCheck className="w-4 h-4 mr-2" />
-                    Зачисления
-                  </TabsTrigger>
                   <TabsTrigger value="resources">
                     <BookOpen className="w-4 h-4 mr-2" />
                     Материалы
@@ -325,17 +333,6 @@ export function Products() {
                 </TabsContent>
                 <TabsContent value="cohorts" className="mt-6">
                   <CohortsList productId={selectedProduct.id} />
-                </TabsContent>
-                <TabsContent value="enrollments" className="mt-6">
-                  <EnrollmentManager
-                    productId={selectedProduct.id}
-                    tiers={tiers}
-                    cohorts={cohorts}
-                    onRefresh={() => {
-                      loadTiers(selectedProduct.id);
-                      loadCohorts(selectedProduct.id);
-                    }}
-                  />
                 </TabsContent>
                 <TabsContent value="resources" className="mt-6">
                   <ResourcesManager

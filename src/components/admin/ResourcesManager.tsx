@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Plus, X, FileText, Video } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { apiClient } from '@/api/client';
@@ -16,12 +17,15 @@ export function ResourcesManager({ productId, tiers }: ResourcesManagerProps) {
   const [productResources, setProductResources] = useState<any[]>([]);
   const [recordings, setRecordings] = useState<any[]>([]);
   const [instructions, setInstructions] = useState<any[]>([]);
+  const [cohorts, setCohorts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState<'recording' | 'instruction' | null>(null);
   
   const [formData, setFormData] = useState({
     resource_id: '',
-    min_tier_level: tiers.length > 0 ? tiers[0].tier_level.toString() : '1'
+    min_tier_level: tiers.length > 0 ? tiers[0].tier_level.toString() : '1',
+    selected_cohort_ids: [] as number[],
+    selected_tier_ids: [] as number[]
   });
 
   useEffect(() => {
@@ -33,12 +37,22 @@ export function ResourcesManager({ productId, tiers }: ResourcesManagerProps) {
       await Promise.all([
         loadProductResources(),
         loadRecordings(),
-        loadInstructions()
+        loadInstructions(),
+        loadCohorts()
       ]);
     } catch (error) {
       console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCohorts = async () => {
+    try {
+      const data = await apiClient.getCohorts(productId);
+      setCohorts(data);
+    } catch (error) {
+      console.error('Failed to load cohorts:', error);
     }
   };
 
@@ -80,12 +94,19 @@ export function ResourcesManager({ productId, tiers }: ResourcesManagerProps) {
       await apiClient.assignProductResource(productId, {
         resource_type: resourceType,
         resource_id: parseInt(formData.resource_id),
-        min_tier_level: parseInt(formData.min_tier_level)
+        min_tier_level: parseInt(formData.min_tier_level),
+        cohort_ids: formData.selected_cohort_ids.length > 0 ? formData.selected_cohort_ids : undefined,
+        tier_ids: formData.selected_tier_ids.length > 0 ? formData.selected_tier_ids : undefined
       });
 
       toast.success('Материал добавлен к продукту');
       setShowAddForm(null);
-      setFormData({ resource_id: '', min_tier_level: '1' });
+      setFormData({ 
+        resource_id: '', 
+        min_tier_level: '1',
+        selected_cohort_ids: [],
+        selected_tier_ids: []
+      });
       loadProductResources();
     } catch (error: any) {
       console.error('Failed to add resource:', error);
@@ -192,7 +213,7 @@ export function ResourcesManager({ productId, tiers }: ResourcesManagerProps) {
                 </div>
 
                 <div>
-                  <Label>Минимальный тариф для доступа</Label>
+                  <Label>Минимальный тариф для доступа (для обратной совместимости)</Label>
                   <Select
                     value={formData.min_tier_level}
                     onValueChange={(value: string) => setFormData({ ...formData, min_tier_level: value })}
@@ -210,13 +231,94 @@ export function ResourcesManager({ productId, tiers }: ResourcesManagerProps) {
                   </Select>
                 </div>
 
+                {cohorts.length > 0 && (
+                  <div>
+                    <Label>Потоки, которые видят этот ресурс</Label>
+                    <div className="mt-2 space-y-2 border rounded-lg p-3 max-h-40 overflow-y-auto">
+                      {cohorts.map((cohort) => (
+                        <div key={cohort.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`cohort-${cohort.id}`}
+                            checked={formData.selected_cohort_ids.includes(cohort.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData({
+                                  ...formData,
+                                  selected_cohort_ids: [...formData.selected_cohort_ids, cohort.id]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  selected_cohort_ids: formData.selected_cohort_ids.filter(id => id !== cohort.id)
+                                });
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`cohort-${cohort.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {cohort.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Если ничего не выбрано, ресурс доступен всем потокам продукта
+                    </p>
+                  </div>
+                )}
+
+                {tiers.length > 0 && (
+                  <div>
+                    <Label>Тарифы, которые видят этот ресурс</Label>
+                    <div className="mt-2 space-y-2 border rounded-lg p-3 max-h-40 overflow-y-auto">
+                      {tiers.map((tier) => (
+                        <div key={tier.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`tier-${tier.id}`}
+                            checked={formData.selected_tier_ids.includes(tier.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData({
+                                  ...formData,
+                                  selected_tier_ids: [...formData.selected_tier_ids, tier.id]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  selected_tier_ids: formData.selected_tier_ids.filter(id => id !== tier.id)
+                                });
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`tier-${tier.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {tier.name} (уровень {tier.tier_level})
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Если ничего не выбрано, используется минимальный тариф выше
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <Button onClick={() => handleAddResource('recording')}>Добавить</Button>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setShowAddForm(null);
-                      setFormData({ resource_id: '', min_tier_level: '1' });
+                      setFormData({ 
+                        resource_id: '', 
+                        min_tier_level: '1',
+                        selected_cohort_ids: [],
+                        selected_tier_ids: []
+                      });
                     }}
                   >
                     Отмена
@@ -246,11 +348,31 @@ export function ResourcesManager({ productId, tiers }: ResourcesManagerProps) {
                       <div className="text-sm text-muted-foreground">
                         {details.date} • {details.instructor}
                       </div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Минимальный тариф:{' '}
-                        <span className="font-medium text-foreground">
-                          {resource.min_tier_name || `Уровень ${resource.min_tier_level}`}
-                        </span>
+                      <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                        {resource.min_tier_level && (
+                          <div>
+                            Минимальный тариф:{' '}
+                            <span className="font-medium text-foreground">
+                              {resource.min_tier_name || `Уровень ${resource.min_tier_level}`}
+                            </span>
+                          </div>
+                        )}
+                        {resource.cohort_ids && Array.isArray(resource.cohort_ids) && resource.cohort_ids.length > 0 && (
+                          <div>
+                            Потоки: {resource.cohort_ids.map((id: number) => {
+                              const cohort = cohorts.find(c => c.id === id);
+                              return cohort ? cohort.name : id;
+                            }).join(', ')}
+                          </div>
+                        )}
+                        {resource.tier_ids && Array.isArray(resource.tier_ids) && resource.tier_ids.length > 0 && (
+                          <div>
+                            Тарифы: {resource.tier_ids.map((id: number) => {
+                              const tier = tiers.find(t => t.id === id);
+                              return tier ? tier.name : id;
+                            }).join(', ')}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button
@@ -305,7 +427,7 @@ export function ResourcesManager({ productId, tiers }: ResourcesManagerProps) {
                 </div>
 
                 <div>
-                  <Label>Минимальный тариф для доступа</Label>
+                  <Label>Минимальный тариф для доступа (для обратной совместимости)</Label>
                   <Select
                     value={formData.min_tier_level}
                     onValueChange={(value: string) => setFormData({ ...formData, min_tier_level: value })}
@@ -323,13 +445,94 @@ export function ResourcesManager({ productId, tiers }: ResourcesManagerProps) {
                   </Select>
                 </div>
 
+                {cohorts.length > 0 && (
+                  <div>
+                    <Label>Потоки, которые видят этот ресурс</Label>
+                    <div className="mt-2 space-y-2 border rounded-lg p-3 max-h-40 overflow-y-auto">
+                      {cohorts.map((cohort) => (
+                        <div key={cohort.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`cohort-instruction-${cohort.id}`}
+                            checked={formData.selected_cohort_ids.includes(cohort.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData({
+                                  ...formData,
+                                  selected_cohort_ids: [...formData.selected_cohort_ids, cohort.id]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  selected_cohort_ids: formData.selected_cohort_ids.filter(id => id !== cohort.id)
+                                });
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`cohort-instruction-${cohort.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {cohort.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Если ничего не выбрано, ресурс доступен всем потокам продукта
+                    </p>
+                  </div>
+                )}
+
+                {tiers.length > 0 && (
+                  <div>
+                    <Label>Тарифы, которые видят этот ресурс</Label>
+                    <div className="mt-2 space-y-2 border rounded-lg p-3 max-h-40 overflow-y-auto">
+                      {tiers.map((tier) => (
+                        <div key={tier.id} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`tier-instruction-${tier.id}`}
+                            checked={formData.selected_tier_ids.includes(tier.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setFormData({
+                                  ...formData,
+                                  selected_tier_ids: [...formData.selected_tier_ids, tier.id]
+                                });
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  selected_tier_ids: formData.selected_tier_ids.filter(id => id !== tier.id)
+                                });
+                              }
+                            }}
+                          />
+                          <label
+                            htmlFor={`tier-instruction-${tier.id}`}
+                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                          >
+                            {tier.name} (уровень {tier.tier_level})
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Если ничего не выбрано, используется минимальный тариф выше
+                    </p>
+                  </div>
+                )}
+
                 <div className="flex gap-2">
                   <Button onClick={() => handleAddResource('instruction')}>Добавить</Button>
                   <Button
                     variant="outline"
                     onClick={() => {
                       setShowAddForm(null);
-                      setFormData({ resource_id: '', min_tier_level: '1' });
+                      setFormData({ 
+                        resource_id: '', 
+                        min_tier_level: '1',
+                        selected_cohort_ids: [],
+                        selected_tier_ids: []
+                      });
                     }}
                   >
                     Отмена
@@ -359,11 +562,31 @@ export function ResourcesManager({ productId, tiers }: ResourcesManagerProps) {
                       {details.category && (
                         <div className="text-sm text-muted-foreground">{details.category}</div>
                       )}
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Минимальный тариф:{' '}
-                        <span className="font-medium text-foreground">
-                          {resource.min_tier_name || `Уровень ${resource.min_tier_level}`}
-                        </span>
+                      <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                        {resource.min_tier_level && (
+                          <div>
+                            Минимальный тариф:{' '}
+                            <span className="font-medium text-foreground">
+                              {resource.min_tier_name || `Уровень ${resource.min_tier_level}`}
+                            </span>
+                          </div>
+                        )}
+                        {resource.cohort_ids && Array.isArray(resource.cohort_ids) && resource.cohort_ids.length > 0 && (
+                          <div>
+                            Потоки: {resource.cohort_ids.map((id: number) => {
+                              const cohort = cohorts.find(c => c.id === id);
+                              return cohort ? cohort.name : id;
+                            }).join(', ')}
+                          </div>
+                        )}
+                        {resource.tier_ids && Array.isArray(resource.tier_ids) && resource.tier_ids.length > 0 && (
+                          <div>
+                            Тарифы: {resource.tier_ids.map((id: number) => {
+                              const tier = tiers.find(t => t.id === id);
+                              return tier ? tier.name : id;
+                            }).join(', ')}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button

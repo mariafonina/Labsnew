@@ -79,7 +79,8 @@
             "tailwind-merge": "*",
             "tailwindcss": "^4.1.17",
             "tsx": "^4.20.6",
-            "vaul": "^1.1.2"
+            "vaul": "^1.1.2",
+            "xlsx": "^0.18.5"
       },
       "devDependencies": {
             "@types/node": "^20.10.0",

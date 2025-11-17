@@ -598,18 +598,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           apiClient.getFAQ()
         ]);
 
-        if (newsData.status === 'fulfilled' && newsData.value.length > 0) {
-          setNewsItems(newsData.value.map((item: any) => ({
-            id: String(item.id),
-            title: item.title,
-            content: item.content,
-            author: item.author,
-            authorAvatar: item.author_avatar,
-            date: item.date,
-            category: item.category,
-            image: item.image,
-            isNew: item.is_new
-          })));
+        if (newsData.status === 'fulfilled') {
+          const newsArray = Array.isArray(newsData.value) ? newsData.value : (newsData.value?.data || []);
+          if (newsArray.length > 0) {
+            setNewsItems(newsArray.map((item: any) => ({
+              id: String(item.id),
+              title: item.title,
+              content: item.content,
+              author: item.author,
+              authorAvatar: item.author_avatar,
+              date: item.date,
+              category: item.category,
+              image: item.image,
+              isNew: item.is_new
+            })));
+          }
         }
 
         if (eventsData.status === 'fulfilled' && eventsData.value.length > 0) {
@@ -631,19 +634,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }));
         }
 
-        if (recordingsData.status === 'fulfilled' && recordingsData.value.length > 0) {
-          setRecordings(recordingsData.value.map((item: any) => ({
-            id: String(item.id),
-            title: item.title,
-            date: item.date,
-            duration: item.duration || '',
-            instructor: item.instructor,
-            thumbnail: item.thumbnail,
-            views: item.views || 0,
-            description: item.description || '',
-            videoUrl: item.video_url,
-            loom_embed_url: item.loom_embed_url
-          })));
+        if (recordingsData.status === 'fulfilled') {
+          const recordingsArray = Array.isArray(recordingsData.value) ? recordingsData.value : (recordingsData.value?.data || []);
+          if (recordingsArray.length > 0) {
+            setRecordings(recordingsArray.map((item: any) => ({
+              id: String(item.id),
+              title: item.title,
+              date: item.date,
+              duration: item.duration || '',
+              instructor: item.instructor,
+              thumbnail: item.thumbnail,
+              views: item.views || 0,
+              description: item.description || '',
+              videoUrl: item.video_url,
+              loom_embed_url: item.loom_embed_url
+            })));
+          }
         }
 
         if (faqData.status === 'fulfilled' && faqData.value.length > 0) {

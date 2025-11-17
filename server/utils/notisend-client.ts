@@ -48,21 +48,33 @@ class NotisendClient {
 
   async sendEmail(params: NotisendEmailParams): Promise<any> {
     try {
+      // Валидация параметров
+      if (!params.to || !params.subject) {
+        throw new Error('Email "to" and "subject" are required');
+      }
+
       const emailData: Record<string, any> = {
         project: this.projectName,
         to: params.to,
         subject: params.subject,
-        html: params.html,
+        html: params.html || '',
       };
 
       if (params.text) emailData.text = params.text;
       if (params.from_email) emailData.from_email = params.from_email;
       if (params.from_name) emailData.from_name = params.from_name;
       if (params.template_id) emailData.template_id = params.template_id;
-      if (params.template_data) emailData.template_data = JSON.stringify(params.template_data);
+      if (params.template_data) {
+        emailData.template_data = typeof params.template_data === 'string' 
+          ? params.template_data 
+          : JSON.stringify(params.template_data);
+      }
 
       const signature = this.generateSignature(emailData);
       emailData.sign = signature;
+
+      console.log(`[Notisend] Sending email to ${params.to}, project: ${this.projectName}`);
+      console.log(`[Notisend] Request URL: ${this.baseUrl}/email/send`);
 
       const response = await fetch(`${this.baseUrl}/email/send`, {
         method: 'POST',
@@ -73,14 +85,34 @@ class NotisendClient {
         body: JSON.stringify(emailData),
       });
 
+      const responseText = await response.text();
+      console.log(`[Notisend] Response status: ${response.status}`);
+      console.log(`[Notisend] Response body: ${responseText.substring(0, 200)}`);
+
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Notisend API error: ${response.status} - ${errorText}`);
+        let errorMessage = `Notisend API error: ${response.status}`;
+        try {
+          const errorJson = JSON.parse(responseText);
+          errorMessage += ` - ${errorJson.error || errorJson.message || responseText}`;
+        } catch {
+          errorMessage += ` - ${responseText}`;
+        }
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      try {
+        return JSON.parse(responseText);
+      } catch {
+        return { success: true, message: responseText };
+      }
     } catch (error: any) {
-      console.error('Notisend sendEmail error:', error);
+      console.error('[Notisend] sendEmail error:', error);
+      console.error('[Notisend] Error details:', {
+        message: error.message,
+        stack: error.stack,
+        project: this.projectName,
+        to: params.to,
+      });
       throw error;
     }
   }

@@ -43,8 +43,33 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      const err: any = new Error(error.error || `HTTP ${response.status}`);
+      let errorMessage = `HTTP ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch (e) {
+        // Если ответ не JSON, пытаемся получить текст
+        try {
+          const text = await response.text();
+          if (text) {
+            errorMessage = text;
+          }
+        } catch (textError) {
+          // Если и текст не получается, используем дефолтное сообщение
+          if (response.status === 401) {
+            errorMessage = 'Неверные учетные данные';
+          } else if (response.status === 403) {
+            errorMessage = 'Доступ запрещен';
+          } else if (response.status === 404) {
+            errorMessage = 'Ресурс не найден';
+          } else if (response.status >= 500) {
+            errorMessage = 'Ошибка сервера. Попробуйте позже';
+          } else {
+            errorMessage = 'Произошла ошибка';
+          }
+        }
+      }
+      const err: any = new Error(errorMessage);
       err.status = response.status;
       err.response = { status: response.status };
       throw err;
@@ -220,12 +245,20 @@ class ApiClient {
   }
 
   // Public content API methods (no auth required for reading)
-  async getNews() {
-    return this.request<any[]>('/news');
+  async getNews(page: number = 1, limit: number = 20) {
+    const response = await this.request<{ data: any[], pagination: any }>(`/news?page=${page}&limit=${limit}`);
+    return response.data || response; // Обратная совместимость
   }
 
-  async getRecordings() {
-    return this.request<any[]>('/recordings');
+  async getRecordings(page: number = 1, limit: number = 20) {
+    const response = await this.request<{ data: any[], pagination: any }>(`/recordings?page=${page}&limit=${limit}`);
+    return response.data || response; // Обратная совместимость
+  }
+
+  async recordRecordingView(recordingId: number) {
+    return this.request<{ success: boolean }>(`/recordings/${recordingId}/view`, {
+      method: 'POST',
+    });
   }
 
   async getFAQ() {

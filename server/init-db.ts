@@ -156,6 +156,20 @@ export async function initializeDatabase() {
     console.log('Table "labs.progress" created');
 
     await query(`
+      CREATE TABLE IF NOT EXISTS labs.recording_views (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
+        recording_id INTEGER REFERENCES labs.recordings(id) ON DELETE CASCADE,
+        viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, recording_id)
+      )
+    `);
+    console.log('Table "labs.recording_views" created');
+
+    await query('CREATE INDEX IF NOT EXISTS idx_recording_views_user_id ON labs.recording_views(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_recording_views_recording_id ON labs.recording_views(recording_id)');
+
+    await query(`
       CREATE TABLE IF NOT EXISTS labs.news (
         id SERIAL PRIMARY KEY,
         title VARCHAR(200) NOT NULL,
@@ -327,6 +341,17 @@ export async function initializeDatabase() {
     await query(`ALTER TABLE labs.pricing_tiers ADD COLUMN IF NOT EXISTS access_end_date DATE`);
     console.log('Added access dates to pricing tiers');
 
+    // Миграция: добавить новые поля если их нет
+    try {
+      await query(`ALTER TABLE labs.pricing_tiers ADD COLUMN IF NOT EXISTS access_start_date DATE`);
+      await query(`ALTER TABLE labs.pricing_tiers ADD COLUMN IF NOT EXISTS access_end_date DATE`);
+      console.log('Migrated labs.pricing_tiers table');
+    } catch (err: any) {
+      if (!err.message?.includes('already exists') && !err.message?.includes('duplicate')) {
+        console.error('Error migrating pricing_tiers table:', err);
+      }
+    }
+
     await query(`
       CREATE TABLE IF NOT EXISTS labs.cohorts (
         id SERIAL PRIMARY KEY,
@@ -350,11 +375,24 @@ export async function initializeDatabase() {
         resource_type VARCHAR(50) NOT NULL,
         resource_id INTEGER NOT NULL,
         min_tier_level INTEGER DEFAULT 1,
+        cohort_ids JSONB,
+        tier_ids JSONB,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(product_id, resource_type, resource_id)
       )
     `);
     console.log('Table "labs.product_resources" created');
+
+    // Миграция: добавить новые поля если их нет
+    try {
+      await query(`ALTER TABLE labs.product_resources ADD COLUMN IF NOT EXISTS cohort_ids JSONB`);
+      await query(`ALTER TABLE labs.product_resources ADD COLUMN IF NOT EXISTS tier_ids JSONB`);
+      console.log('Migrated labs.product_resources table');
+    } catch (err: any) {
+      if (!err.message?.includes('already exists') && !err.message?.includes('duplicate')) {
+        console.error('Error migrating product_resources table:', err);
+      }
+    }
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.user_enrollments (
@@ -423,6 +461,7 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_initial_password_tokens_token_hash ON labs.initial_password_tokens(token_hash)');
     await query('CREATE INDEX IF NOT EXISTS idx_products_type ON labs.products(type)');
     await query('CREATE INDEX IF NOT EXISTS idx_products_is_active ON labs.products(is_active)');
+    await query('CREATE INDEX IF NOT EXISTS idx_products_status ON labs.products(status)');
     await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_product_id ON labs.pricing_tiers(product_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_tier_level ON labs.pricing_tiers(tier_level)');
     await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_tier_lookup ON labs.pricing_tiers(product_id, tier_level)');
@@ -438,6 +477,7 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_cohort_id ON labs.user_enrollments(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_status ON labs.user_enrollments(status)');
     await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_user_product ON labs.user_enrollments(user_id, product_id, status)');
+    await query('CREATE INDEX IF NOT EXISTS idx_user_enrollments_expires_at ON labs.user_enrollments(expires_at)');
     await query('CREATE INDEX IF NOT EXISTS idx_cohort_members_cohort_id ON labs.cohort_members(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_cohort_members_user_id ON labs.cohort_members(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_cohort_members_active ON labs.cohort_members(cohort_id, user_id) WHERE left_at IS NULL');

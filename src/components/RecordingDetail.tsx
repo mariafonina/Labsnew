@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Card } from "./ui/card";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { LoomEmbed } from "./LoomEmbed";
 import type { Recording } from "../contexts/AppContext";
 import { validateAndNormalizeLoomUrl } from "../utils/loom-validator";
+import { apiClient } from "../api/client";
 
 interface RecordingDetailProps {
   recording: Recording;
@@ -35,6 +36,20 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
 
   const comments = getCommentsByEvent(recording.id);
   const questions = comments.filter(c => !c.parentId);
+
+  // Записываем просмотр записи при открытии страницы
+  useEffect(() => {
+    const recordView = async () => {
+      if (auth.isAuthenticated) {
+        try {
+          await apiClient.recordRecordingView(parseInt(recording.id));
+        } catch (error) {
+          console.error('Failed to record view:', error);
+        }
+      }
+    };
+    recordView();
+  }, [recording.id, auth.isAuthenticated]);
 
   const handleToggleFavorite = () => {
     if (isFavorite(recording.id)) {

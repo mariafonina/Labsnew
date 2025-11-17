@@ -34,6 +34,7 @@ import {
 } from "./ui/table";
 import { toast } from "sonner";
 import { apiClient } from "../api/client";
+import { UserCard } from "./admin/UserCard";
 
 interface User {
   id: number;
@@ -52,6 +53,11 @@ export function AdminUsers() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCohortId, setSelectedCohortId] = useState<string>("");
+  const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const [cohorts, setCohorts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedUserForCard, setSelectedUserForCard] = useState<User | null>(null);
 
   const [userForm, setUserForm] = useState({
     username: "",
@@ -64,13 +70,53 @@ export function AdminUsers() {
 
   useEffect(() => {
     loadUsers();
+    loadFilters();
   }, []);
+
+  useEffect(() => {
+    loadUsers();
+  }, [selectedCohortId, selectedProductId]);
+
+  const loadFilters = async () => {
+    try {
+      const [cohortsData, productsData] = await Promise.all([
+        apiClient.getCohorts(),
+        apiClient.getProducts()
+      ]);
+      setCohorts(cohortsData);
+      setProducts(productsData);
+    } catch (error) {
+      console.error("Failed to load filters:", error);
+    }
+  };
 
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const data = await apiClient.getUsers();
-      setUsers(data);
+      const params = new URLSearchParams();
+      if (selectedCohortId) params.append('cohort_id', selectedCohortId);
+      if (selectedProductId) params.append('product_id', selectedProductId);
+      
+      const queryString = params.toString();
+      const url = queryString ? `/api/admin/users?${queryString}` : '/api/admin/users';
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to load users');
+      const data = await response.json();
+      
+      // Сортировка: администраторы первыми
+      const sortedData = data.sort((a: User, b: User) => {
+        if (a.role === 'admin' && b.role !== 'admin') return -1;
+        if (a.role !== 'admin' && b.role === 'admin') return 1;
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      });
+      
+      setUsers(sortedData);
     } catch (error: any) {
       toast.error("Не удалось загрузить пользователей");
       console.error("Failed to load users:", error);
@@ -199,6 +245,10 @@ export function AdminUsers() {
     user.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.last_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleUserClick = (user: User) => {
+    setSelectedUserForCard(user);
+  };
 
   if (loading) {
     return (
@@ -337,15 +387,45 @@ export function AdminUsers() {
       )}
 
       {!isAdding && !editingUser && users.length > 0 && (
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Поиск по логину, email, имени или фамилии..."
-            className="h-14 pl-12 text-base"
-          />
-        </div>
+        <Card className="p-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="relative flex-1 min-w-[300px]">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Поиск по логину, email, имени или фамилии..."
+                className="h-12 pl-12 text-base"
+              />
+            </div>
+            <Select value={selectedCohortId} onValueChange={setSelectedCohortId}>
+              <SelectTrigger className="w-[200px] h-12">
+                <SelectValue placeholder="Все потоки" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Все потоки</SelectItem>
+                {cohorts.map((cohort) => (
+                  <SelectItem key={cohort.id} value={cohort.id.toString()}>
+                    {cohort.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+              <SelectTrigger className="w-[200px] h-12">
+                <SelectValue placeholder="Все продукты" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">Все продукты</SelectItem>
+                {products.map((product) => (
+                  <SelectItem key={product.id} value={product.id.toString()}>
+                    {product.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </Card>
       )}
 
       {users.length === 0 ? (
@@ -394,8 +474,19 @@ export function AdminUsers() {
                   </TableRow>
                 ) : (
                   filteredUsers.map((user) => (
-                    <TableRow key={user.id} className="hover:bg-gray-50">
-                      <TableCell className="font-semibold">{user.username}</TableCell>
+                    <TableRow 
+                      key={user.id} 
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleUserClick(user)}
+                    >
+                      <TableCell className="font-semibold">
+                        <div className="flex items-center gap-2">
+                          {user.role === 'admin' && (
+                            <Badge variant="default" className="text-xs">Admin</Badge>
+                          )}
+                          {user.username}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-gray-600">{user.first_name || '—'}</TableCell>
                       <TableCell className="text-gray-600">{user.last_name || '—'}</TableCell>
                       <TableCell className="text-gray-600">{user.email}</TableCell>
@@ -413,7 +504,7 @@ export function AdminUsers() {
                       <TableCell className="text-gray-600">
                         {new Date(user.created_at).toLocaleDateString('ru-RU')}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-2 justify-end">
                           <Button
                             size="sm"
@@ -461,6 +552,13 @@ export function AdminUsers() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {selectedUserForCard && (
+        <UserCard 
+          user={selectedUserForCard} 
+          onClose={() => setSelectedUserForCard(null)} 
+        />
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, UserPlus } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, UserPlus, Upload, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,8 @@ export function CohortMembers({ cohortId }: CohortMembersProps) {
   const [loading, setLoading] = useState(true);
   const [selectedUserIds, setSelectedUserIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadData();
@@ -92,6 +94,60 @@ export function CohortMembers({ cohortId }: CohortMembersProps) {
     );
   };
 
+  const toggleSelectAll = () => {
+    if (selectedUserIds.length === filteredUsers.length) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(filteredUsers.map(u => u.id));
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['text/csv', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'];
+    if (!allowedTypes.includes(file.type) && !file.name.match(/\.(csv|xls|xlsx)$/i)) {
+      toast.error('Неподдерживаемый формат файла. Используйте CSV или XLS/XLSX');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`/api/admin/cohorts/${cohortId}/members/upload`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Ошибка загрузки файла');
+      }
+
+      toast.success(`Добавлено участников: ${data.added}${data.notFound ? `. Не найдено: ${data.notFound.length}` : ''}`);
+      if (data.notFound && data.notFound.length > 0) {
+        console.warn('Не найдены пользователи:', data.notFound);
+      }
+      
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      loadData();
+    } catch (error: any) {
+      console.error('Failed to upload file:', error);
+      toast.error(error.message || 'Не удалось загрузить файл');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-32">
@@ -106,7 +162,57 @@ export function CohortMembers({ cohortId }: CohortMembersProps) {
         <h4 className="font-semibold mb-3">Добавить участников</h4>
         <div className="space-y-3">
           <div>
-            <Label htmlFor="search">Поиск пользователей</Label>
+            <Label htmlFor="file-upload">Загрузить из файла (CSV/XLS)</Label>
+            <div className="flex gap-2 mt-1">
+              <Input
+                id="file-upload"
+                type="file"
+                accept=".csv,.xls,.xlsx"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex-1"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {uploading ? 'Загрузка...' : 'Выбрать файл'}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Файл должен содержать колонку с email или username
+            </p>
+          </div>
+
+          <div className="border-t pt-3">
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor="search">Поиск пользователей</Label>
+              {filteredUsers.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSelectAll}
+                  className="h-8"
+                >
+                  {selectedUserIds.length === filteredUsers.length ? (
+                    <>
+                      <CheckSquare className="w-4 h-4 mr-1" />
+                      Снять все
+                    </>
+                  ) : (
+                    <>
+                      <Square className="w-4 h-4 mr-1" />
+                      Выбрать всех ({filteredUsers.length})
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
             <Input
               id="search"
               value={searchQuery}
