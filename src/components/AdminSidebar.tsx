@@ -1,6 +1,7 @@
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import {
+  LayoutDashboard,
   Newspaper,
   Calendar,
   BookOpen,
@@ -42,6 +43,7 @@ export function AdminSidebar({
   ).length;
 
   const menuItems = [
+    { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
     { id: "products", label: "Продукты", icon: Package },
     { id: "news", label: "Новости", icon: Newspaper },
     { id: "events", label: "События", icon: Calendar },
@@ -64,14 +66,14 @@ export function AdminSidebar({
       <div className={`p-6 border-b border-gray-200 ${isCollapsed ? 'px-3' : ''}`}>
         {!isCollapsed ? (
           <div className="flex flex-col gap-3">
-            <Logo size="lg" onClick={() => onSectionChange("news")} />
+            <Logo size="lg" onClick={() => onSectionChange("dashboard")} />
             <div>
               <p className="text-sm text-gray-500">Управление контентом</p>
             </div>
           </div>
         ) : (
           <div className="flex justify-center">
-            <Logo size="sm" onClick={() => onSectionChange("news")} />
+            <Logo size="sm" onClick={() => onSectionChange("dashboard")} />
           </div>
         )}
       </div>

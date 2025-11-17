@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Card } from "./ui/card";
 import { AdminSidebar } from "./AdminSidebar";
+import { AdminDashboard } from "./AdminDashboard";
 import { AdminQuestions } from "./AdminQuestions";
 import { AdminInstructionsManager } from "./AdminInstructionsManager";
 import { AdminUsers } from "./AdminUsers";
@@ -15,7 +16,7 @@ import { Products } from "../pages/admin/Products";
 
 export function AdminPanel() {
   const { user, logout } = useAuth();
-  const [activeSection, setActiveSection] = useState("news");
+  const [activeSection, setActiveSection] = useState("dashboard");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   if (!user || user.role !== 'admin') {
@@ -33,6 +34,8 @@ export function AdminPanel() {
 
   const renderContent = () => {
     switch (activeSection) {
+      case "dashboard":
+        return <AdminDashboard />;
       case "products":
         return <Products />;
       case "news":
@@ -54,7 +57,7 @@ export function AdminPanel() {
       case "users":
         return <AdminUsers />;
       default:
-        return <AdminNewsManager />;
+        return <AdminDashboard />;
     }
   };
 

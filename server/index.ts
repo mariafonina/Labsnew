@@ -26,6 +26,7 @@ import adminProductsRoutes from './routes/admin/products.routes';
 import adminCohortsRoutes from './routes/admin/cohorts.routes';
 import adminEnrollmentsRoutes from './routes/admin/enrollments.routes';
 import adminResourcesRoutes from './routes/admin/resources.routes';
+import adminDashboardRoutes from './routes/admin/dashboard.routes';
 import catalogRoutes from './routes/catalog.routes';
 import passwordResetRoutes from './routes/password-reset.routes';
 import setupPasswordRoutes from './routes/setup-password.routes';
@@ -76,6 +77,7 @@ app.use('/api/faq', faqRoutes);
 app.use('/api/catalog', catalogRoutes);
 
 // Admin routes
+app.use('/api/admin/dashboard', adminDashboardRoutes);
 app.use('/api/admin/news', adminNewsRoutes);
 app.use('/api/admin/recordings', adminRecordingsRoutes);
 app.use('/api/admin/faq', adminFaqRoutes);

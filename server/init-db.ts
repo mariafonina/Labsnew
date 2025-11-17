@@ -437,6 +437,35 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.content_access" created for cohort/tier-based content visibility');
 
+    // Миграция: добавить новые поля к users для нового дизайна админки
+    try {
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS gender VARCHAR(20)`);
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS country VARCHAR(100)`);
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`);
+      console.log('Added gender, country, city, phone columns to labs.users');
+    } catch (err: any) {
+      if (!err.message?.includes('already exists') && !err.message?.includes('duplicate')) {
+        console.error('Error adding user profile fields:', err);
+      }
+    }
+
+    // Создать таблицу materials для связи контента с потоками (новый дизайн)
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.materials (
+        id SERIAL PRIMARY KEY,
+        cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE,
+        material_type VARCHAR(50) NOT NULL,
+        material_id INTEGER NOT NULL,
+        display_order INTEGER DEFAULT 0,
+        is_visible BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(cohort_id, material_type, material_id)
+      )
+    `);
+    console.log('Table "labs.materials" created for cohort-material relationships');
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
@@ -485,6 +514,9 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_content_access_cohort ON labs.content_access(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_content_access_tier ON labs.content_access(tier_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_products_status ON labs.products(status)');
+    await query('CREATE INDEX IF NOT EXISTS idx_materials_cohort_id ON labs.materials(cohort_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_materials_material ON labs.materials(material_type, material_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_materials_visible ON labs.materials(cohort_id, is_visible)');
     console.log('Indexes created');
 
     const defaultProduct = await query(`
