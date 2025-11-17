@@ -378,57 +378,57 @@ router.get(
       [id],
     );
 
-    const comments = await query(
-      `
-    SELECT 
-      c.id,
-      c.event_id,
-      c.event_type,
-      c.content,
-      c.likes,
-      c.created_at,
-      CASE 
-        WHEN c.event_type = 'event' THEN e.title
-        WHEN c.event_type = 'instruction' THEN i.title
-        WHEN c.event_type = 'recording' THEN r.title
-        WHEN c.event_type = 'faq' THEN f.question
-      END as event_title
-    FROM labs.comments c
-    LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id = e.id
-    LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id = i.id
-    LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id = r.id
-    LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id = f.id
-    WHERE c.user_id = $1
-    ORDER BY c.created_at DESC
-  `,
-      [id],
-    );
+    //   const comments = await query(
+    //     `
+    //   SELECT
+    //     c.id,
+    //     c.event_id,
+    //     c.event_type,
+    //     c.content,
+    //     c.likes,
+    //     c.created_at,
+    //     CASE
+    //       WHEN c.event_type = 'event' THEN e.title
+    //       WHEN c.event_type = 'instruction' THEN i.title
+    //       WHEN c.event_type = 'recording' THEN r.title
+    //       WHEN c.event_type = 'faq' THEN f.question
+    //     END as event_title
+    //   FROM labs.comments c
+    //   LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id = e.id
+    //   LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id = i.id
+    //   LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id = r.id
+    //   LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id = f.id
+    //   WHERE c.user_id = $1
+    //   ORDER BY c.created_at DESC
+    // `,
+    //     [id],
+    //   );
 
-    const likedComments = await query(
-      `
-    SELECT 
-      c.id,
-      c.event_id,
-      c.event_type,
-      c.content,
-      c.likes,
-      c.created_at,
-      CASE 
-        WHEN c.event_type = 'event' THEN e.title
-        WHEN c.event_type = 'instruction' THEN i.title
-        WHEN c.event_type = 'recording' THEN r.title
-        WHEN c.event_type = 'faq' THEN f.question
-      END as event_title
-    FROM labs.comments c
-    LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id = e.id
-    LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id = i.id
-    LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id = r.id
-    LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id = f.id
-    WHERE c.likes > 0 AND c.user_id = $1
-    ORDER BY c.likes DESC, c.created_at DESC
-  `,
-      [id],
-    );
+    //   const likedComments = await query(
+    //     `
+    //   SELECT
+    //     c.id,
+    //     c.event_id,
+    //     c.event_type,
+    //     c.content,
+    //     c.likes,
+    //     c.created_at,
+    //     CASE
+    //       WHEN c.event_type = 'event' THEN e.title
+    //       WHEN c.event_type = 'instruction' THEN i.title
+    //       WHEN c.event_type = 'recording' THEN r.title
+    //       WHEN c.event_type = 'faq' THEN f.question
+    //     END as event_title
+    //   FROM labs.comments c
+    //   LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id = e.id
+    //   LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id = i.id
+    //   LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id = r.id
+    //   LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id = f.id
+    //   WHERE c.likes > 0 AND c.user_id = $1
+    //   ORDER BY c.likes DESC, c.created_at DESC
+    // `,
+    //     [id],
+    //   );
 
     // Получаем просмотренные записи
     const recordingViews = await query(
@@ -458,8 +458,10 @@ router.get(
         recordingViews: recordingViews.rows,
         notes: notes.rows,
         favorites: favorites.rows,
-        comments: comments.rows,
-        likedComments: likedComments.rows,
+        comments: [],
+        likedComments: [],
+        // comments: comments.rows,
+        // likedComments: likedComments.rows,
       },
     });
   }),
