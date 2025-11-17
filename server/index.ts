@@ -98,7 +98,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // API 404 handler - must come after all API routes
-app.all(['/api', '/api/*'], (req, res) => {
+app.use('/api', (req, res) => {
   res.status(404).json({ 
     error: 'API endpoint not found',
     path: req.path 
