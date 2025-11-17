@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Card } from "./ui/card";
-import { Users, Package, Layers, DollarSign, TrendingUp, Zap } from "lucide-react";
+import { Users, Package, Layers, Shield, DollarSign, TrendingUp, Zap } from "lucide-react";
 import { apiClient } from "../api/client";
 import { Skeleton } from "./ui/skeleton";
 
@@ -38,43 +38,37 @@ export function AdminDashboard() {
       title: "Пользователи",
       value: stats?.totalUsers || 0,
       icon: Users,
-      iconColor: "text-blue-500",
-      bgColor: "bg-blue-50",
+      bgColor: "bg-cyan-400",
     },
     {
       title: "Продукты",
       value: stats?.totalProducts || 0,
       icon: Package,
-      iconColor: "text-pink-500",
-      bgColor: "bg-pink-50",
+      bgColor: "bg-pink-400",
     },
     {
       title: "Потоки",
       value: stats?.totalCohorts || 0,
       icon: Layers,
-      iconColor: "text-purple-500",
-      bgColor: "bg-purple-50",
+      bgColor: "bg-purple-400",
     },
     {
       title: "Тарифы",
       value: stats?.totalTiers || 0,
-      icon: DollarSign,
-      iconColor: "text-green-500",
-      bgColor: "bg-green-50",
+      icon: Shield,
+      bgColor: "bg-emerald-400",
     },
     {
       title: "Общий доход",
       value: `${stats?.totalRevenue || 0} ₽`,
-      icon: TrendingUp,
-      iconColor: "text-orange-500",
-      bgColor: "bg-orange-50",
+      icon: DollarSign,
+      bgColor: "bg-orange-400",
     },
     {
       title: "Средний чек",
       value: `${stats?.averageCheck || 0} ₽`,
       icon: TrendingUp,
-      iconColor: "text-cyan-500",
-      bgColor: "bg-cyan-50",
+      bgColor: "bg-cyan-400",
     },
   ];
 
@@ -83,7 +77,7 @@ export function AdminDashboard() {
       title: "Создать продукт",
       description: "Добавить новый образовательный продукт",
       icon: Package,
-      color: "bg-pink-500",
+      bgColor: "bg-pink-400",
       action: () => {
         // TODO: Navigate to products
       },
@@ -92,7 +86,7 @@ export function AdminDashboard() {
       title: "Добавить пользователя",
       description: "Создать нового пользователя платформы",
       icon: Users,
-      color: "bg-blue-500",
+      bgColor: "bg-cyan-400",
       action: () => {
         // TODO: Navigate to users
       },
@@ -101,7 +95,7 @@ export function AdminDashboard() {
       title: "Посмотреть вопросы",
       description: "Ответить на вопросы пользователей",
       icon: Zap,
-      color: "bg-purple-500",
+      bgColor: "bg-purple-400",
       action: () => {
         // TODO: Navigate to questions
       },
@@ -112,7 +106,7 @@ export function AdminDashboard() {
     <div className="space-y-8">
       <div>
         <h1 className="font-black text-4xl mb-2">Дашборд</h1>
-        <p className="text-gray-600">Общая статистика и аналитика платформы</p>
+        <p className="text-gray-500">Общая статистика и аналитика платформы</p>
       </div>
 
       {/* Stats Grid */}
@@ -120,7 +114,7 @@ export function AdminDashboard() {
         {loading
           ? Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className="p-6">
-                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-32 w-full" />
               </Card>
             ))
           : statCards.map((stat, index) => {
@@ -128,65 +122,70 @@ export function AdminDashboard() {
               return (
                 <Card
                   key={index}
-                  className="p-6 hover:shadow-lg transition-shadow"
+                  className="p-6 hover:shadow-md transition-shadow border border-gray-200"
                 >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className={`p-3 rounded-xl ${stat.bgColor}`}>
-                      <Icon className={`h-6 w-6 ${stat.iconColor}`} />
-                    </div>
+                  <div className={`inline-flex p-4 rounded-2xl ${stat.bgColor} mb-6`}>
+                    <Icon className="h-7 w-7 text-white" />
                   </div>
                   <div>
-                    <p className="text-gray-600 text-sm mb-1">{stat.title}</p>
-                    <p className="text-3xl font-black">{stat.value}</p>
+                    <p className="text-gray-500 text-sm mb-2">{stat.title}</p>
+                    <p className="text-5xl font-black">{stat.value}</p>
                   </div>
                 </Card>
               );
             })}
       </div>
 
-      {/* Quick Actions */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-lg bg-purple-50">
-            <Zap className="h-5 w-5 text-purple-500" />
+      {/* Bottom Grid - Products by Users + Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Products by Users */}
+        <Card className="p-6 border border-gray-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-pink-400">
+              <Package className="h-6 w-6 text-white" />
+            </div>
+            <h2 className="text-xl font-black">Продукты по пользователям</h2>
           </div>
-          <h2 className="text-2xl font-black">Быстрые действия</h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <button
-                key={index}
-                onClick={action.action}
-                className="p-4 rounded-xl border-2 border-gray-200 hover:border-pink-300 hover:bg-pink-50 transition-all text-left group"
-              >
-                <div className={`inline-flex p-3 rounded-lg ${action.color} text-white mb-3`}>
-                  <Icon className="h-6 w-6" />
-                </div>
-                <h3 className="font-bold text-lg mb-1 group-hover:text-pink-600 transition-colors">
-                  {action.title}
-                </h3>
-                <p className="text-gray-600 text-sm">{action.description}</p>
-              </button>
-            );
-          })}
-        </div>
-      </Card>
-
-      {/* Products by Users - Placeholder */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-lg bg-pink-50">
-            <Package className="h-5 w-5 text-pink-500" />
+          <div className="text-center text-gray-400 py-12">
+            Нет данных о продуктах
           </div>
-          <h2 className="text-2xl font-black">Продукты по пользователям</h2>
-        </div>
-        <div className="text-center text-gray-500 py-8">
-          Нет данных о продуктах
-        </div>
-      </Card>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card className="p-6 border border-gray-200">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-purple-400">
+              <Zap className="h-6 w-6 text-white" />
+            </div>
+            <h2 className="text-xl font-black">Быстрые действия</h2>
+          </div>
+
+          <div className="space-y-3">
+            {quickActions.map((action, index) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={index}
+                  onClick={action.action}
+                  className="w-full p-4 rounded-xl bg-gray-50 hover:bg-pink-50 transition-colors text-left flex items-start gap-4 group"
+                >
+                  <div className={`p-3 rounded-xl ${action.bgColor} flex-shrink-0`}>
+                    <Icon className="h-6 w-6 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-base mb-1 group-hover:text-pink-600 transition-colors">
+                      {action.title}
+                    </h3>
+                    <p className="text-gray-500 text-sm">
+                      {action.description}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }
