@@ -342,12 +342,13 @@ class ApiClient {
     });
   }
 
-  async getUsers(params?: { page?: number; limit?: number; cohort_id?: number; product_id?: number }) {
+  async getUsers(params?: { page?: number; limit?: number; cohort_id?: number; product_id?: number; search?: string; signal?: AbortSignal }) {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.cohort_id) queryParams.append('cohort_id', params.cohort_id.toString());
     if (params?.product_id) queryParams.append('product_id', params.product_id.toString());
+    if (params?.search) queryParams.append('search', params.search);
     
     const url = `/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request<{
@@ -358,7 +359,7 @@ class ApiClient {
         limit: number;
         totalPages: number;
       }
-    }>(url);
+    }>(url, { signal: params?.signal });
   }
 
   async createUser(data: { username: string; email: string; password?: string; first_name?: string; last_name?: string; role?: 'user' | 'admin' }) {

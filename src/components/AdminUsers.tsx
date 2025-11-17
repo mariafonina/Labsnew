@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -52,18 +52,25 @@ export function AdminUsers() {
   const [isAdding, setIsAdding] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCohortId, setSelectedCohortId] = useState<string>("");
-  const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [cohorts, setCohorts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [selectedUserForCard, setSelectedUserForCard] = useState<User | null>(null);
 
   // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
   const [pageSize] = useState(20);
+
+  // Single query state for atomic updates - prevents pagination race conditions
+  const [query, setQuery] = useState({
+    page: 1,
+    search: "",
+    cohortId: "",
+    productId: ""
+  });
+
+  // Ref to hold current abort controller for proper cleanup
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const [userForm, setUserForm] = useState({
     username: "",
@@ -74,19 +81,25 @@ export function AdminUsers() {
     role: "user" as "admin" | "user",
   });
 
+  // Single effect to load data when query changes - with abort controller for race prevention
   useEffect(() => {
     loadUsers();
+  }, [query]);
+
+  // Load filters on mount only
+  useEffect(() => {
     loadFilters();
   }, []);
 
+  // Cleanup on unmount - abort any pending requests
   useEffect(() => {
-    setCurrentPage(1); // Reset to first page when filters change
-    loadUsers();
-  }, [selectedCohortId, selectedProductId]);
-
-  useEffect(() => {
-    loadUsers();
-  }, [currentPage]);
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   const loadFilters = async () => {
     try {
@@ -102,27 +115,48 @@ export function AdminUsers() {
   };
 
   const loadUsers = async () => {
+    // Abort previous request if any
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
+      if (abortController.signal.aborted) return;
+      
       setLoading(true);
       const params: any = {
-        page: currentPage,
-        limit: pageSize
+        page: query.page,
+        limit: pageSize,
+        signal: abortController.signal
       };
       
-      if (selectedCohortId) params.cohort_id = parseInt(selectedCohortId);
-      if (selectedProductId) params.product_id = parseInt(selectedProductId);
+      if (query.cohortId) params.cohort_id = parseInt(query.cohortId);
+      if (query.productId) params.product_id = parseInt(query.productId);
+      if (query.search.trim()) params.search = query.search.trim();
       
       const response = await apiClient.getUsers(params);
       
-      // Update users and pagination info
-      setUsers(response.data);
-      setTotalPages(response.pagination.totalPages);
-      setTotalUsers(response.pagination.total);
+      // Only update if this controller is still the current one and not aborted
+      if (abortControllerRef.current === abortController && !abortController.signal.aborted) {
+        setUsers(response.data);
+        setTotalPages(response.pagination.totalPages);
+        setTotalUsers(response.pagination.total);
+      }
     } catch (error: any) {
-      toast.error("Не удалось загрузить пользователей");
-      console.error("Failed to load users:", error);
+      // Only show error if this controller is still current and not aborted
+      if (abortControllerRef.current === abortController && !abortController.signal.aborted) {
+        toast.error("Не удалось загрузить пользователей");
+        console.error("Failed to load users:", error);
+      }
     } finally {
-      setLoading(false);
+      // Only clear loading if this controller is still current
+      if (abortControllerRef.current === abortController) {
+        setLoading(false);
+      }
     }
   };
 
@@ -240,12 +274,8 @@ export function AdminUsers() {
     }
   };
 
-  const filteredUsers = users.filter(user => 
-    user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.first_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.last_name?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Server-side filtering - no client-side filtering needed
+  const displayUsers = users; // Renamed for clarity - users are already filtered by backend
 
   const handleUserClick = (user: User) => {
     setSelectedUserForCard(user);
@@ -393,13 +423,13 @@ export function AdminUsers() {
             <div className="relative flex-1 min-w-[300px]">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={query.search}
+                onChange={(e) => setQuery(prev => ({ ...prev, page: 1, search: e.target.value }))}
                 placeholder="Поиск по логину, email, имени или фамилии..."
                 className="h-12 pl-12 text-base"
               />
             </div>
-            <Select value={selectedCohortId || "all"} onValueChange={(value: string) => setSelectedCohortId(value === "all" ? "" : value)}>
+            <Select value={query.cohortId || "all"} onValueChange={(value: string) => setQuery(prev => ({ ...prev, page: 1, cohortId: value === "all" ? "" : value }))}>
               <SelectTrigger className="w-[200px] h-12">
                 <SelectValue placeholder="Все потоки" />
               </SelectTrigger>
@@ -412,7 +442,7 @@ export function AdminUsers() {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedProductId || "all"} onValueChange={(value: string) => setSelectedProductId(value === "all" ? "" : value)}>
+            <Select value={query.productId || "all"} onValueChange={(value: string) => setQuery(prev => ({ ...prev, page: 1, productId: value === "all" ? "" : value }))}>
               <SelectTrigger className="w-[200px] h-12">
                 <SelectValue placeholder="Все продукты" />
               </SelectTrigger>
@@ -467,14 +497,14 @@ export function AdminUsers() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.length === 0 ? (
+                {displayUsers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12 text-gray-500">
                       Пользователи не найдены
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map((user) => (
+                  displayUsers.map((user) => (
                     <TableRow 
                       key={user.id} 
                       className="hover:bg-gray-50 cursor-pointer"
@@ -544,8 +574,8 @@ export function AdminUsers() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
+              onClick={() => setQuery(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }))}
+              disabled={query.page === 1}
             >
               Назад
             </Button>
@@ -554,19 +584,19 @@ export function AdminUsers() {
                 let pageNum;
                 if (totalPages <= 5) {
                   pageNum = i + 1;
-                } else if (currentPage <= 3) {
+                } else if (query.page <= 3) {
                   pageNum = i + 1;
-                } else if (currentPage >= totalPages - 2) {
+                } else if (query.page >= totalPages - 2) {
                   pageNum = totalPages - 4 + i;
                 } else {
-                  pageNum = currentPage - 2 + i;
+                  pageNum = query.page - 2 + i;
                 }
                 return (
                   <Button
                     key={pageNum}
-                    variant={currentPage === pageNum ? "default" : "outline"}
+                    variant={query.page === pageNum ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setCurrentPage(pageNum)}
+                    onClick={() => setQuery(prev => ({ ...prev, page: pageNum }))}
                     className="w-10"
                   >
                     {pageNum}
@@ -577,8 +607,8 @@ export function AdminUsers() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
+              onClick={() => setQuery(prev => ({ ...prev, page: Math.min(totalPages, prev.page + 1) }))}
+              disabled={query.page === totalPages}
             >
               Вперёд
             </Button>

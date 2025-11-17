@@ -14,7 +14,7 @@ router.get(
   verifyToken,
   requireAdmin,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { cohort_id, product_id, page, limit } = req.query;
+    const { cohort_id, product_id, search, page, limit } = req.query;
 
     // Pagination parameters
     const pageNum = parseInt(page as string) || 1;
@@ -39,6 +39,19 @@ router.get(
     if (product_id) {
       queryText += ` JOIN labs.user_enrollments ue ON u.id = ue.user_id AND ue.product_id = $${paramIndex} AND ue.status = 'active'`;
       params.push(product_id);
+      paramIndex++;
+    }
+
+    // Поиск по username, email, first_name, last_name
+    if (search && typeof search === 'string' && search.trim()) {
+      const searchPattern = `%${search.trim().toLowerCase()}%`;
+      queryText += ` WHERE (
+        LOWER(u.username) LIKE $${paramIndex} OR
+        LOWER(u.email) LIKE $${paramIndex} OR
+        LOWER(u.first_name) LIKE $${paramIndex} OR
+        LOWER(u.last_name) LIKE $${paramIndex}
+      )`;
+      params.push(searchPattern);
       paramIndex++;
     }
 
