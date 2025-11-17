@@ -12,8 +12,11 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { useAuth } from "../contexts/AuthContext";
 import { motion, AnimatePresence } from "motion/react";
 import { Logo } from "./Logo";
+import { useState, useEffect } from "react";
+import { apiClient } from "../api/client";
 
 interface UserSidebarProps {
   activeTab: string;
@@ -29,7 +32,25 @@ export function UserSidebar({
   onToggleCollapse 
 }: UserSidebarProps) {
   const { getUnreadNotificationsCount, auth } = useApp();
+  const { user } = useAuth();
   const unreadCount = getUnreadNotificationsCount();
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    const loadUserName = async () => {
+      if (auth.isAuthenticated) {
+        try {
+          const profile = await apiClient.getProfile();
+          const name = profile.first_name || profile.username || user?.username || "Пользователь";
+          setUserName(name);
+        } catch (error) {
+          console.error("Failed to load user name:", error);
+          setUserName(user?.username || "Пользователь");
+        }
+      }
+    };
+    loadUserName();
+  }, [auth.isAuthenticated, user]);
 
   // Get user gender for colors
   const gender = auth.isAuthenticated 
@@ -130,7 +151,7 @@ export function UserSidebar({
           onClick={() => onTabChange("profile")}
           className="text-sm text-gray-500 hover:text-gray-900 transition-colors text-left w-full"
         >
-          Добро пожаловать, <span className="underline hover:text-pink-400 hover:shadow-[0_0_15px_rgba(251,113,133,0.7)] transition-all duration-300 cursor-pointer">Александр</span>
+          Добро пожаловать, <span className="underline hover:text-pink-400 hover:shadow-[0_0_15px_rgba(251,113,133,0.7)] transition-all duration-300 cursor-pointer">{userName || "Пользователь"}</span>
         </button>
       </div>
 

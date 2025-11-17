@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Package, Edit, Trash2, DollarSign, Users, UserCheck, BookOpen } from 'lucide-react';
+import { Plus, Package, Edit, Trash2, DollarSign, Users, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,7 +7,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ProductForm } from '@/components/admin/ProductForm';
 import { TiersList } from '@/components/admin/TiersList';
 import { CohortsList } from '@/components/admin/CohortsList';
-import { EnrollmentManager } from '@/components/admin/EnrollmentManager';
 import { ResourcesManager } from '@/components/admin/ResourcesManager';
 import { apiClient } from '@/api/client';
 import { toast } from 'sonner';
@@ -17,8 +16,11 @@ interface Product {
   name: string;
   description: string;
   type: string;
+  status: string;
   duration_weeks: number;
   default_price: number;
+  project_start_date?: string;
+  project_end_date?: string;
   is_active: boolean;
   created_at: string;
 }
@@ -205,7 +207,20 @@ export function Products() {
                       <div className="text-sm text-muted-foreground mt-2">
                         {product.type} • {product.duration_weeks} недель
                       </div>
-                      <div className="flex items-center gap-2 mt-3">
+                      <div className="flex items-center gap-2 mt-3 flex-wrap">
+                        <span
+                          className={`text-xs px-2 py-1 rounded ${
+                            product.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                            product.status === 'for_sale' ? 'bg-green-100 text-green-800' :
+                            product.status === 'pre_registration' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {product.status === 'active' ? 'Активен' :
+                           product.status === 'for_sale' ? 'В продаже' :
+                           product.status === 'pre_registration' ? 'Предзапись' :
+                           'Нет в продаже'}
+                        </span>
                         <span
                           className={`text-xs px-2 py-1 rounded ${
                             product.is_active
@@ -213,8 +228,21 @@ export function Products() {
                               : 'bg-gray-100 text-gray-800'
                           }`}
                         >
-                          {product.is_active ? 'Активен' : 'Неактивен'}
+                          {product.is_active ? 'Включен' : 'Выключен'}
                         </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingProduct(product);
+                          }}
+                        >
+                          <Edit className="w-4 h-4 mr-1" />
+                          Редактировать
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -288,10 +316,6 @@ export function Products() {
                     <Users className="w-4 h-4 mr-2" />
                     Потоки
                   </TabsTrigger>
-                  <TabsTrigger value="enrollments">
-                    <UserCheck className="w-4 h-4 mr-2" />
-                    Зачисления
-                  </TabsTrigger>
                   <TabsTrigger value="resources">
                     <BookOpen className="w-4 h-4 mr-2" />
                     Материалы
@@ -306,17 +330,6 @@ export function Products() {
                 </TabsContent>
                 <TabsContent value="cohorts" className="mt-6">
                   <CohortsList productId={selectedProduct.id} />
-                </TabsContent>
-                <TabsContent value="enrollments" className="mt-6">
-                  <EnrollmentManager
-                    productId={selectedProduct.id}
-                    tiers={tiers}
-                    cohorts={cohorts}
-                    onRefresh={() => {
-                      loadTiers(selectedProduct.id);
-                      loadCohorts(selectedProduct.id);
-                    }}
-                  />
                 </TabsContent>
                 <TabsContent value="resources" className="mt-6">
                   <ResourcesManager

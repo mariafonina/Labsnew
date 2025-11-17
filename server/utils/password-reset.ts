@@ -19,8 +19,27 @@ export async function generateResetToken(userId: number): Promise<string> {
 }
 
 export async function sendPasswordResetEmail(email: string, username: string, token: string): Promise<void> {
-  const frontendBaseUrl = process.env.FRONTEND_BASE_URL || 
-    (process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPLIT_DOMAINS?.split(',')[0]}` : 'http://localhost:5000');
+  // Определяем базовый URL фронтенда
+  let frontendBaseUrl = process.env.FRONTEND_BASE_URL;
+  
+  if (!frontendBaseUrl) {
+    // Для Replit
+    if (process.env.REPL_SLUG && process.env.REPLIT_DOMAINS) {
+      const domains = process.env.REPLIT_DOMAINS.split(',');
+      frontendBaseUrl = `https://${process.env.REPL_SLUG}.${domains[0]}`;
+    } 
+    // Для локальной разработки
+    else if (process.env.NODE_ENV === 'development') {
+      frontendBaseUrl = 'http://localhost:5173';
+    }
+    // Fallback
+    else {
+      frontendBaseUrl = 'http://localhost:5173';
+    }
+  }
+
+  // Убираем trailing slash если есть
+  frontendBaseUrl = frontendBaseUrl.replace(/\/$/, '');
   const resetUrl = `${frontendBaseUrl}/reset-password/${token}`;
 
   const subject = 'Сброс пароля - ЛАБС';

@@ -9,8 +9,11 @@ interface ProductFormData {
   name: string;
   description: string;
   type: string;
+  status: string;
   duration_weeks: number;
   default_price: number;
+  project_start_date?: string;
+  project_end_date?: string;
 }
 
 interface ProductFormProps {
@@ -19,13 +22,16 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ product, onSubmit }: ProductFormProps) {
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<ProductFormData>({
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<ProductFormData>({
     defaultValues: product || {
       name: '',
       description: '',
-      type: 'intensive',
+      type: '',
+      status: 'not_for_sale',
       duration_weeks: 4,
-      default_price: 0
+      default_price: 0,
+      project_start_date: '',
+      project_end_date: ''
     }
   });
 
@@ -56,23 +62,36 @@ export function ProductForm({ product, onSubmit }: ProductFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="type">Тип продукта *</Label>
+          <Input
+            id="type"
+            {...register('type', { required: 'Тип продукта обязателен' })}
+            placeholder="Например: Интенсив, Курс, Вебинар"
+          />
+          {errors.type && (
+            <p className="text-sm text-red-500 mt-1">{errors.type.message}</p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="status">Статус продукта *</Label>
           <Select
-            defaultValue={product?.type || 'intensive'}
-            onValueChange={(value: string) => setValue('type', value)}
+            defaultValue={product?.status || 'not_for_sale'}
+            onValueChange={(value: string) => setValue('status', value)}
           >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="intensive">Интенсив</SelectItem>
-              <SelectItem value="course">Курс</SelectItem>
-              <SelectItem value="webinar">Вебинар</SelectItem>
-              <SelectItem value="mentorship">Менторство</SelectItem>
-              <SelectItem value="workshop">Воркшоп</SelectItem>
+              <SelectItem value="not_for_sale">Нет в продаже</SelectItem>
+              <SelectItem value="pre_registration">Возможна предзапись</SelectItem>
+              <SelectItem value="for_sale">В продаже</SelectItem>
+              <SelectItem value="active">Активен (проведение проекта)</SelectItem>
             </SelectContent>
           </Select>
         </div>
+      </div>
 
+      <div className="grid grid-cols-2 gap-4">
         <div>
           <Label htmlFor="duration_weeks">Длительность (недели) *</Label>
           <Input
@@ -88,23 +107,44 @@ export function ProductForm({ product, onSubmit }: ProductFormProps) {
             <p className="text-sm text-red-500 mt-1">{errors.duration_weeks.message}</p>
           )}
         </div>
+
+        <div>
+          <Label htmlFor="default_price">Базовая цена (₽)</Label>
+          <Input
+            id="default_price"
+            type="number"
+            step="0.01"
+            {...register('default_price', {
+              min: { value: 0, message: 'Цена не может быть отрицательной' }
+            })}
+            placeholder="25000"
+          />
+          {errors.default_price && (
+            <p className="text-sm text-red-500 mt-1">{errors.default_price.message}</p>
+          )}
+        </div>
       </div>
 
-      <div>
-        <Label htmlFor="default_price">Базовая цена (₽)</Label>
-        <Input
-          id="default_price"
-          type="number"
-          step="0.01"
-          {...register('default_price', {
-            min: { value: 0, message: 'Цена не может быть отрицательной' }
-          })}
-          placeholder="25000"
-        />
-        {errors.default_price && (
-          <p className="text-sm text-red-500 mt-1">{errors.default_price.message}</p>
-        )}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="project_start_date">Начало проведения проекта</Label>
+          <Input
+            id="project_start_date"
+            type="date"
+            {...register('project_start_date')}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="project_end_date">Конец проведения проекта</Label>
+          <Input
+            id="project_end_date"
+            type="date"
+            {...register('project_end_date')}
+          />
+        </div>
       </div>
+
 
       <div className="flex justify-end gap-2 pt-4">
         <Button type="submit">

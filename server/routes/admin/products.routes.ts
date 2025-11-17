@@ -35,7 +35,7 @@ router.get('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthReque
 }));
 
 router.post('/', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { name, description, type, duration_weeks, default_price, is_active } = req.body;
+  const { name, description, type, status, duration_weeks, default_price, project_start_date, project_end_date, is_active } = req.body;
 
   if (!name || !type) {
     return res.status(400).json({ error: 'Name and type are required' });
@@ -44,19 +44,30 @@ router.post('/', verifyToken, requireAdmin, createLimiter, asyncHandler(async (r
   const sanitizedName = sanitizeText(name.trim());
   const sanitizedDescription = description ? sanitizeText(description.trim()) : null;
   const sanitizedType = sanitizeText(type.trim());
+  const sanitizedStatus = status || 'not_for_sale';
 
   const result = await query(`
-    INSERT INTO labs.products (name, description, type, duration_weeks, default_price, is_active)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO labs.products (name, description, type, status, duration_weeks, default_price, project_start_date, project_end_date, is_active)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING *
-  `, [sanitizedName, sanitizedDescription, sanitizedType, duration_weeks || null, default_price || null, is_active !== false]);
+  `, [
+    sanitizedName, 
+    sanitizedDescription, 
+    sanitizedType, 
+    sanitizedStatus,
+    duration_weeks || null, 
+    default_price || null, 
+    project_start_date || null,
+    project_end_date || null,
+    is_active !== false
+  ]);
 
   res.status(201).json(result.rows[0]);
 }));
 
 router.put('/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { name, description, type, duration_weeks, default_price, is_active } = req.body;
+  const { name, description, type, status, duration_weeks, default_price, project_start_date, project_end_date, is_active } = req.body;
 
   const existingProduct = await query('SELECT id FROM labs.products WHERE id = $1', [id]);
   if (existingProduct.rows.length === 0) {
@@ -85,6 +96,11 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async 
     updateQuery += `, type = $${paramIndex++}`;
   }
 
+  if (status !== undefined) {
+    params.push(status);
+    updateQuery += `, status = $${paramIndex++}`;
+  }
+
   if (duration_weeks !== undefined) {
     params.push(duration_weeks || null);
     updateQuery += `, duration_weeks = $${paramIndex++}`;
@@ -93,6 +109,16 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async 
   if (default_price !== undefined) {
     params.push(default_price || null);
     updateQuery += `, default_price = $${paramIndex++}`;
+  }
+
+  if (project_start_date !== undefined) {
+    params.push(project_start_date || null);
+    updateQuery += `, project_start_date = $${paramIndex++}`;
+  }
+
+  if (project_end_date !== undefined) {
+    params.push(project_end_date || null);
+    updateQuery += `, project_end_date = $${paramIndex++}`;
   }
 
   if (is_active !== undefined) {
@@ -131,7 +157,7 @@ router.get('/:id/tiers', verifyToken, requireAdmin, asyncHandler(async (req: Aut
 
 router.post('/:id/tiers', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { name, description, price, tier_level, features, is_active } = req.body;
+  const { name, description, price, tier_level, features, access_start_date, access_end_date, is_active } = req.body;
 
   if (!name || price === undefined || tier_level === undefined) {
     return res.status(400).json({ error: 'Name, price, and tier_level are required' });
@@ -141,17 +167,27 @@ router.post('/:id/tiers', verifyToken, requireAdmin, createLimiter, asyncHandler
   const sanitizedDescription = description ? sanitizeText(description.trim()) : null;
 
   const result = await query(`
-    INSERT INTO labs.pricing_tiers (product_id, name, description, price, tier_level, features, is_active)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO labs.pricing_tiers (product_id, name, description, price, tier_level, features, access_start_date, access_end_date, is_active)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING *
-  `, [id, sanitizedName, sanitizedDescription, price, tier_level, features ? JSON.stringify(features) : null, is_active !== false]);
+  `, [
+    id, 
+    sanitizedName, 
+    sanitizedDescription, 
+    price, 
+    tier_level, 
+    features ? JSON.stringify(features) : null, 
+    access_start_date || null,
+    access_end_date || null,
+    is_active !== false
+  ]);
 
   res.status(201).json(result.rows[0]);
 }));
 
 router.put('/:productId/tiers/:tierId', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { productId, tierId } = req.params;
-  const { name, description, price, tier_level, features, is_active } = req.body;
+  const { name, description, price, tier_level, features, access_start_date, access_end_date, is_active } = req.body;
 
   let updateQuery = 'UPDATE labs.pricing_tiers SET updated_at = CURRENT_TIMESTAMP';
   const params: any[] = [];
@@ -182,6 +218,16 @@ router.put('/:productId/tiers/:tierId', verifyToken, requireAdmin, createLimiter
   if (features !== undefined) {
     params.push(features ? JSON.stringify(features) : null);
     updateQuery += `, features = $${paramIndex++}`;
+  }
+
+  if (access_start_date !== undefined) {
+    params.push(access_start_date || null);
+    updateQuery += `, access_start_date = $${paramIndex++}`;
+  }
+
+  if (access_end_date !== undefined) {
+    params.push(access_end_date || null);
+    updateQuery += `, access_end_date = $${paramIndex++}`;
   }
 
   if (is_active !== undefined) {

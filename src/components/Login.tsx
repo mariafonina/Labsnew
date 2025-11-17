@@ -25,8 +25,10 @@ export function Login() {
 
     try {
       await login(loginUsername, loginPassword);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+    } catch (err: any) {
+      console.error('Login error:', err);
+      const errorMessage = err?.message || err?.error || "Ошибка входа. Проверьте учетные данные";
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

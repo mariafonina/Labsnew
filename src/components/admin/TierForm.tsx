@@ -11,6 +11,8 @@ interface TierFormData {
   price: number;
   tier_level: number;
   features: { value: string }[];
+  access_start_date?: string;
+  access_end_date?: string;
 }
 
 interface TierFormProps {
@@ -25,13 +27,17 @@ export function TierForm({ tier, onSubmit }: TierFormProps) {
       description: tier.description,
       price: tier.price,
       tier_level: tier.tier_level,
-      features: tier.features?.map((f: string) => ({ value: f })) || [{ value: '' }]
+      features: tier.features?.map((f: string) => ({ value: f })) || [{ value: '' }],
+      access_start_date: tier.access_start_date || '',
+      access_end_date: tier.access_end_date || ''
     } : {
       name: '',
       description: '',
       price: 0,
       tier_level: 1,
-      features: [{ value: '' }]
+      features: [{ value: '' }],
+      access_start_date: '',
+      access_end_date: ''
     }
   });
 
@@ -107,6 +113,26 @@ export function TierForm({ tier, onSubmit }: TierFormProps) {
           <p className="text-xs text-muted-foreground mt-1">
             1 - базовый, 2 - стандарт, 3 - премиум и т.д.
           </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="access_start_date">Начало доступа к материалам</Label>
+          <Input
+            id="access_start_date"
+            type="date"
+            {...register('access_start_date')}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="access_end_date">Конец доступа к материалам</Label>
+          <Input
+            id="access_end_date"
+            type="date"
+            {...register('access_end_date')}
+          />
         </div>
       </div>
 

@@ -41,11 +41,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (username: string, password: string) => {
-    const response = await apiClient.login(username, password);
-    apiClient.setToken(response.token);
-    setUser(response.user);
-    localStorage.setItem('user', JSON.stringify(response.user));
-    localStorage.setItem('auth_token', response.token);
+    try {
+      const response = await apiClient.login(username, password);
+      apiClient.setToken(response.token);
+      setUser(response.user);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('auth_token', response.token);
+    } catch (error: any) {
+      // Пробрасываем ошибку дальше с понятным сообщением
+      const errorMessage = error?.message || 'Ошибка входа. Проверьте учетные данные';
+      throw new Error(errorMessage);
+    }
   };
 
   const register = async (username: string, email: string, password: string) => {

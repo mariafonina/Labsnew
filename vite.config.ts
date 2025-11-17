@@ -58,9 +58,10 @@
       minify: 'esbuild',
     },
   server: {
-    host: 'localhost',
+    host: process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost',
     port: 5173,
     strictPort: false,
+    allowedHosts: true, // Разрешить все хосты для Replit и других платформ
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

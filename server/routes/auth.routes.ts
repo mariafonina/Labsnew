@@ -56,7 +56,10 @@ router.post('/login', authLimiter, async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    console.log('[Login] Attempt:', { username, hasPassword: !!password });
+
     if (!username || !password) {
+      console.log('[Login] Missing credentials');
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
@@ -66,6 +69,7 @@ router.post('/login', authLimiter, async (req, res) => {
     );
 
     if (result.rows.length === 0) {
+      console.log('[Login] User not found:', username);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
@@ -73,10 +77,13 @@ router.post('/login', authLimiter, async (req, res) => {
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!isValidPassword) {
+      console.log('[Login] Invalid password for user:', username);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     const token = generateToken(user.id, user.role);
+
+    console.log('[Login] Success:', { userId: user.id, username: user.username, role: user.role });
 
     res.json({
       token,
@@ -88,7 +95,7 @@ router.post('/login', authLimiter, async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('[Login] Error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

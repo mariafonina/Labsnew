@@ -8,9 +8,40 @@ import bcrypt from 'bcrypt';
 
 const router = Router();
 
-// Get all users (admin only)
+// Get all users (admin only) with filtering and sorting
 router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const result = await query('SELECT id, username, email, first_name, last_name, role, created_at, updated_at FROM labs.users ORDER BY created_at DESC');
+  const { cohort_id, product_id } = req.query;
+  
+  let queryText = `
+    SELECT DISTINCT u.id, u.username, u.email, u.first_name, u.last_name, u.role, u.created_at, u.updated_at
+    FROM labs.users u
+  `;
+  const params: any[] = [];
+  let paramIndex = 1;
+  const conditions: string[] = [];
+
+  // Фильтрация по потоку
+  if (cohort_id) {
+    queryText += ` JOIN labs.cohort_members cm ON u.id = cm.user_id AND cm.cohort_id = $${paramIndex} AND cm.left_at IS NULL`;
+    params.push(cohort_id);
+    paramIndex++;
+  }
+
+  // Фильтрация по продукту
+  if (product_id) {
+    queryText += ` JOIN labs.user_enrollments ue ON u.id = ue.user_id AND ue.product_id = $${paramIndex} AND ue.status = 'active'`;
+    params.push(product_id);
+    paramIndex++;
+  }
+
+  if (conditions.length > 0) {
+    queryText += ` WHERE ${conditions.join(' AND ')}`;
+  }
+
+  // Сортировка: администраторы первыми, затем по дате создания
+  queryText += ` ORDER BY CASE WHEN u.role = 'admin' THEN 0 ELSE 1 END, u.created_at DESC`;
+
+  const result = await query(queryText, params);
   res.json(result.rows);
 }));
 
@@ -169,6 +200,166 @@ router.delete('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthRe
   }
 
   res.json({ message: 'User deleted successfully' });
+}));
+
+// Get user statistics (admin only)
+router.get('/:id/stats', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+
+  // Проверяем существование пользователя
+  const user = await query('SELECT id, username, email, first_name, last_name FROM labs.users WHERE id = $1', [id]);
+  if (user.rows.length === 0) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  // Получаем потоки пользователя
+  const cohorts = await query(`
+    SELECT c.id, c.name, c.start_date, c.end_date, cm.joined_at
+    FROM labs.cohort_members cm
+    JOIN labs.cohorts c ON cm.cohort_id = c.id
+    WHERE cm.user_id = $1 AND cm.left_at IS NULL
+    ORDER BY cm.joined_at DESC
+  `, [id]);
+
+  // Получаем продукты пользователя (активные и истекшие)
+  const enrollments = await query(`
+    SELECT 
+      ue.id,
+      ue.product_id,
+      ue.pricing_tier_id,
+      ue.cohort_id,
+      ue.status,
+      ue.enrolled_at,
+      ue.expires_at,
+      p.name as product_name,
+      pt.name as tier_name,
+      c.name as cohort_name
+    FROM labs.user_enrollments ue
+    JOIN labs.products p ON ue.product_id = p.id
+    LEFT JOIN labs.pricing_tiers pt ON ue.pricing_tier_id = pt.id
+    LEFT JOIN labs.cohorts c ON ue.cohort_id = c.id
+    WHERE ue.user_id = $1
+    ORDER BY ue.enrolled_at DESC
+  `, [id]);
+
+  // Разделяем на активные и истекшие
+  const now = new Date();
+  const activeEnrollments = enrollments.rows.filter((e: any) => 
+    e.status === 'active' && (!e.expires_at || new Date(e.expires_at) > now)
+  );
+  const expiredEnrollments = enrollments.rows.filter((e: any) => 
+    e.status !== 'active' || (e.expires_at && new Date(e.expires_at) <= now)
+  );
+
+  // Получаем статистику активности
+  const progress = await query(`
+    SELECT 
+      p.instruction_id,
+      i.title as instruction_title,
+      p.completed,
+      p.last_accessed
+    FROM labs.progress p
+    JOIN labs.instructions i ON p.instruction_id = i.id
+    WHERE p.user_id = $1
+    ORDER BY p.last_accessed DESC
+  `, [id]);
+
+  const notes = await query(`
+    SELECT id, title, content, linked_item_type, linked_item_id, created_at, updated_at
+    FROM labs.notes
+    WHERE user_id = $1
+    ORDER BY updated_at DESC
+  `, [id]);
+
+  const favorites = await query(`
+    SELECT 
+      id,
+      item_type,
+      item_id,
+      title,
+      description,
+      date,
+      created_at
+    FROM labs.favorites
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+  `, [id]);
+
+  const comments = await query(`
+    SELECT 
+      c.id,
+      c.event_id,
+      c.event_type,
+      c.content,
+      c.likes,
+      c.created_at,
+      CASE 
+        WHEN c.event_type = 'event' THEN e.title
+        WHEN c.event_type = 'instruction' THEN i.title
+        WHEN c.event_type = 'recording' THEN r.title
+        WHEN c.event_type = 'faq' THEN f.question
+      END as event_title
+    FROM labs.comments c
+    LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id = e.id
+    LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id = i.id
+    LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id = r.id
+    LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id = f.id
+    WHERE c.user_id = $1
+    ORDER BY c.created_at DESC
+  `, [id]);
+
+  const likedComments = await query(`
+    SELECT 
+      c.id,
+      c.event_id,
+      c.event_type,
+      c.content,
+      c.likes,
+      c.created_at,
+      CASE 
+        WHEN c.event_type = 'event' THEN e.title
+        WHEN c.event_type = 'instruction' THEN i.title
+        WHEN c.event_type = 'recording' THEN r.title
+        WHEN c.event_type = 'faq' THEN f.question
+      END as event_title
+    FROM labs.comments c
+    LEFT JOIN labs.events e ON c.event_type = 'event' AND c.event_id = e.id
+    LEFT JOIN labs.instructions i ON c.event_type = 'instruction' AND c.event_id = i.id
+    LEFT JOIN labs.recordings r ON c.event_type = 'recording' AND c.event_id = r.id
+    LEFT JOIN labs.faq f ON c.event_type = 'faq' AND c.event_id = f.id
+    WHERE c.likes > 0 AND c.user_id = $1
+    ORDER BY c.likes DESC, c.created_at DESC
+  `, [id]);
+
+  // Получаем просмотренные записи
+  const recordingViews = await query(`
+    SELECT 
+      rv.recording_id,
+      r.title as recording_title,
+      r.date as recording_date,
+      rv.viewed_at
+    FROM labs.recording_views rv
+    JOIN labs.recordings r ON rv.recording_id = r.id
+    WHERE rv.user_id = $1
+    ORDER BY rv.viewed_at DESC
+  `, [id]);
+
+  res.json({
+    user: user.rows[0],
+    cohorts: cohorts.rows,
+    enrollments: {
+      active: activeEnrollments,
+      expired: expiredEnrollments
+    },
+    activity: {
+      progress: progress.rows,
+      recordingViews: recordingViews.rows,
+      notes: notes.rows,
+      favorites: favorites.rows,
+      comments: comments.rows,
+      likedComments: likedComments.rows
+    }
+  });
 }));
 
 export default router;
