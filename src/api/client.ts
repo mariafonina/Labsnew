@@ -342,8 +342,23 @@ class ApiClient {
     });
   }
 
-  async getUsers() {
-    return this.request<any[]>('/admin/users');
+  async getUsers(params?: { page?: number; limit?: number; cohort_id?: number; product_id?: number }) {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.cohort_id) queryParams.append('cohort_id', params.cohort_id.toString());
+    if (params?.product_id) queryParams.append('product_id', params.product_id.toString());
+    
+    const url = `/admin/users${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request<{
+      data: any[];
+      pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+      }
+    }>(url);
   }
 
   async createUser(data: { username: string; email: string; password?: string; first_name?: string; last_name?: string; role?: 'user' | 'admin' }) {

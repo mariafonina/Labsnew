@@ -8,13 +8,18 @@ import bcrypt from "bcrypt";
 
 const router = Router();
 
-// Get all users (admin only) with filtering and sorting
+// Get all users (admin only) with filtering, sorting, and pagination
 router.get(
   "/",
   verifyToken,
   requireAdmin,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { cohort_id, product_id } = req.query;
+    const { cohort_id, product_id, page, limit } = req.query;
+
+    // Pagination parameters
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 20;
+    const offset = (pageNum - 1) * limitNum;
 
     let queryText = `
     SELECT DISTINCT u.id, u.username, u.email, u.first_name, u.last_name, u.role, u.created_at, u.updated_at
@@ -22,32 +27,44 @@ router.get(
   `;
     const params: any[] = [];
     let paramIndex = 1;
-    const conditions: string[] = [];
 
-    // // Фильтрация по потоку
+    // Фильтрация по потоку
     if (cohort_id) {
       queryText += ` JOIN labs.cohort_members cm ON u.id = cm.user_id AND cm.cohort_id = $${paramIndex} AND cm.left_at IS NULL`;
       params.push(cohort_id);
       paramIndex++;
     }
 
-    // // Фильтрация по продукту
-    // if (product_id) {
-    //   queryText += ` JOIN labs.user_enrollments ue ON u.id = ue.user_id AND ue.product_id = $${paramIndex} AND ue.status = 'active'`;
-    //   params.push(product_id);
-    //   paramIndex++;
-    // }
+    // Фильтрация по продукту
+    if (product_id) {
+      queryText += ` JOIN labs.user_enrollments ue ON u.id = ue.user_id AND ue.product_id = $${paramIndex} AND ue.status = 'active'`;
+      params.push(product_id);
+      paramIndex++;
+    }
 
-    // if (conditions.length > 0) {
-    //   queryText += ` WHERE ${conditions.join(" AND ")}`;
-    // }
-
-    // Сортировка: администраторы первыми, затем по дате создания
-    // queryText += ` ORDER BY CASE WHEN u.role = 'admin' THEN 0 ELSE 1 END, u.created_at DESC`;
+    // Сортировка
     queryText += ` ORDER BY u.created_at DESC`;
-    console.log(queryText);
+
+    // Get total count for pagination
+    const countQuery = `SELECT COUNT(DISTINCT u.id) as total FROM (${queryText}) u`;
+    const countResult = await query(countQuery, params);
+    const total = parseInt(countResult.rows[0]?.total || '0');
+
+    // Add pagination
+    queryText += ` LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(limitNum, offset);
+
     const result = await query(queryText, params);
-    res.json(result.rows);
+
+    res.json({
+      data: result.rows,
+      pagination: {
+        total,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: Math.ceil(total / limitNum)
+      }
+    });
   }),
 );
 

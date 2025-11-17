@@ -59,6 +59,12 @@ export function AdminUsers() {
   const [products, setProducts] = useState<any[]>([]);
   const [selectedUserForCard, setSelectedUserForCard] = useState<User | null>(null);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [pageSize] = useState(20);
+
   const [userForm, setUserForm] = useState({
     username: "",
     email: "",
@@ -74,8 +80,13 @@ export function AdminUsers() {
   }, []);
 
   useEffect(() => {
+    setCurrentPage(1); // Reset to first page when filters change
     loadUsers();
   }, [selectedCohortId, selectedProductId]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [currentPage]);
 
   const loadFilters = async () => {
     try {
@@ -93,30 +104,20 @@ export function AdminUsers() {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
-      if (selectedCohortId) params.append('cohort_id', selectedCohortId);
-      if (selectedProductId) params.append('product_id', selectedProductId);
+      const params: any = {
+        page: currentPage,
+        limit: pageSize
+      };
       
-      const queryString = params.toString();
-      const url = queryString ? `/api/admin/users?${queryString}` : '/api/admin/users';
+      if (selectedCohortId) params.cohort_id = parseInt(selectedCohortId);
+      if (selectedProductId) params.product_id = parseInt(selectedProductId);
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
-      });
+      const response = await apiClient.getUsers(params);
       
-      if (!response.ok) throw new Error('Failed to load users');
-      const data = await response.json();
-      
-      // Сортировка: администраторы первыми
-      const sortedData = data.sort((a: User, b: User) => {
-        if (a.role === 'admin' && b.role !== 'admin') return -1;
-        if (a.role !== 'admin' && b.role === 'admin') return 1;
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-      });
-      
-      setUsers(sortedData);
+      // Update users and pagination info
+      setUsers(response.data);
+      setTotalPages(response.pagination.totalPages);
+      setTotalUsers(response.pagination.total);
     } catch (error: any) {
       toast.error("Не удалось загрузить пользователей");
       console.error("Failed to load users:", error);
@@ -531,6 +532,58 @@ export function AdminUsers() {
             </Table>
           </div>
         </Card>
+      )}
+
+      {/* Pagination */}
+      {!isAdding && !editingUser && totalPages > 1 && (
+        <div className="flex items-center justify-between mt-6">
+          <div className="text-sm text-gray-600">
+            Показано {users.length} из {totalUsers} пользователей
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Назад
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className="w-10"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+            >
+              Вперёд
+            </Button>
+          </div>
+        </div>
       )}
 
       <AlertDialog open={!!deletingUserId} onOpenChange={() => setDeletingUserId(null)}>
