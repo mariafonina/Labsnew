@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MessageCircle, ThumbsUp, Send } from "lucide-react";
-import { useApp } from "../contexts/AppContext";
+import { useApp, type Comment } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Card } from "./ui/card";
@@ -23,13 +23,31 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [isAdmin, setIsAdmin] = useState(false); // В реальном приложении это будет из auth
+  const [allComments, setAllComments] = useState<Comment[]>([]);
+  const [loadingComments, setLoadingComments] = useState(true);
 
   // Get user gender for colors
   const gender = auth.isAuthenticated 
     ? (localStorage.getItem("userGender") as "male" | "female" | null)
     : null;
 
-  const allComments = getCommentsByEvent(eventId);
+  // Load comments for this event
+  useEffect(() => {
+    const loadComments = async () => {
+      setLoadingComments(true);
+      try {
+        const loadedComments = await getCommentsByEvent(eventId);
+        setAllComments(loadedComments);
+      } catch (error) {
+        console.error('Failed to load comments:', error);
+      } finally {
+        setLoadingComments(false);
+      }
+    };
+    if (open) {
+      loadComments();
+    }
+  }, [eventId, open]);
   
   // Разделяем на основные вопросы и ответы
   const mainQuestions = allComments.filter(c => !c.parentId);
@@ -39,38 +57,54 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
     return replies.filter(r => r.parentId === commentId);
   };
 
-  const handleSubmitQuestion = () => {
+  const handleSubmitQuestion = async () => {
     if (!newQuestion.trim()) return;
 
-    addComment({
-      eventId,
-      eventType: eventType,
-      eventTitle: eventTitle,
-      authorName: "Александр",
-      authorRole: "user",
-      content: newQuestion,
-    }, eventTitle, eventType);
+    try {
+      await addComment({
+        eventId,
+        eventType: eventType,
+        eventTitle: eventTitle,
+        authorName: "Александр",
+        authorRole: "user",
+        content: newQuestion,
+      }, eventTitle, eventType);
 
-    setNewQuestion("");
-    toast.success("Вопрос отправлен!");
+      // Reload comments to get the new one
+      const loadedComments = await getCommentsByEvent(eventId);
+      setAllComments(loadedComments);
+
+      setNewQuestion("");
+      toast.success("Вопрос отправлен!");
+    } catch (error) {
+      toast.error("Не удалось отправить вопрос");
+    }
   };
 
-  const handleSubmitReply = (parentId: string) => {
+  const handleSubmitReply = async (parentId: string) => {
     if (!replyText.trim()) return;
 
-    addComment({
-      eventId,
-      eventType: "event",
-      eventTitle: eventTitle,
-      authorName: isAdmin ? "Администратор" : "Александр",
-      authorRole: isAdmin ? "admin" : "user",
-      content: replyText,
-      parentId,
-    }, eventTitle, "event");
+    try {
+      await addComment({
+        eventId,
+        eventType: "event",
+        eventTitle: eventTitle,
+        authorName: isAdmin ? "Администратор" : "Александр",
+        authorRole: isAdmin ? "admin" : "user",
+        content: replyText,
+        parentId,
+      }, eventTitle, "event");
 
-    setReplyText("");
-    setReplyingTo(null);
-    toast.success("Ответ отправлен!");
+      // Reload comments to get the new one
+      const loadedComments = await getCommentsByEvent(eventId);
+      setAllComments(loadedComments);
+
+      setReplyText("");
+      setReplyingTo(null);
+      toast.success("Ответ отправлен!");
+    } catch (error) {
+      toast.error("Не удалось отправить ответ");
+    }
   };
 
   const formatDate = (dateString: string) => {

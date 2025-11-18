@@ -212,21 +212,33 @@ class ApiClient {
     return this.request<any[]>('/notes');
   }
 
-  async getNote(instructionId: number) {
-    return this.request<any>(`/notes/${instructionId}`);
+  async getNote(id: number) {
+    return this.request<any>(`/notes/${id}`);
   }
 
-  async saveNote(instructionId: number, content: string) {
+  async createNote(data: { title?: string; content: string; linked_item?: any }) {
     return this.request<any>('/notes', {
       method: 'POST',
-      body: JSON.stringify({ instruction_id: instructionId, content }),
+      body: JSON.stringify(data),
     });
   }
 
-  async deleteNote(instructionId: number) {
-    return this.request<any>(`/notes/${instructionId}`, {
+  async updateNote(id: number, data: { title?: string; content?: string; linked_item?: any }) {
+    return this.request<any>(`/notes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteNote(id: number) {
+    return this.request<any>(`/notes/${id}`, {
       method: 'DELETE',
     });
+  }
+
+  // Legacy method for backward compatibility
+  async saveNote(instructionId: number, content: string) {
+    return this.createNote({ content });
   }
 
   async getProgress() {
@@ -242,6 +254,38 @@ class ApiClient {
 
   async getAllComments() {
     return this.request<any[]>('/comments');
+  }
+
+  async getCommentsByEvent(eventId: string) {
+    return this.request<any[]>(`/comments/event/${eventId}`);
+  }
+
+  async createComment(data: {
+    event_id: string;
+    event_type?: string;
+    event_title?: string;
+    author_name: string;
+    author_role: string;
+    content: string;
+    parent_id?: number | string;
+  }) {
+    return this.request<any>('/comments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async likeComment(id: number | string, increment: boolean = true) {
+    return this.request<any>(`/comments/${id}/like`, {
+      method: 'PATCH',
+      body: JSON.stringify({ increment }),
+    });
+  }
+
+  async deleteComment(id: number | string) {
+    return this.request<any>(`/comments/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Public content API methods (no auth required for reading)
@@ -478,6 +522,51 @@ class ApiClient {
 
   async setupPassword(token: string, newPassword: string): Promise<{ message: string }> {
     return this.post('/setup-password', { token, newPassword });
+  }
+
+  // Analytics methods
+  async trackPageVisit(data: {
+    page_path: string;
+    page_title?: string;
+    page_type?: string;
+    page_id?: string;
+    referrer?: string;
+    session_id: string;
+    time_spent_seconds?: number;
+    user_agent?: string;
+    device_type?: string;
+  }) {
+    return this.post('/analytics/page-visit', data);
+  }
+
+  async getUserVisits(userId: number, params?: {
+    limit?: number;
+    offset?: number;
+    page_type?: string;
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.offset) queryParams.append('offset', params.offset.toString());
+    if (params?.page_type) queryParams.append('page_type', params.page_type);
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
+    if (params?.end_date) queryParams.append('end_date', params.end_date);
+    
+    const query = queryParams.toString();
+    return this.get(`/analytics/user/${userId}/visits${query ? `?${query}` : ''}`);
+  }
+
+  async getAnalyticsStats(params?: {
+    start_date?: string;
+    end_date?: string;
+  }) {
+    const queryParams = new URLSearchParams();
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
+    if (params?.end_date) queryParams.append('end_date', params.end_date);
+    
+    const query = queryParams.toString();
+    return this.get(`/analytics/stats${query ? `?${query}` : ''}`);
   }
 
   // Products management
