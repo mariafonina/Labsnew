@@ -13,13 +13,10 @@ import { AdminEventsManager } from "./AdminEventsManager";
 import { AdminEmailManager } from "./AdminEmailManager";
 import { AdminInitialPasswordsManager } from "./AdminInitialPasswordsManager";
 import { Products } from "../pages/admin/Products";
-import { AdminUserDetail } from "./AdminUserDetail";
-import { AdminStreamDetail } from "./AdminStreamDetail";
 
 export function AdminPanel() {
   const { user, logout } = useAuth();
   const [activeSection, setActiveSection] = useState("dashboard");
-  const [sectionParams, setSectionParams] = useState<Record<string, any>>({});
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   if (!user || user.role !== 'admin') {
@@ -35,40 +32,7 @@ export function AdminPanel() {
     );
   }
 
-  const navigateToSection = (section: string, params?: Record<string, any>) => {
-    setActiveSection(section);
-    if (params) {
-      setSectionParams({ ...sectionParams, [section]: params });
-    }
-  };
-
   const renderContent = () => {
-    // Handle user-detail section
-    if (activeSection === "user-detail" && sectionParams["user-detail"]?.userId) {
-      return (
-        <AdminUserDetail
-          userId={sectionParams["user-detail"].userId}
-          onBack={() => {
-            setActiveSection("users");
-            setSectionParams({ ...sectionParams, "user-detail": undefined });
-          }}
-        />
-      );
-    }
-
-    // Handle stream-detail section
-    if (activeSection === "stream-detail" && sectionParams["stream-detail"]?.streamId) {
-      return (
-        <AdminStreamDetail
-          streamId={sectionParams["stream-detail"].streamId}
-          onBack={() => {
-            setActiveSection("recordings");
-            setSectionParams({ ...sectionParams, "stream-detail": undefined });
-          }}
-        />
-      );
-    }
-
     switch (activeSection) {
       case "dashboard":
         return <AdminDashboard />;
@@ -81,7 +45,7 @@ export function AdminPanel() {
       case "instructions":
         return <AdminInstructionsManager />;
       case "recordings":
-        return <AdminRecordingsManager onNavigateToStreamDetail={(streamId) => navigateToSection("stream-detail", { streamId })} />;
+        return <AdminRecordingsManager />;
       case "faq":
         return <AdminFAQManager />;
       case "emails":
@@ -91,7 +55,7 @@ export function AdminPanel() {
       case "questions":
         return <AdminQuestions />;
       case "users":
-        return <AdminUsers onNavigateToUserDetail={(userId) => navigateToSection("user-detail", { userId })} />;
+        return <AdminUsers />;
       default:
         return <AdminDashboard />;
     }

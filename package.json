@@ -95,12 +95,6 @@
             "client": "vite",
             "server": "tsx watch server/index.ts",
             "build": "vite build",
-            "migrate": "tsx server/migrate.ts",
-            "figma:export": "tsx scripts/figma-export.ts",
-            "figma:export:node": "tsx scripts/figma-export-node.ts",
-            "figma:export:frames": "tsx scripts/figma-export-all-frames.ts",
-            "figma:export:missing": "tsx scripts/figma-export-missing.ts",
-            "figma:analyze": "tsx scripts/analyze-figma-structure.ts",
-            "figma:test": "tsx scripts/test-figma-connection.ts"
+            "migrate": "tsx server/migrate.ts"
       }
 }

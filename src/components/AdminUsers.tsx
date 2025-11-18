@@ -13,7 +13,6 @@ import {
   X,
   Users as UsersIcon,
   Search,
-  Eye,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -47,11 +46,7 @@ interface User {
   created_at: string;
 }
 
-interface AdminUsersProps {
-  onNavigateToUserDetail?: (userId: number) => void;
-}
-
-export function AdminUsers({ onNavigateToUserDetail }: AdminUsersProps = {}) {
+export function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -283,12 +278,7 @@ export function AdminUsers({ onNavigateToUserDetail }: AdminUsersProps = {}) {
   const displayUsers = users; // Renamed for clarity - users are already filtered by backend
 
   const handleUserClick = (user: User) => {
-    if (onNavigateToUserDetail) {
-      onNavigateToUserDetail(user.id);
-    } else {
-      // Fallback to old modal behavior if no navigation handler provided
-      setSelectedUserForCard(user);
-    }
+    setSelectedUserForCard(user);
   };
 
   if (loading) {
@@ -547,23 +537,11 @@ export function AdminUsers({ onNavigateToUserDetail }: AdminUsersProps = {}) {
                       </TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <div className="flex gap-2 justify-end">
-                          {onNavigateToUserDetail && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => onNavigateToUserDetail(user.id)}
-                              className="hover:bg-gray-100"
-                              title="Просмотр деталей"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          )}
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => startEdit(user)}
                             className="hover:bg-gray-100"
-                            title="Редактировать"
                           >
                             <Edit2 className="h-4 w-4" />
                           </Button>
@@ -572,7 +550,6 @@ export function AdminUsers({ onNavigateToUserDetail }: AdminUsersProps = {}) {
                             variant="outline"
                             onClick={() => setDeletingUserId(user.id)}
                             className="hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-                            title="Удалить"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>

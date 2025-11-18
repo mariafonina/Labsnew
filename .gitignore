@@ -24,6 +24,3 @@ build
 *.njsproj
 *.sln
 *.sw?
-
-# Figma exports
-figma-export/
