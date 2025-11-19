@@ -201,9 +201,240 @@ router.delete('/:id/members/:userId', verifyToken, requireAdmin, asyncHandler(as
 }));
 
 // Эндпоинт для загрузки CSV/XLS файла с пользователями
-router.post('/:id/members/upload', 
-  verifyToken, 
-  requireAdmin, 
+// Copy cohort endpoint
+router.post('/:id/copy', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { name } = req.body;
+
+  if (!name) {
+    return res.status(400).json({ error: 'Name is required for the new cohort' });
+  }
+
+  // Get original cohort
+  const original = await query('SELECT * FROM labs.cohorts WHERE id = $1', [id]);
+  if (original.rows.length === 0) {
+    return res.status(404).json({ error: 'Cohort not found' });
+  }
+
+  const origCohort = original.rows[0];
+  const sanitizedName = sanitizeText(name.trim());
+
+  // Create new cohort
+  const newCohort = await query(`
+    INSERT INTO labs.cohorts (product_id, name, description, start_date, end_date, is_active, max_participants)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    RETURNING *
+  `, [
+    origCohort.product_id,
+    sanitizedName,
+    origCohort.description,
+    origCohort.start_date,
+    origCohort.end_date,
+    origCohort.is_active,
+    origCohort.max_participants
+  ]);
+
+  // Copy materials if exist
+  const materials = await query('SELECT * FROM labs.materials WHERE cohort_id = $1', [id]);
+  let copiedMaterialsCount = 0;
+
+  for (const material of materials.rows) {
+    await query(`
+      INSERT INTO labs.materials (cohort_id, material_type, material_id, display_order, is_visible)
+      VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (cohort_id, material_type, material_id) DO NOTHING
+    `, [
+      newCohort.rows[0].id,
+      material.material_type,
+      material.material_id,
+      material.display_order,
+      material.is_visible
+    ]);
+    copiedMaterialsCount++;
+  }
+
+  res.status(201).json({
+    message: `Cohort copied successfully${copiedMaterialsCount > 0 ? ` with ${copiedMaterialsCount} materials` : ''}`,
+    cohort: newCohort.rows[0],
+    copiedMaterials: copiedMaterialsCount
+  });
+}));
+
+// Get cohort materials
+router.get('/:id/materials', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const result = await query(`
+    SELECT m.*,
+           CASE
+             WHEN m.material_type = 'instruction' THEN i.title
+             WHEN m.material_type = 'recording' THEN r.title
+             WHEN m.material_type = 'news' THEN n.title
+             WHEN m.material_type = 'event' THEN e.title
+             WHEN m.material_type = 'faq' THEN f.question
+           END as title
+    FROM labs.materials m
+    LEFT JOIN labs.instructions i ON m.material_type = 'instruction' AND m.material_id = i.id
+    LEFT JOIN labs.recordings r ON m.material_type = 'recording' AND m.material_id = r.id
+    LEFT JOIN labs.news n ON m.material_type = 'news' AND m.material_id = n.id
+    LEFT JOIN labs.events e ON m.material_type = 'event' AND m.material_id = e.id
+    LEFT JOIN labs.faq f ON m.material_type = 'faq' AND m.material_id = f.id
+    WHERE m.cohort_id = $1
+    ORDER BY m.material_type, m.display_order, m.created_at
+  `, [id]);
+  res.json(result.rows);
+}));
+
+// Get available materials for assignment
+router.get('/:id/available-materials', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+
+  // Get cohort info
+  const cohort = await query('SELECT product_id FROM labs.cohorts WHERE id = $1', [id]);
+  if (cohort.rows.length === 0) {
+    return res.status(404).json({ error: 'Cohort not found' });
+  }
+
+  // Get all resources available through the product
+  const resources = await query(`
+    SELECT DISTINCT pr.resource_type, pr.resource_id
+    FROM labs.product_resources pr
+    WHERE pr.product_id = $1
+    ORDER BY pr.resource_type, pr.resource_id
+  `, [cohort.rows[0].product_id]);
+
+  // Group by type
+  const grouped: any = {
+    instructions: [],
+    recordings: [],
+    news: [],
+    events: [],
+    faq: []
+  };
+
+  for (const resource of resources.rows) {
+    const type = resource.resource_type;
+    const typeKey = type === 'instruction' ? 'instructions' :
+                    type === 'recording' ? 'recordings' :
+                    type === 'news' ? 'news' :
+                    type === 'event' ? 'events' :
+                    type === 'faq' ? 'faq' : null;
+
+    if (typeKey) {
+      grouped[typeKey].push(resource.resource_id);
+    }
+  }
+
+  // Fetch details for each type
+  const availableMaterials: any = {};
+
+  if (grouped.instructions.length > 0) {
+    const placeholders = grouped.instructions.map((_: any, i: number) => `$${i + 1}`).join(',');
+    const result = await query(`SELECT id, title FROM labs.instructions WHERE id IN (${placeholders})`, grouped.instructions);
+    availableMaterials.instructions = result.rows;
+  }
+
+  if (grouped.recordings.length > 0) {
+    const placeholders = grouped.recordings.map((_: any, i: number) => `$${i + 1}`).join(',');
+    const result = await query(`SELECT id, title FROM labs.recordings WHERE id IN (${placeholders})`, grouped.recordings);
+    availableMaterials.recordings = result.rows;
+  }
+
+  if (grouped.news.length > 0) {
+    const placeholders = grouped.news.map((_: any, i: number) => `$${i + 1}`).join(',');
+    const result = await query(`SELECT id, title FROM labs.news WHERE id IN (${placeholders})`, grouped.news);
+    availableMaterials.news = result.rows;
+  }
+
+  if (grouped.events.length > 0) {
+    const placeholders = grouped.events.map((_: any, i: number) => `$${i + 1}`).join(',');
+    const result = await query(`SELECT id, title FROM labs.events WHERE id IN (${placeholders})`, grouped.events);
+    availableMaterials.events = result.rows;
+  }
+
+  if (grouped.faq.length > 0) {
+    const placeholders = grouped.faq.map((_: any, i: number) => `$${i + 1}`).join(',');
+    const result = await query(`SELECT id, question as title FROM labs.faq WHERE id IN (${placeholders})`, grouped.faq);
+    availableMaterials.faq = result.rows;
+  }
+
+  res.json(availableMaterials);
+}));
+
+// Assign materials to cohort
+router.post('/:id/materials', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { material_type, material_ids, is_visible } = req.body;
+
+  if (!material_type || !material_ids || !Array.isArray(material_ids)) {
+    return res.status(400).json({ error: 'material_type and material_ids array are required' });
+  }
+
+  const cohort = await query('SELECT id FROM labs.cohorts WHERE id = $1', [id]);
+  if (cohort.rows.length === 0) {
+    return res.status(404).json({ error: 'Cohort not found' });
+  }
+
+  const added = [];
+  for (const materialId of material_ids) {
+    const result = await query(`
+      INSERT INTO labs.materials (cohort_id, material_type, material_id, is_visible)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (cohort_id, material_type, material_id)
+      DO UPDATE SET is_visible = EXCLUDED.is_visible, updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `, [id, material_type, materialId, is_visible !== false]);
+    added.push(result.rows[0]);
+  }
+
+  res.status(201).json({ message: `Assigned ${added.length} materials to cohort`, materials: added });
+}));
+
+// Update materials visibility
+router.put('/:id/materials/visibility', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { materials } = req.body;
+
+  if (!materials || !Array.isArray(materials)) {
+    return res.status(400).json({ error: 'materials array is required with {type, id, visible} objects' });
+  }
+
+  const updated = [];
+  for (const material of materials) {
+    const result = await query(`
+      UPDATE labs.materials
+      SET is_visible = $1, updated_at = CURRENT_TIMESTAMP
+      WHERE cohort_id = $2 AND material_type = $3 AND material_id = $4
+      RETURNING *
+    `, [material.visible, id, material.type, material.id]);
+
+    if (result.rows.length > 0) {
+      updated.push(result.rows[0]);
+    }
+  }
+
+  res.json({ message: `Updated ${updated.length} materials`, materials: updated });
+}));
+
+// Delete material from cohort
+router.delete('/:id/materials/:type/:materialId', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id, type, materialId } = req.params;
+
+  const result = await query(`
+    DELETE FROM labs.materials
+    WHERE cohort_id = $1 AND material_type = $2 AND material_id = $3
+    RETURNING id
+  `, [id, type, materialId]);
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Material assignment not found' });
+  }
+
+  res.json({ message: 'Material removed from cohort successfully' });
+}));
+
+router.post('/:id/members/upload',
+  verifyToken,
+  requireAdmin,
   upload.single('file'),
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
