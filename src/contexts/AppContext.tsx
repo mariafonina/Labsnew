@@ -155,12 +155,12 @@ interface AppContextType {
   isFavorite: (id: string) => boolean;
   toggleLike: (id: string) => void;
   isLiked: (id: string) => boolean;
-  addNote: (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => void;
-  updateNote: (id: string, updates: Partial<Note>) => void;
-  deleteNote: (id: string) => void;
-  addComment: (comment: Omit<Comment, "id" | "createdAt" | "likes">, eventTitle?: string, eventType?: "event" | "instruction" | "recording" | "faq") => void;
-  getCommentsByEvent: (eventId: string) => Comment[];
-  toggleCommentLike: (commentId: string) => void;
+  addNote: (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => Promise<void>;
+  updateNote: (id: string, updates: Partial<Note>) => Promise<void>;
+  deleteNote: (id: string) => Promise<void>;
+  addComment: (comment: Omit<Comment, "id" | "createdAt" | "likes">, eventTitle?: string, eventType?: "event" | "instruction" | "recording" | "faq") => Promise<void>;
+  getCommentsByEvent: (eventId: string) => Promise<Comment[]>;
+  toggleCommentLike: (commentId: string) => Promise<void>;
   toggleInstructionComplete: (id: string) => void;
   isInstructionComplete: (id: string) => boolean;
   login: (email: string, password: string, rememberMe: boolean, isAdmin?: boolean) => void;
@@ -205,6 +205,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [likes, setLikes] = useState<string[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [completedInstructions, setCompletedInstructions] = useState<string[]>([]);
+  const [loadedEventComments, setLoadedEventComments] = useState<Set<string>>(new Set());
 
   const [auth, setAuth] = useState<AuthData>(() => {
     const saved = localStorage.getItem("auth");
@@ -631,7 +632,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
               id: String(item.id),
               title: item.title || '',
               content: item.content,
-              linkedItem: item.linked_item || null,
+              linkedItem: item.linked_item ? (typeof item.linked_item === 'string' ? JSON.parse(item.linked_item) : item.linked_item) : null,
               createdAt: item.created_at,
               updatedAt: item.updated_at
             })));
@@ -675,7 +676,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         if (commentsData.status === 'fulfilled') {
           if (commentsData.value.length > 0) {
-            setComments(commentsData.value.map((item: any) => ({
+            const formattedComments = commentsData.value.map((item: any) => ({
               id: String(item.id),
               userId: String(item.user_id),
               eventId: item.event_id,
@@ -687,7 +688,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
               createdAt: item.created_at,
               likes: item.likes || 0,
               parentId: item.parent_id ? String(item.parent_id) : undefined
-            })));
+            }));
+            setComments(formattedComments);
+            // Mark all events as loaded
+            const eventIds = new Set(formattedComments.map((c: Comment) => c.eventId));
+            setLoadedEventComments(eventIds);
           } else {
             setComments([]);
           }
@@ -752,91 +757,248 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return likes.includes(id);
   };
 
-  const addNote = (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
-    // Sanitize note content to prevent XSS
-    const sanitizedContent = note.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    
-    const newNote: Note = {
-      ...note,
-      content: sanitizedContent,
-      id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setNotes((prev) => [newNote, ...prev]);
+  const addNote = async (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
+    try {
+      // Save to database
+      const savedNote = await apiClient.createNote({
+        title: note.title,
+        content: note.content,
+        linked_item: note.linkedItem,
+      });
+
+      // Update local state with data from database
+      const newNote: Note = {
+        id: String(savedNote.id),
+        title: savedNote.title || '',
+        content: savedNote.content,
+        linkedItem: savedNote.linked_item ? (typeof savedNote.linked_item === 'string' ? JSON.parse(savedNote.linked_item) : savedNote.linked_item) : null,
+        createdAt: savedNote.created_at,
+        updatedAt: savedNote.updated_at,
+      };
+      setNotes((prev) => {
+        // Check if note already exists (avoid duplicates)
+        const exists = prev.some(n => n.id === newNote.id);
+        if (exists) {
+          return prev.map(n => n.id === newNote.id ? newNote : n);
+        }
+        return [newNote, ...prev];
+      });
+    } catch (error: any) {
+      console.error('Failed to save note to database:', error);
+      // Fallback: still add to local state for immediate UI update
+      const newNote: Note = {
+        ...note,
+        id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setNotes((prev) => [newNote, ...prev]);
+    }
   };
 
-  const updateNote = (id: string, updates: Partial<Note>) => {
-    setNotes((prev) =>
-      prev.map((note) =>
-        note.id === id
-          ? { ...note, ...updates, updatedAt: new Date().toISOString() }
-          : note
-      )
-    );
+  const updateNote = async (id: string, updates: Partial<Note>) => {
+    try {
+      // Update in database
+      const noteId = parseInt(id);
+      if (!isNaN(noteId)) {
+        await apiClient.updateNote(noteId, {
+          title: updates.title,
+          content: updates.content,
+          linked_item: updates.linkedItem,
+        });
+      }
+
+      // Update local state
+      setNotes((prev) =>
+        prev.map((note) =>
+          note.id === id
+            ? { ...note, ...updates, updatedAt: new Date().toISOString() }
+            : note
+        )
+      );
+    } catch (error: any) {
+      console.error('Failed to update note in database:', error);
+      // Fallback: still update local state
+      setNotes((prev) =>
+        prev.map((note) =>
+          note.id === id
+            ? { ...note, ...updates, updatedAt: new Date().toISOString() }
+            : note
+        )
+      );
+    }
   };
 
-  const deleteNote = (id: string) => {
-    setNotes((prev) => prev.filter((note) => note.id !== id));
+  const deleteNote = async (id: string) => {
+    try {
+      // Delete from database
+      const noteId = parseInt(id);
+      if (!isNaN(noteId)) {
+        await apiClient.deleteNote(noteId);
+      }
+
+      // Update local state
+      setNotes((prev) => prev.filter((note) => note.id !== id));
+    } catch (error: any) {
+      console.error('Failed to delete note from database:', error);
+      // Fallback: still remove from local state
+      setNotes((prev) => prev.filter((note) => note.id !== id));
+    }
   };
 
-  const addComment = (
+  const addComment = async (
     comment: Omit<Comment, "id" | "createdAt" | "likes">,
     eventTitle?: string,
     eventType?: "event" | "instruction" | "recording" | "faq"
   ) => {
-    // Sanitize comment content to prevent XSS
-    const sanitizedContent = comment.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    
-    const newComment: Comment = {
-      ...comment,
-      content: sanitizedContent,
-      eventTitle: eventTitle || comment.eventTitle,
-      eventType: eventType || comment.eventType,
-      id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-    };
-    setComments((prev) => [newComment, ...prev]);
+    try {
+      // Save to database
+      const savedComment = await apiClient.createComment({
+        event_id: comment.eventId,
+        event_type: eventType || comment.eventType,
+        event_title: eventTitle || comment.eventTitle,
+        author_name: comment.authorName,
+        author_role: comment.authorRole,
+        content: comment.content,
+        parent_id: comment.parentId ? (typeof comment.parentId === 'string' ? parseInt(comment.parentId) : comment.parentId) : undefined,
+      });
 
-    // Если это ответ на вопрос пользователя (есть parentId), создаём уведомление
-    if (comment.parentId && comment.authorRole === "admin") {
-      const parentComment = comments.find((c) => c.id === comment.parentId);
+      // Update local state with data from database
+      const newComment: Comment = {
+        id: String(savedComment.id),
+        eventId: savedComment.event_id,
+        eventType: savedComment.event_type,
+        eventTitle: savedComment.event_title,
+        authorName: savedComment.author_name,
+        authorRole: savedComment.author_role as "user" | "admin",
+        content: savedComment.content,
+        parentId: savedComment.parent_id ? String(savedComment.parent_id) : undefined,
+        createdAt: savedComment.created_at,
+        likes: savedComment.likes || 0,
+      };
+      setComments((prev) => {
+        // Check if comment already exists (avoid duplicates)
+        const exists = prev.some(c => c.id === newComment.id);
+        if (exists) {
+          return prev.map(c => c.id === newComment.id ? newComment : c);
+        }
+        return [newComment, ...prev];
+      });
       
-      // Проверяем, что родительский комментарий принадлежит пользователю
-      if (parentComment && parentComment.authorRole === "user") {
-        const notification: Notification = {
-          id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          type: "answer_received",
-          commentId: newComment.id,
-          questionId: comment.parentId,
-          eventId: comment.eventId,
-          eventType: eventType || "event",
-          eventTitle: eventTitle || "Материал курса",
-          answerAuthor: comment.authorName,
-          answerPreview: comment.content.substring(0, 100),
-          createdAt: new Date().toISOString(),
-          isRead: false,
-        };
+      // Mark this event as loaded
+      setLoadedEventComments((prev) => new Set(prev).add(savedComment.event_id));
+
+      // Если это ответ на вопрос пользователя (есть parentId), создаём уведомление
+      if (comment.parentId && comment.authorRole === "admin") {
+        const parentComment = comments.find((c) => c.id === comment.parentId);
         
-        setNotifications((prev) => [notification, ...prev]);
+        // Проверяем, что родительский комментарий принадлежит пользователю
+        if (parentComment && parentComment.authorRole === "user") {
+          const notification: Notification = {
+            id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: "answer_received",
+            commentId: newComment.id,
+            questionId: comment.parentId,
+            eventId: comment.eventId,
+            eventType: eventType || "event",
+            eventTitle: eventTitle || "Материал курса",
+            answerAuthor: comment.authorName,
+            answerPreview: comment.content.substring(0, 100),
+            createdAt: new Date().toISOString(),
+            isRead: false,
+          };
+          
+          setNotifications((prev) => [notification, ...prev]);
+        }
       }
+    } catch (error: any) {
+      console.error('Failed to save comment to database:', error);
+      // Fallback: still add to local state for immediate UI update
+      const newComment: Comment = {
+        ...comment,
+        eventTitle: eventTitle || comment.eventTitle,
+        eventType: eventType || comment.eventType,
+        id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: new Date().toISOString(),
+        likes: 0,
+      };
+      setComments((prev) => [newComment, ...prev]);
     }
   };
 
-  const getCommentsByEvent = (eventId: string) => {
+  const getCommentsByEvent = async (eventId: string): Promise<Comment[]> => {
+    // If we haven't loaded comments for this event yet, load them from DB
+    if (!loadedEventComments.has(eventId) && auth.isAuthenticated) {
+      try {
+        const eventComments = await apiClient.getCommentsByEvent(eventId);
+        const formattedComments: Comment[] = eventComments.map((item: any) => ({
+          id: String(item.id),
+          userId: String(item.user_id),
+          eventId: item.event_id,
+          eventType: item.event_type || 'event',
+          eventTitle: item.event_title || '',
+          authorName: item.author_name,
+          authorRole: item.author_role as 'admin' | 'user',
+          content: item.content,
+          createdAt: item.created_at,
+          likes: item.likes || 0,
+          parentId: item.parent_id ? String(item.parent_id) : undefined
+        }));
+        
+        // Merge with existing comments (avoid duplicates)
+        setComments((prev) => {
+          const existingIds = new Set(prev.map(c => c.id));
+          const newComments = formattedComments.filter(c => !existingIds.has(c.id));
+          return [...prev, ...newComments];
+        });
+        
+        setLoadedEventComments((prev) => new Set(prev).add(eventId));
+        
+        // Return formatted comments
+        return formattedComments;
+      } catch (error) {
+        console.error('Failed to load comments for event:', error);
+        // Return empty array on error
+        return [];
+      }
+    }
+    
+    // Return comments from global state (they are already loaded)
     return comments.filter((comment) => comment.eventId === eventId);
   };
 
-  const toggleCommentLike = (commentId: string) => {
-    setComments((prev) =>
-      prev.map((comment) =>
-        comment.id === commentId
-          ? { ...comment, likes: comment.likes + (likes.includes(commentId) ? -1 : 1) }
-          : comment
-      )
-    );
-    toggleLike(commentId);
+  const toggleCommentLike = async (commentId: string) => {
+    const isLiked = likes.includes(commentId);
+    const increment = !isLiked;
+
+    try {
+      // Update in database
+      const commentIdNum = parseInt(commentId);
+      if (!isNaN(commentIdNum)) {
+        await apiClient.likeComment(commentIdNum, increment);
+      }
+
+      // Update local state
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.id === commentId
+            ? { ...comment, likes: comment.likes + (increment ? 1 : -1) }
+            : comment
+        )
+      );
+      toggleLike(commentId);
+    } catch (error: any) {
+      console.error('Failed to update comment like in database:', error);
+      // Fallback: still update local state
+      setComments((prev) =>
+        prev.map((comment) =>
+          comment.id === commentId
+            ? { ...comment, likes: comment.likes + (increment ? 1 : -1) }
+            : comment
+        )
+      );
+      toggleLike(commentId);
+    }
   };
 
   const toggleInstructionComplete = (id: string) => {

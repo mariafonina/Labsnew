@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import { Onboarding } from "./components/Onboarding";
 import { NewsFeed } from "./components/NewsFeed";
 import { EventsCalendar } from "./components/EventsCalendar";
@@ -20,10 +20,12 @@ import { Calendar, BookOpen, Video, Newspaper, HelpCircle, MessageSquare, Bookma
 import { useApp } from "./contexts/AppContext";
 import { useAuth } from "./contexts/AuthContext";
 import { Toaster } from "./components/ui/sonner";
+import { initPageTracker, destroyPageTracker } from "./utils/page-tracker";
 
 function AppContent() {
   const { isAuthenticated, user } = useAuth();
   const { getUnreadNotificationsCount } = useApp();
+  const location = useLocation();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [activeTab, setActiveTab] = useState("news");
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -48,6 +50,46 @@ function AppContent() {
       }
     }
   }, [isAuthenticated]);
+
+  // Initialize page tracker
+  useEffect(() => {
+    if (isAuthenticated) {
+      const tracker = initPageTracker();
+      
+      // Track initial page based on activeTab
+      const pagePath = activeTab === 'news' ? '/news' :
+                      activeTab === 'calendar' ? '/events' :
+                      activeTab === 'library' ? '/instructions' :
+                      activeTab === 'recordings' ? '/recordings' :
+                      activeTab === 'faq' ? '/faq' :
+                      activeTab === 'favorites' ? '/favorites' :
+                      activeTab === 'notes' ? '/notes' :
+                      activeTab === 'profile' ? '/profile' : '/';
+      
+      tracker.trackPage(pagePath);
+      
+      return () => {
+        destroyPageTracker();
+      };
+    }
+  }, [isAuthenticated]);
+
+  // Track page changes when activeTab changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      const tracker = initPageTracker();
+      const pagePath = activeTab === 'news' ? '/news' :
+                      activeTab === 'calendar' ? '/events' :
+                      activeTab === 'library' ? '/instructions' :
+                      activeTab === 'recordings' ? '/recordings' :
+                      activeTab === 'faq' ? '/faq' :
+                      activeTab === 'favorites' ? '/favorites' :
+                      activeTab === 'notes' ? '/notes' :
+                      activeTab === 'profile' ? '/profile' : '/';
+      
+      tracker.trackPage(pagePath);
+    }
+  }, [activeTab, isAuthenticated]);
 
   const handleOnboardingComplete = () => {
     localStorage.setItem("hasSeenOnboarding", "true");

@@ -30,6 +30,7 @@ import adminDashboardRoutes from './routes/admin/dashboard.routes';
 import catalogRoutes from './routes/catalog.routes';
 import passwordResetRoutes from './routes/password-reset.routes';
 import setupPasswordRoutes from './routes/setup-password.routes';
+import analyticsRoutes from './routes/analytics.routes';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -69,6 +70,7 @@ app.use('/api/favorites', favoritesRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/comments', commentsRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Public content routes (no authentication required)
 app.use('/api/news', newsRoutes);

@@ -5,7 +5,7 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
-import { Plus, Pencil, Trash2, Video, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Video, Search, Eye } from "lucide-react";
 import { AdminFormField } from "./AdminFormField";
 import { AdminEmptyState } from "./AdminEmptyState";
 import { apiClient } from "../api/client";
@@ -26,7 +26,11 @@ interface Recording {
   updated_at: string;
 }
 
-export function AdminRecordingsManager() {
+interface AdminRecordingsManagerProps {
+  onNavigateToStreamDetail?: (streamId: number) => void;
+}
+
+export function AdminRecordingsManager({ onNavigateToStreamDetail }: AdminRecordingsManagerProps = {}) {
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -258,10 +262,21 @@ export function AdminRecordingsManager() {
                   </div>
                 </div>
                 <div className="flex gap-3 ml-6">
+                  {onNavigateToStreamDetail && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onNavigateToStreamDetail(item.id)}
+                      title="Просмотр деталей"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => startEdit(item)}
+                    title="Редактировать"
                   >
                     <Pencil className="h-4 w-4" />
                   </Button>
@@ -269,6 +284,7 @@ export function AdminRecordingsManager() {
                     variant="outline"
                     size="sm"
                     onClick={() => setDeletingId(item.id)}
+                    title="Удалить"
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
