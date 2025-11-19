@@ -16,17 +16,144 @@ router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest,
 router.get('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
   const { id } = req.params;
   const result = await query('SELECT * FROM labs.email_campaigns WHERE id = $1', [id]);
-  
+
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'Campaign not found' });
   }
 
   const logs = await query('SELECT * FROM labs.email_logs WHERE campaign_id = $1 ORDER BY created_at DESC', [id]);
-  
+
   res.json({
     campaign: result.rows[0],
     logs: logs.rows
   });
+}));
+
+// Get detailed campaign statistics
+router.get('/:id/stats', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+
+  const campaign = await query('SELECT * FROM labs.email_campaigns WHERE id = $1', [id]);
+  if (campaign.rows.length === 0) {
+    return res.status(404).json({ error: 'Campaign not found' });
+  }
+
+  // Calculate detailed stats
+  const stats = await query(`
+    SELECT
+      COUNT(*) as total_sent,
+      COUNT(*) FILTER (WHERE status = 'sent' OR status = 'delivered') as delivered_count,
+      COUNT(*) FILTER (WHERE status = 'failed') as failed_count,
+      COUNT(*) FILTER (WHERE opened_at IS NOT NULL) as opened_count,
+      COUNT(*) FILTER (WHERE clicked_at IS NOT NULL) as clicked_count,
+      SUM(open_count) as total_opens,
+      SUM(click_count) as total_clicks
+    FROM labs.email_logs
+    WHERE campaign_id = $1
+  `, [id]);
+
+  const statsRow = stats.rows[0];
+  const totalSent = parseInt(statsRow.total_sent) || 0;
+  const deliveredCount = parseInt(statsRow.delivered_count) || 0;
+  const failedCount = parseInt(statsRow.failed_count) || 0;
+  const openedCount = parseInt(statsRow.opened_count) || 0;
+  const clickedCount = parseInt(statsRow.clicked_count) || 0;
+  const totalOpens = parseInt(statsRow.total_opens) || 0;
+  const totalClicks = parseInt(statsRow.total_clicks) || 0;
+
+  // Calculate rates
+  const deliveryRate = totalSent > 0 ? ((deliveredCount / totalSent) * 100).toFixed(2) : 0;
+  const openRate = deliveredCount > 0 ? ((openedCount / deliveredCount) * 100).toFixed(2) : 0;
+  const clickRate = openedCount > 0 ? ((clickedCount / openedCount) * 100).toFixed(2) : 0;
+  const clickToOpenRate = openedCount > 0 ? ((clickedCount / openedCount) * 100).toFixed(2) : 0;
+
+  res.json({
+    campaign: campaign.rows[0],
+    stats: {
+      total_sent: totalSent,
+      delivered_count: deliveredCount,
+      failed_count: failedCount,
+      opened_count: openedCount,
+      clicked_count: clickedCount,
+      total_opens: totalOpens,
+      total_clicks: totalClicks,
+      delivery_rate: parseFloat(deliveryRate as string),
+      open_rate: parseFloat(openRate as string),
+      click_rate: parseFloat(clickRate as string),
+      click_to_open_rate: parseFloat(clickToOpenRate as string)
+    }
+  });
+}));
+
+// Preview segment recipient count
+router.post('/preview-segment', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { segment_type, segment_product_id, segment_cohort_id } = req.body;
+
+  let recipientCount = 0;
+  let query_text = '';
+  let params: any[] = [];
+
+  if (segment_type === 'all') {
+    const result = await query('SELECT COUNT(*) as count FROM labs.users');
+    recipientCount = parseInt(result.rows[0].count);
+  } else if (segment_type === 'product' && segment_product_id) {
+    const result = await query(`
+      SELECT COUNT(DISTINCT user_id) as count
+      FROM labs.user_enrollments
+      WHERE product_id = $1 AND status = 'active'
+    `, [segment_product_id]);
+    recipientCount = parseInt(result.rows[0].count);
+  } else if (segment_type === 'cohort' && segment_cohort_id) {
+    const result = await query(`
+      SELECT COUNT(DISTINCT user_id) as count
+      FROM labs.cohort_members
+      WHERE cohort_id = $1 AND left_at IS NULL
+    `, [segment_cohort_id]);
+    recipientCount = parseInt(result.rows[0].count);
+  } else {
+    return res.status(400).json({ error: 'Invalid segment configuration' });
+  }
+
+  res.json({ recipient_count: recipientCount });
+}));
+
+// Refresh campaign stats manually
+router.post('/:id/refresh-stats', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+
+  const campaign = await query('SELECT id FROM labs.email_campaigns WHERE id = $1', [id]);
+  if (campaign.rows.length === 0) {
+    return res.status(404).json({ error: 'Campaign not found' });
+  }
+
+  // Recalculate stats
+  await query(`
+    UPDATE labs.email_campaigns
+    SET
+      opened_count = (
+        SELECT COUNT(DISTINCT id)
+        FROM labs.email_logs
+        WHERE campaign_id = $1 AND opened_at IS NOT NULL
+      ),
+      clicked_count = (
+        SELECT COUNT(DISTINCT id)
+        FROM labs.email_logs
+        WHERE campaign_id = $1 AND clicked_at IS NOT NULL
+      ),
+      sent_count = (
+        SELECT COUNT(*)
+        FROM labs.email_logs
+        WHERE campaign_id = $1 AND (status = 'sent' OR status = 'delivered')
+      ),
+      failed_count = (
+        SELECT COUNT(*)
+        FROM labs.email_logs
+        WHERE campaign_id = $1 AND status = 'failed'
+      )
+    WHERE id = $1
+  `, [id]);
+
+  res.json({ message: 'Stats refreshed successfully' });
 }));
 
 router.post('/', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res) => {

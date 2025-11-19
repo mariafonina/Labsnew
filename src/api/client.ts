@@ -424,6 +424,18 @@ class ApiClient {
     });
   }
 
+  async getEmailCampaignStats(id: number) {
+    return this.get<any>(`/admin/emails/${id}/stats`);
+  }
+
+  async previewEmailSegment(segmentData: { segment_type: string, segment_product_id?: number, segment_cohort_id?: number }) {
+    return this.post<any>('/admin/emails/preview-segment', segmentData);
+  }
+
+  async refreshEmailStats(id: number) {
+    return this.post<any>(`/admin/emails/${id}/refresh-stats`);
+  }
+
   // Generic methods for custom API calls
   async get<T = any>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint);

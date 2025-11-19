@@ -1,12 +1,28 @@
 import { useState, useEffect } from "react";
+import { Card } from "./ui/card";
 import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
-import { Plus, Send, Trash2, Mail, Search, Eye } from "lucide-react";
+import {
+  Mail,
+  Plus,
+  Eye,
+  Users,
+  MousePointerClick,
+  MailOpen,
+  Send,
+  Calendar,
+  ChevronRight,
+  Search,
+  Trash2,
+  RefreshCw,
+} from "lucide-react";
 import { AdminFormField } from "./AdminFormField";
 import { AdminEmptyState } from "./AdminEmptyState";
+import { AdminEmailCompose } from "./AdminEmailCompose";
 import { apiClient } from "../api/client";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -22,6 +38,11 @@ interface EmailCampaign {
   recipients_count: number;
   sent_count: number;
   failed_count: number;
+  opened_count: number;
+  clicked_count: number;
+  segment_type: string;
+  segment_product_id: number | null;
+  segment_cohort_id: number | null;
   status: string;
   scheduled_at: string | null;
   sent_at: string | null;
@@ -29,15 +50,21 @@ interface EmailCampaign {
   updated_at: string;
 }
 
-interface EmailLog {
-  id: number;
-  campaign_id: number;
-  recipient_email: string;
-  status: string;
-  notisend_id: string | null;
-  error_message: string | null;
-  sent_at: string | null;
-  created_at: string;
+interface CampaignStats {
+  campaign: EmailCampaign;
+  stats: {
+    total_sent: number;
+    delivered_count: number;
+    failed_count: number;
+    opened_count: number;
+    clicked_count: number;
+    total_opens: number;
+    total_clicks: number;
+    delivery_rate: number;
+    open_rate: number;
+    click_rate: number;
+    click_to_open_rate: number;
+  };
 }
 
 export function AdminEmailManager() {
@@ -47,7 +74,8 @@ export function AdminEmailManager() {
   const [editingItem, setEditingItem] = useState<EmailCampaign | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewingCampaign, setViewingCampaign] = useState<{ campaign: EmailCampaign; logs: EmailLog[] } | null>(null);
+  const [viewingCampaignStats, setViewingCampaignStats] = useState<CampaignStats | null>(null);
+  const [showingCompose, setShowingCompose] = useState(false);
 
   const [campaignForm, setCampaignForm] = useState({
     name: "",
@@ -142,166 +170,458 @@ export function AdminEmailManager() {
     try {
       const result = await apiClient.sendEmailCampaign(campaignId, testMode);
       toast.success(`Отправлено: ${result.sent}, Ошибок: ${result.failed}`);
-      loadCampaigns();
+      await loadCampaigns();
     } catch (error: any) {
       toast.error(error.message || "Не удалось отправить кампанию");
       console.error("Failed to send campaign:", error);
     }
   };
 
-  const handleViewDetails = async (campaignId: number) => {
+  const handleViewStats = async (campaignId: number) => {
     try {
-      const details = await apiClient.getEmailCampaignDetails(campaignId);
-      setViewingCampaign(details);
+      const stats = await apiClient.getEmailCampaignStats(campaignId);
+      setViewingCampaignStats(stats);
     } catch (error: any) {
-      toast.error("Не удалось загрузить детали кампании");
-      console.error("Failed to load campaign details:", error);
+      toast.error("Не удалось загрузить статистику");
+      console.error("Failed to load stats:", error);
     }
   };
 
-  const startEdit = (item: EmailCampaign) => {
-    setEditingItem(item);
-    setCampaignForm({
-      name: item.name,
-      type: item.type,
-      subject: item.subject || "",
-      html_content: item.html_content || "",
-      text_content: item.text_content || "",
-      template_id: item.template_id || "",
+  const handleRefreshStats = async (campaignId: number) => {
+    try {
+      await apiClient.refreshEmailStats(campaignId);
+      toast.success("Статистика обновлена");
+      await handleViewStats(campaignId);
+    } catch (error: any) {
+      toast.error("Не удалось обновить статистику");
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     });
-    setIsAdding(false);
+  };
+
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("ru-RU", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getPerformanceBadge = (rate: number, type: 'open' | 'click') => {
+    const threshold = type === 'open' ? { good: 40, medium: 20 } : { good: 30, medium: 15 };
+
+    if (rate >= threshold.good) {
+      return 'bg-green-500 text-white shadow-[0_0_20px_rgba(34,197,94,0.5)]';
+    } else if (rate >= threshold.medium) {
+      return 'bg-gray-400 text-white shadow-[0_0_20px_rgba(156,163,175,0.5)]';
+    } else {
+      return 'bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)]';
+    }
   };
 
   const filteredCampaigns = campaigns.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between gap-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-labs-text-secondary" />
-          <Input
-            type="text"
-            placeholder="Поиск кампаний..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 bg-white/50 border-labs-border-light focus:border-labs-pink"
-          />
+  // Calculate overall stats
+  const sentCampaigns = campaigns.filter(c => c.status === 'sent');
+  const totalSent = sentCampaigns.reduce((acc, c) => acc + c.recipients_count, 0);
+  const totalDelivered = sentCampaigns.reduce((acc, c) => acc + c.sent_count, 0);
+  const totalOpened = sentCampaigns.reduce((acc, c) => acc + c.opened_count, 0);
+  const totalClicked = sentCampaigns.reduce((acc, c) => acc + c.clicked_count, 0);
+
+  const averageOpenRate = totalDelivered > 0 ? ((totalOpened / totalDelivered) * 100).toFixed(1) : '0';
+  const averageClickRate = totalOpened > 0 ? ((totalClicked / totalOpened) * 100).toFixed(1) : '0';
+
+  // If showing compose view
+  if (showingCompose) {
+    return <AdminEmailCompose onBack={() => {
+      setShowingCompose(false);
+      loadCampaigns();
+    }} />;
+  }
+
+  // If viewing detailed stats
+  if (viewingCampaignStats) {
+    const { campaign, stats } = viewingCampaignStats;
+
+    return (
+      <div className="space-y-8">
+        <div>
+          <Button
+            variant="ghost"
+            onClick={() => setViewingCampaignStats(null)}
+            className="mb-4 -ml-2 hover:bg-gray-100"
+          >
+            <ChevronRight className="h-4 w-4 mr-2 rotate-180" />
+            Назад к списку рассылок
+          </Button>
+
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h1 className="font-black text-5xl mb-3">{campaign.name}</h1>
+              <div className="flex items-center gap-4 text-gray-500">
+                {campaign.sent_at && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      <span>{formatDate(campaign.sent_at)}</span>
+                    </div>
+                    <span>•</span>
+                    <span>{formatTime(campaign.sent_at)}</span>
+                    <span>•</span>
+                  </>
+                )}
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span>{campaign.recipients_count} получателей</span>
+                </div>
+              </div>
+            </div>
+            <Button
+              onClick={() => handleRefreshStats(campaign.id)}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Обновить статистику
+            </Button>
+          </div>
         </div>
 
+        {/* Key Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Открываемость */}
+          <Card className="p-8 border-2 bg-gray-50">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-14 w-14 rounded-xl flex items-center justify-center bg-gray-100">
+                <MailOpen className="h-7 w-7 text-gray-400" />
+              </div>
+              <Badge className={`text-xl px-4 py-2 ${getPerformanceBadge(stats.open_rate, 'open')}`}>
+                {stats.open_rate.toFixed(1)}%
+              </Badge>
+            </div>
+            <p className="text-gray-600 mb-2 text-lg">Открываемость</p>
+            <p className="text-5xl font-black text-gray-900 mb-3">
+              {stats.opened_count}
+            </p>
+            <p className="text-sm text-gray-500 pt-3 border-t border-gray-200">
+              Из {stats.delivered_count} доставленных • Всего открытий: {stats.total_opens}
+            </p>
+          </Card>
+
+          {/* Кликабельность */}
+          <Card className="p-8 border-2 bg-gray-50">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-14 w-14 rounded-xl flex items-center justify-center bg-gray-100">
+                <MousePointerClick className="h-7 w-7 text-gray-400" />
+              </div>
+              <Badge className={`text-xl px-4 py-2 ${getPerformanceBadge(stats.click_to_open_rate, 'click')}`}>
+                {stats.click_to_open_rate.toFixed(1)}%
+              </Badge>
+            </div>
+            <p className="text-gray-600 mb-2 text-lg">Кликабельность</p>
+            <p className="text-5xl font-black text-gray-900 mb-3">
+              {stats.clicked_count}
+            </p>
+            <p className="text-sm text-gray-500 pt-3 border-t border-gray-200">
+              Из {stats.opened_count} открытых • Всего кликов: {stats.total_clicks}
+            </p>
+          </Card>
+        </div>
+
+        {/* Detailed Stats */}
+        <Card className="p-8 border-2">
+          <h3 className="font-black text-2xl mb-6">Детальная статистика</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between py-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Send className="h-5 w-5 text-blue-600" />
+                </div>
+                <span className="font-semibold">Отправлено</span>
+              </div>
+              <span className="text-2xl font-black">{stats.total_sent}</span>
+            </div>
+
+            <div className="flex items-center justify-between py-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <MailOpen className="h-5 w-5 text-green-600" />
+                </div>
+                <span className="font-semibold">Доставлено</span>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black mr-3">{stats.delivered_count}</span>
+                <Badge className="bg-green-100 text-green-700">
+                  {stats.delivery_rate.toFixed(1)}%
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-yellow-100 flex items-center justify-center">
+                  <Eye className="h-5 w-5 text-yellow-600" />
+                </div>
+                <span className="font-semibold">Открыто</span>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black mr-3">{stats.opened_count}</span>
+                <Badge className="bg-yellow-100 text-yellow-700">
+                  {stats.open_rate.toFixed(1)}%
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-4 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <MousePointerClick className="h-5 w-5 text-purple-600" />
+                </div>
+                <span className="font-semibold">Переходов</span>
+              </div>
+              <div className="text-right">
+                <span className="text-2xl font-black mr-3">{stats.clicked_count}</span>
+                <Badge className="bg-purple-100 text-purple-700">
+                  {stats.click_rate.toFixed(1)}%
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <Mail className="h-5 w-5 text-red-600" />
+                </div>
+                <span className="font-semibold">Ошибки доставки</span>
+              </div>
+              <span className="text-2xl font-black">{stats.failed_count}</span>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div>
+          <h1 className="font-black text-5xl mb-2">Почта</h1>
+          <p className="text-gray-500 text-lg">
+            Управление рассылками и статистика • {campaigns.length}{" "}
+            {campaigns.length === 1 ? "рассылка" : "рассылок"}
+          </p>
+        </div>
         <Button
-          onClick={() => setIsAdding(true)}
-          className="bg-labs-pink hover:bg-labs-pink/90 text-white gap-2 shadow-lg"
+          onClick={() => setShowingCompose(true)}
+          size="lg"
+          className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 shadow-lg hover:shadow-xl transition-all"
         >
-          <Plus className="w-5 h-5" />
-          Создать кампанию
+          <Plus className="h-5 w-5 mr-2" />
+          Создать рассылку
         </Button>
       </div>
 
+      {/* Overall Stats - Only show if there are sent campaigns */}
+      {sentCampaigns.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Средняя открываемость */}
+          <Card className="p-8 border-2 bg-gray-50">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-14 w-14 rounded-xl flex items-center justify-center bg-gray-100">
+                <MailOpen className="h-7 w-7 text-gray-400" />
+              </div>
+              <Badge className={`text-xl px-4 py-2 ${getPerformanceBadge(parseFloat(averageOpenRate), 'open')}`}>
+                {averageOpenRate}%
+              </Badge>
+            </div>
+            <p className="text-gray-600 mb-2 text-lg">Средняя открываемость</p>
+            <p className="text-5xl font-black text-gray-900 mb-3">{totalOpened}</p>
+            <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-200">
+              <span>Отправлено: {totalSent}</span>
+              <span>Доставлено: {totalDelivered}</span>
+            </div>
+          </Card>
+
+          {/* Средняя кликабельность */}
+          <Card className="p-8 border-2 bg-gray-50">
+            <div className="flex items-center justify-between mb-6">
+              <div className="h-14 w-14 rounded-xl flex items-center justify-center bg-gray-100">
+                <MousePointerClick className="h-7 w-7 text-gray-400" />
+              </div>
+              <Badge className={`text-xl px-4 py-2 ${getPerformanceBadge(parseFloat(averageClickRate), 'click')}`}>
+                {averageClickRate}%
+              </Badge>
+            </div>
+            <p className="text-gray-600 mb-2 text-lg">Средняя кликабельность</p>
+            <p className="text-5xl font-black text-gray-900 mb-3">{totalClicked}</p>
+            <div className="flex items-center justify-between text-sm text-gray-500 pt-3 border-t border-gray-200">
+              <span>Открыто: {totalOpened}</span>
+              <span>Рассылок: {sentCampaigns.length}</span>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* Search Bar */}
+      <div className="relative flex-1 max-w-xl">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="Поиск кампаний..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-12 bg-white/50 border-gray-300 focus:border-purple-400"
+        />
+      </div>
+
+      {/* Campaigns List */}
       {loading ? (
-        <div className="text-center py-12 text-labs-text-secondary">Загрузка...</div>
+        <div className="text-center py-12 text-gray-500">Загрузка...</div>
       ) : filteredCampaigns.length === 0 ? (
         <AdminEmptyState
           icon={<Mail className="h-10 w-10 text-gray-400" />}
           title="Email-кампании"
           description={searchQuery ? "Кампании не найдены" : "Нет созданных кампаний"}
           actionLabel="Создать кампанию"
-          onAction={() => setIsAdding(true)}
+          onAction={() => setShowingCompose(true)}
         />
       ) : (
-        <div className="grid gap-6">
-          {filteredCampaigns.map((campaign) => (
-            <div
-              key={campaign.id}
-              className="bg-white rounded-xl border border-labs-border-light p-6 hover:shadow-lg transition-all"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-labs-pink" />
-                    <h3 className="text-lg font-semibold text-labs-text">{campaign.name}</h3>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      campaign.status === 'sent' ? 'bg-green-100 text-green-700' :
-                      campaign.status === 'sending' ? 'bg-blue-100 text-blue-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {campaign.status === 'sent' ? 'Отправлено' : 
-                       campaign.status === 'sending' ? 'Отправка' : 'Черновик'}
-                    </span>
+        <div className="space-y-4">
+          {filteredCampaigns.map((campaign) => {
+            const openRate = campaign.sent_count > 0
+              ? ((campaign.opened_count / campaign.sent_count) * 100).toFixed(0)
+              : '0';
+            const clickRate = campaign.opened_count > 0
+              ? ((campaign.clicked_count / campaign.opened_count) * 100).toFixed(0)
+              : '0';
+
+            return (
+              <Card
+                key={campaign.id}
+                className="p-6 border-2 hover:shadow-xl hover:border-purple-300 hover:bg-purple-50/30 transition-all group"
+              >
+                <div className="flex items-start justify-between gap-6">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Badge className={`${
+                        campaign.status === 'sent' ? 'bg-green-100 text-green-700' :
+                        campaign.status === 'sending' ? 'bg-blue-100 text-blue-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {campaign.status === 'sent' ? 'Отправлено' :
+                         campaign.status === 'sending' ? 'Отправка' : 'Черновик'}
+                      </Badge>
+                      {campaign.sent_at && (
+                        <span className="text-sm text-gray-500">
+                          {formatDate(campaign.sent_at)} в {formatTime(campaign.sent_at)}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-black text-xl mb-2 truncate group-hover:text-purple-700 transition-colors">
+                      {campaign.name}
+                    </h3>
+                    {campaign.subject && (
+                      <p className="text-sm text-gray-600 mb-2">{campaign.subject}</p>
+                    )}
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Users className="h-4 w-4" />
+                      <span className="text-sm">
+                        {campaign.recipients_count} получателей
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span className="text-labs-text-secondary">Тип:</span>
-                      <span className="ml-2 text-labs-text font-medium">{campaign.type}</span>
-                    </div>
-                    <div>
-                      <span className="text-labs-text-secondary">Получателей:</span>
-                      <span className="ml-2 text-labs-text font-medium">{campaign.recipients_count}</span>
-                    </div>
-                    <div>
-                      <span className="text-labs-text-secondary">Отправлено:</span>
-                      <span className="ml-2 text-green-600 font-medium">{campaign.sent_count}</span>
-                    </div>
-                    <div>
-                      <span className="text-labs-text-secondary">Ошибок:</span>
-                      <span className="ml-2 text-red-600 font-medium">{campaign.failed_count}</span>
-                    </div>
-                  </div>
+                  {campaign.status === 'sent' ? (
+                    <div className="flex items-center gap-6">
+                      {/* Delivery */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                          <Send className="h-4 w-4 text-gray-500" />
+                          <p className="text-sm text-gray-600">Доставлено</p>
+                        </div>
+                        <p className="text-2xl font-black">{campaign.sent_count}</p>
+                      </div>
 
-                  {campaign.subject && (
-                    <div className="text-sm">
-                      <span className="text-labs-text-secondary">Тема:</span>
-                      <span className="ml-2 text-labs-text">{campaign.subject}</span>
-                    </div>
-                  )}
+                      {/* Open Rate */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                          <MailOpen className="h-4 w-4 text-green-600" />
+                          <p className="text-sm text-gray-600">Открыто</p>
+                        </div>
+                        <div className="flex items-baseline justify-center gap-1">
+                          <p className="text-2xl font-black">{campaign.opened_count}</p>
+                          <Badge className="bg-green-100 text-green-700 text-xs">
+                            {openRate}%
+                          </Badge>
+                        </div>
+                      </div>
 
-                  {campaign.template_id && (
-                    <div className="text-sm">
-                      <span className="text-labs-text-secondary">Template ID:</span>
-                      <span className="ml-2 text-labs-pink font-mono">{campaign.template_id}</span>
+                      {/* Click Rate */}
+                      <div className="text-center">
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                          <MousePointerClick className="h-4 w-4 text-purple-600" />
+                          <p className="text-sm text-gray-600">Переходов</p>
+                        </div>
+                        <div className="flex items-baseline justify-center gap-1">
+                          <p className="text-2xl font-black">{campaign.clicked_count}</p>
+                          <Badge className="bg-purple-100 text-purple-700 text-xs">
+                            {clickRate}%
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* View Details Button */}
+                      <Button
+                        onClick={() => handleViewStats(campaign.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 group-hover:bg-purple-500 transition-all p-0"
+                      >
+                        <ChevronRight className="h-5 w-5 text-gray-500 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-3">
+                      {campaign.status === 'draft' && (
+                        <Button
+                          onClick={() => handleSend(campaign.id, false)}
+                          variant="default"
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 text-white gap-2"
+                        >
+                          <Send className="w-4 h-4" />
+                          Отправить
+                        </Button>
+                      )}
+                      <Button
+                        onClick={() => setDeletingId(campaign.id)}
+                        variant="destructive"
+                        size="sm"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   )}
                 </div>
-
-                <div className="flex gap-3">
-                  {campaign.status === 'draft' && (
-                    <Button
-                      onClick={() => handleSend(campaign.id, false)}
-                      variant="default"
-                      size="sm"
-                      className="bg-green-600 hover:bg-green-700 text-white gap-2"
-                    >
-                      <Send className="w-4 h-4" />
-                      Отправить
-                    </Button>
-                  )}
-                  
-                  <Button
-                    onClick={() => handleViewDetails(campaign.id)}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Eye className="w-4 h-4" />
-                    Детали
-                  </Button>
-
-                  <Button
-                    onClick={() => setDeletingId(campaign.id)}
-                    variant="destructive"
-                    size="sm"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 
+      {/* Create/Edit Dialog */}
       <Dialog open={isAdding || editingItem !== null} onOpenChange={(open: boolean) => !open && resetForm()}>
         <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -323,7 +643,7 @@ export function AdminEmailManager() {
             <AdminFormField label="Тип рассылки" required>
               <Select
                 value={campaignForm.type}
-                onValueChange={(value) => setCampaignForm({ ...campaignForm, type: value })}
+                onValueChange={(value: string) => setCampaignForm({ ...campaignForm, type: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -337,9 +657,8 @@ export function AdminEmailManager() {
               </Select>
             </AdminFormField>
 
-            <AdminFormField 
-              label="Template ID (из Notisend)" 
-              hint="Если указан, письмо будет отправлено по шаблону из Notisend"
+            <AdminFormField
+              label="Template ID (из Notisend)"
             >
               <Input
                 value={campaignForm.template_id}
@@ -383,66 +702,14 @@ export function AdminEmailManager() {
             <Button variant="outline" onClick={resetForm}>
               Отмена
             </Button>
-            <Button onClick={editingItem ? handleUpdate : handleAdd} className="bg-labs-pink hover:bg-labs-pink/90">
+            <Button onClick={editingItem ? handleUpdate : handleAdd} className="bg-purple-500 hover:bg-purple-600">
               {editingItem ? "Сохранить" : "Создать"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={viewingCampaign !== null} onOpenChange={(open: boolean) => !open && setViewingCampaign(null)}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Детали кампании: {viewingCampaign?.campaign.name}</DialogTitle>
-          </DialogHeader>
-
-          {viewingCampaign && (
-            <div className="space-y-6 py-4">
-              <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <div className="text-sm text-labs-text-secondary">Всего</div>
-                  <div className="text-2xl font-bold">{viewingCampaign.campaign.recipients_count}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-labs-text-secondary">Отправлено</div>
-                  <div className="text-2xl font-bold text-green-600">{viewingCampaign.campaign.sent_count}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-labs-text-secondary">Ошибок</div>
-                  <div className="text-2xl font-bold text-red-600">{viewingCampaign.campaign.failed_count}</div>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-3">Логи отправки</h4>
-                <div className="max-h-96 overflow-y-auto space-y-2">
-                  {viewingCampaign.logs.map((log) => (
-                    <div
-                      key={log.id}
-                      className={`p-3 rounded border ${
-                        log.status === 'sent' ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-sm">{log.recipient_email}</span>
-                        <span className={`text-xs px-2 py-1 rounded ${
-                          log.status === 'sent' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                        }`}>
-                          {log.status === 'sent' ? 'Отправлено' : 'Ошибка'}
-                        </span>
-                      </div>
-                      {log.error_message && (
-                        <div className="text-xs text-red-600 mt-1">{log.error_message}</div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
+      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deletingId !== null} onOpenChange={(open: boolean) => !open && setDeletingId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
