@@ -306,13 +306,16 @@ export function AdminProducts() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-black">Продукты и потоки</h2>
-          <p className="text-gray-500 mt-2">Управление иерархией: Продукты → Потоки → Тарифы</p>
+          <h1 className="font-black text-5xl mb-2">Продукты</h1>
+          <p className="text-gray-500 text-lg">
+            Управление продуктами, потоками и тарифами • {products.length}{" "}
+            {products.length === 1 ? "продукт" : "продуктов"}
+          </p>
         </div>
         <Button
           onClick={() => setIsAddingProduct(true)}
           size="lg"
-          className="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500"
+          className="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 shadow-lg hover:shadow-xl transition-all"
         >
           <Plus className="h-5 w-5 mr-2" />
           Добавить продукт
@@ -330,7 +333,7 @@ export function AdminProducts() {
       ) : (
         <div className="space-y-6">
           {products.map((product) => (
-            <Card key={product.id} className="p-6 bg-gradient-to-br from-pink-50 to-rose-50 border-2 border-pink-200">
+            <Card key={product.id} className="p-6 bg-gradient-to-r from-pink-50 to-rose-50 border-2 border-pink-200 cursor-pointer hover:from-pink-100 hover:to-rose-100 transition-colors">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3 flex-1">
                   <button
@@ -343,9 +346,11 @@ export function AdminProducts() {
                       <ChevronRight className="h-5 w-5 text-pink-600" />
                     )}
                   </button>
-                  <Package className="h-8 w-8 text-pink-600" />
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center shrink-0 shadow-lg">
+                    <Package className="h-6 w-6 text-white" />
+                  </div>
                   <div className="flex-1">
-                    <h3 className="font-bold text-xl text-gray-900">{product.name}</h3>
+                    <h3 className="font-black text-2xl text-gray-900">{product.name}</h3>
                     {product.description && (
                       <p className="text-gray-600 text-sm mt-1">{product.description}</p>
                     )}
@@ -372,7 +377,7 @@ export function AdminProducts() {
                       setIsAddingCohort(true);
                     }}
                     size="sm"
-                    className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white"
+                    className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 text-white shadow-md hover:shadow-lg transition-all"
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     Поток
@@ -406,7 +411,7 @@ export function AdminProducts() {
               {expandedProducts.has(product.id) && product.cohorts && (
                 <div className="ml-14 space-y-4">
                   {product.cohorts.map((cohort) => (
-                    <Card key={cohort.id} className="p-5 bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200">
+                    <Card key={cohort.id} className="p-5 bg-gradient-to-r from-purple-50 to-indigo-50 border-2 border-purple-200 hover:from-purple-100 hover:to-indigo-100 transition-colors">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3 flex-1">
                           <button
@@ -419,7 +424,9 @@ export function AdminProducts() {
                               <ChevronRight className="h-5 w-5 text-purple-600" />
                             )}
                           </button>
-                          <Layers className="h-6 w-6 text-purple-600" />
+                          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-400 to-indigo-400 flex items-center justify-center shrink-0 shadow-md">
+                            <Layers className="h-5 w-5 text-white" />
+                          </div>
                           <div
                             className="flex-1 cursor-pointer"
                             onClick={() => setViewingCohortDetail({
@@ -428,7 +435,7 @@ export function AdminProducts() {
                               productName: product.name
                             })}
                           >
-                            <h4 className="font-bold text-lg text-gray-900">{cohort.name}</h4>
+                            <h4 className="font-black text-xl text-gray-900">{cohort.name}</h4>
                             {cohort.description && (
                               <p className="text-gray-600 text-sm mt-1">{cohort.description}</p>
                             )}
@@ -459,7 +466,7 @@ export function AdminProducts() {
                               setIsAddingTier(true);
                             }}
                             size="sm"
-                            className="bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500 text-white"
+                            className="bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500 text-white shadow-md hover:shadow-lg transition-all"
                           >
                             <Plus className="h-4 w-4 mr-1" />
                             Тариф
@@ -471,12 +478,14 @@ export function AdminProducts() {
                       {expandedCohorts.has(cohort.id) && cohort.tiers && (
                         <div className="ml-14 mt-4 space-y-3">
                           {cohort.tiers.map((tier) => (
-                            <Card key={tier.id} className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200">
+                            <Card key={tier.id} className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 hover:from-green-100 hover:to-emerald-100 transition-colors">
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                  <Tag className="h-5 w-5 text-green-600" />
+                                  <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center shrink-0 shadow-md">
+                                    <Tag className="h-4 w-4 text-white" />
+                                  </div>
                                   <div>
-                                    <h5 className="font-bold text-gray-900">{tier.name}</h5>
+                                    <h5 className="font-semibold text-gray-900">{tier.name}</h5>
                                     <p className="text-sm text-gray-600">
                                       {tier.price} ₽ • Уровень {tier.tier_level}
                                     </p>
@@ -533,7 +542,7 @@ export function AdminProducts() {
             <Button variant="ghost" onClick={resetForms}>Отмена</Button>
             <Button
               onClick={editingProduct ? handleUpdateProduct : handleAddProduct}
-              className="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500"
+              className="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 shadow-lg hover:shadow-xl transition-all"
             >
               {editingProduct ? "Сохранить" : "Добавить"}
             </Button>
@@ -581,7 +590,7 @@ export function AdminProducts() {
             <Button variant="ghost" onClick={resetForms}>Отмена</Button>
             <Button
               onClick={handleAddCohort}
-              className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500"
+              className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 shadow-lg hover:shadow-xl transition-all"
             >
               Добавить
             </Button>
