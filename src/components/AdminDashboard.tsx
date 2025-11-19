@@ -105,8 +105,8 @@ export function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="font-black text-4xl mb-2">Дашборд</h1>
-        <p className="text-gray-500">Общая статистика и аналитика платформы</p>
+        <h1 className="font-black text-5xl mb-2">Дашборд</h1>
+        <p className="text-gray-500 text-lg">Общая статистика и аналитика платформы</p>
       </div>
 
       {/* Stats Grid */}
@@ -122,15 +122,17 @@ export function AdminDashboard() {
               return (
                 <Card
                   key={index}
-                  className="p-6 hover:shadow-md transition-shadow border border-gray-200"
+                  className="p-6 hover:shadow-lg transition-shadow border-2"
                 >
-                  <div className={`inline-flex p-4 rounded-2xl ${stat.bgColor} mb-6`}>
-                    <Icon className="h-7 w-7 text-white" />
+                  <div className="flex items-start justify-between mb-4">
+                    <div className={`h-14 w-14 rounded-xl ${stat.bgColor} flex items-center justify-center shadow-md`}>
+                      <Icon className="h-7 w-7 text-white" />
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-gray-500 text-sm mb-2">{stat.title}</p>
-                    <p className="text-5xl font-black">{stat.value}</p>
-                  </div>
+                  <p className="text-sm font-semibold text-gray-500 mb-1">
+                    {stat.title}
+                  </p>
+                  <p className="font-black text-4xl text-gray-900">{stat.value}</p>
                 </Card>
               );
             })}
@@ -139,46 +141,58 @@ export function AdminDashboard() {
       {/* Bottom Grid - Products by Users + Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Products by Users */}
-        <Card className="p-6 border border-gray-200">
+        <Card className="p-6 border-2">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-xl bg-pink-400">
-              <Package className="h-6 w-6 text-white" />
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center">
+              <Package className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-xl font-black">Продукты по пользователям</h2>
+            <h2 className="font-black text-2xl">Продукты по пользователям</h2>
           </div>
-          <div className="text-center text-gray-400 py-12">
-            Нет данных о продуктах
+          <div className="text-center py-8">
+            <p className="text-gray-500">Нет данных о продуктах</p>
           </div>
         </Card>
 
         {/* Quick Actions */}
-        <Card className="p-6 border border-gray-200">
+        <Card className="p-6 border-2">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-xl bg-purple-400">
-              <Zap className="h-6 w-6 text-white" />
+            <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-400 to-indigo-400 flex items-center justify-center">
+              <Zap className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-xl font-black">Быстрые действия</h2>
+            <h2 className="font-black text-2xl">Быстрые действия</h2>
           </div>
 
           <div className="space-y-3">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
+              const bgGradient = action.bgColor === 'bg-pink-400'
+                ? 'from-pink-50 to-rose-50 hover:from-pink-100 hover:to-rose-100'
+                : action.bgColor === 'bg-cyan-400'
+                ? 'from-blue-50 to-cyan-50 hover:from-blue-100 hover:to-cyan-100'
+                : 'from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100';
+
+              const iconGradient = action.bgColor === 'bg-pink-400'
+                ? 'from-pink-400 to-rose-400'
+                : action.bgColor === 'bg-cyan-400'
+                ? 'from-blue-400 to-cyan-400'
+                : 'from-purple-400 to-indigo-400';
+
               return (
                 <button
                   key={index}
                   onClick={action.action}
-                  className="w-full p-4 rounded-xl bg-gray-50 hover:bg-pink-50 transition-colors text-left flex items-start gap-4 group"
+                  className={`w-full p-4 text-left bg-gradient-to-r ${bgGradient} rounded-lg transition-colors group`}
                 >
-                  <div className={`p-3 rounded-xl ${action.bgColor} flex-shrink-0`}>
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-base mb-1 group-hover:text-pink-600 transition-colors">
-                      {action.title}
-                    </h3>
-                    <p className="text-gray-500 text-sm">
-                      {action.description}
-                    </p>
+                  <div className="flex items-center gap-3">
+                    <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${iconGradient} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                      <Icon className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900">{action.title}</h3>
+                      <p className="text-sm text-gray-500">
+                        {action.description}
+                      </p>
+                    </div>
                   </div>
                 </button>
               );
