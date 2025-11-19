@@ -37,6 +37,7 @@ import { toast } from "sonner";
 import { AdminFormWrapper } from "./AdminFormWrapper";
 import { AdminFormField } from "./AdminFormField";
 import { AdminEmptyState } from "./AdminEmptyState";
+import { AdminStreamDetail } from "./AdminStreamDetail";
 import { apiClient } from "../api/client";
 
 type Tier = {
@@ -85,6 +86,7 @@ export function AdminProducts() {
 
   const [selectedProductForCohort, setSelectedProductForCohort] = useState<number | null>(null);
   const [selectedCohortForTier, setSelectedCohortForTier] = useState<{productId: number, cohortId: number} | null>(null);
+  const [viewingCohortDetail, setViewingCohortDetail] = useState<{cohortId: number, cohortName: string, productName: string} | null>(null);
 
   const [productForm, setProductForm] = useState({
     name: "",
@@ -288,6 +290,18 @@ export function AdminProducts() {
     );
   }
 
+  // Show cohort detail view if selected
+  if (viewingCohortDetail) {
+    return (
+      <AdminStreamDetail
+        cohortId={viewingCohortDetail.cohortId}
+        cohortName={viewingCohortDetail.cohortName}
+        productName={viewingCohortDetail.productName}
+        onBack={() => setViewingCohortDetail(null)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
@@ -406,7 +420,14 @@ export function AdminProducts() {
                             )}
                           </button>
                           <Layers className="h-6 w-6 text-purple-600" />
-                          <div className="flex-1">
+                          <div
+                            className="flex-1 cursor-pointer"
+                            onClick={() => setViewingCohortDetail({
+                              cohortId: cohort.id,
+                              cohortName: cohort.name,
+                              productName: product.name
+                            })}
+                          >
                             <h4 className="font-bold text-lg text-gray-900">{cohort.name}</h4>
                             {cohort.description && (
                               <p className="text-gray-600 text-sm mt-1">{cohort.description}</p>

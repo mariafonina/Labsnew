@@ -30,6 +30,7 @@ import adminDashboardRoutes from './routes/admin/dashboard.routes';
 import catalogRoutes from './routes/catalog.routes';
 import passwordResetRoutes from './routes/password-reset.routes';
 import setupPasswordRoutes from './routes/setup-password.routes';
+import webhooksRoutes from './routes/webhooks.routes';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -88,6 +89,9 @@ app.use('/api/admin/cohorts', adminCohortsRoutes);
 app.use('/api/admin/enrollments', adminEnrollmentsRoutes);
 app.use('/api/admin/resources', adminResourcesRoutes);
 app.use('/api/admin', adminInitialPasswordsRoutes);
+
+// Webhooks (no auth required, external services)
+app.use('/api/webhooks', webhooksRoutes);
 
 // Health check endpoint for monitoring
 app.get('/api/health', (req, res) => {
