@@ -3,6 +3,7 @@ import { Card } from "./ui/card";
 import { Users, Package, Layers, Shield, DollarSign, TrendingUp, Zap } from "lucide-react";
 import { apiClient } from "../api/client";
 import { Skeleton } from "./ui/skeleton";
+import { AdminEmptyState } from "./AdminEmptyState";
 
 interface DashboardStats {
   totalUsers: number;
@@ -38,37 +39,37 @@ export function AdminDashboard() {
       title: "Пользователи",
       value: stats?.totalUsers || 0,
       icon: Users,
-      bgColor: "bg-cyan-400",
+      color: "from-blue-400 to-cyan-400",
     },
     {
       title: "Продукты",
       value: stats?.totalProducts || 0,
       icon: Package,
-      bgColor: "bg-pink-400",
+      color: "from-pink-400 to-rose-400",
     },
     {
       title: "Потоки",
       value: stats?.totalCohorts || 0,
       icon: Layers,
-      bgColor: "bg-purple-400",
+      color: "from-purple-400 to-indigo-400",
     },
     {
       title: "Тарифы",
       value: stats?.totalTiers || 0,
       icon: Shield,
-      bgColor: "bg-emerald-400",
+      color: "from-green-400 to-emerald-400",
     },
     {
       title: "Общий доход",
       value: `${stats?.totalRevenue || 0} ₽`,
       icon: DollarSign,
-      bgColor: "bg-orange-400",
+      color: "from-orange-400 to-amber-400",
     },
     {
       title: "Средний чек",
       value: `${stats?.averageCheck || 0} ₽`,
       icon: TrendingUp,
-      bgColor: "bg-cyan-400",
+      color: "from-teal-400 to-cyan-400",
     },
   ];
 
@@ -125,7 +126,7 @@ export function AdminDashboard() {
                   className="p-6 hover:shadow-lg transition-shadow border-2"
                 >
                   <div className="flex items-start justify-between mb-4">
-                    <div className={`h-14 w-14 rounded-xl ${stat.bgColor} flex items-center justify-center shadow-md`}>
+                    <div className={`h-14 w-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md`}>
                       <Icon className="h-7 w-7 text-white" />
                     </div>
                   </div>
@@ -148,9 +149,15 @@ export function AdminDashboard() {
             </div>
             <h2 className="font-black text-2xl">Продукты по пользователям</h2>
           </div>
-          <div className="text-center py-8">
-            <p className="text-gray-500">Нет данных о продуктах</p>
-          </div>
+          <AdminEmptyState
+            icon={<Package className="h-10 w-10 text-gray-400" />}
+            title="Нет продуктов"
+            description="Создайте первый продукт для начала работы"
+            actionLabel="Создать продукт"
+            onAction={() => {
+              // TODO: Navigate to products section
+            }}
+          />
         </Card>
 
         {/* Quick Actions */}
