@@ -231,12 +231,30 @@ export async function initializeDatabase() {
         status VARCHAR(20) DEFAULT 'draft',
         scheduled_at TIMESTAMP,
         sent_at TIMESTAMP,
+        segment_type VARCHAR(20) DEFAULT 'all',
+        segment_product_id INTEGER REFERENCES labs.products(id),
+        segment_cohort_id INTEGER REFERENCES labs.cohorts(id),
+        opened_count INTEGER DEFAULT 0,
+        clicked_count INTEGER DEFAULT 0,
         created_by INTEGER REFERENCES labs.users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('Table "labs.email_campaigns" created');
+
+    // Migrate existing email_campaigns table
+    try {
+      await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS segment_type VARCHAR(20) DEFAULT 'all'`);
+      await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS segment_product_id INTEGER REFERENCES labs.products(id)`);
+      await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS segment_cohort_id INTEGER REFERENCES labs.cohorts(id)`);
+      await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS opened_count INTEGER DEFAULT 0`);
+      await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS clicked_count INTEGER DEFAULT 0`);
+      await query(`UPDATE labs.email_campaigns SET segment_type = 'all', opened_count = 0, clicked_count = 0 WHERE segment_type IS NULL`);
+      console.log('Migrated labs.email_campaigns for segmentation');
+    } catch (err) {
+      // Columns already exist, that's fine
+    }
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.email_logs (
@@ -247,10 +265,28 @@ export async function initializeDatabase() {
         notisend_id VARCHAR(100),
         error_message TEXT,
         sent_at TIMESTAMP,
+        opened_at TIMESTAMP,
+        clicked_at TIMESTAMP,
+        last_opened_at TIMESTAMP,
+        open_count INTEGER DEFAULT 0,
+        click_count INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('Table "labs.email_logs" created');
+
+    // Migrate existing email_logs table
+    try {
+      await query(`ALTER TABLE labs.email_logs ADD COLUMN IF NOT EXISTS opened_at TIMESTAMP`);
+      await query(`ALTER TABLE labs.email_logs ADD COLUMN IF NOT EXISTS clicked_at TIMESTAMP`);
+      await query(`ALTER TABLE labs.email_logs ADD COLUMN IF NOT EXISTS last_opened_at TIMESTAMP`);
+      await query(`ALTER TABLE labs.email_logs ADD COLUMN IF NOT EXISTS open_count INTEGER DEFAULT 0`);
+      await query(`ALTER TABLE labs.email_logs ADD COLUMN IF NOT EXISTS click_count INTEGER DEFAULT 0`);
+      await query(`UPDATE labs.email_logs SET open_count = 0, click_count = 0 WHERE open_count IS NULL`);
+      console.log('Migrated labs.email_logs for tracking');
+    } catch (err) {
+      // Columns already exist, that's fine
+    }
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.password_reset_tokens (
@@ -484,6 +520,10 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_email_campaigns_created_by ON labs.email_campaigns(created_by)');
     await query('CREATE INDEX IF NOT EXISTS idx_email_logs_campaign_id ON labs.email_logs(campaign_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_email_logs_status ON labs.email_logs(status)');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_logs_tracking ON labs.email_logs(campaign_id, status, opened_at, clicked_at)');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_logs_opened ON labs.email_logs(opened_at) WHERE opened_at IS NOT NULL');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_logs_clicked ON labs.email_logs(clicked_at) WHERE clicked_at IS NOT NULL');
+    await query('CREATE INDEX IF NOT EXISTS idx_campaigns_segment ON labs.email_campaigns(segment_type, segment_product_id, segment_cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_token ON labs.password_reset_tokens(token)');
     await query('CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_id ON labs.password_reset_tokens(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_initial_password_tokens_user_id ON labs.initial_password_tokens(user_id)');

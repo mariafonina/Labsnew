@@ -552,6 +552,30 @@ class ApiClient {
     return this.post<any>(`/admin/cohorts/${cohortId}/members/remove`, { user_ids: userIds });
   }
 
+  async copyCohort(cohortId: number, data: { name: string }) {
+    return this.post<any>(`/admin/cohorts/${cohortId}/copy`, data);
+  }
+
+  async getCohortMaterials(cohortId: number) {
+    return this.get<any[]>(`/admin/cohorts/${cohortId}/materials`);
+  }
+
+  async getAvailableMaterials(cohortId: number) {
+    return this.get<any>(`/admin/cohorts/${cohortId}/available-materials`);
+  }
+
+  async assignCohortMaterials(cohortId: number, data: { material_type: string, material_ids: number[], is_visible?: boolean }) {
+    return this.post<any>(`/admin/cohorts/${cohortId}/materials`, data);
+  }
+
+  async updateMaterialsVisibility(cohortId: number, materials: Array<{type: string, id: number, visible: boolean}>) {
+    return this.put<any>(`/admin/cohorts/${cohortId}/materials/visibility`, { materials });
+  }
+
+  async removeCohortMaterial(cohortId: number, materialType: string, materialId: number) {
+    return this.delete(`/admin/cohorts/${cohortId}/materials/${materialType}/${materialId}`);
+  }
+
   // User enrollments management
   async getEnrollments(userId?: number, productId?: number) {
     const params = new URLSearchParams();

@@ -12,7 +12,7 @@ import { AdminFAQManager } from "./AdminFAQManager";
 import { AdminEventsManager } from "./AdminEventsManager";
 import { AdminEmailManager } from "./AdminEmailManager";
 import { AdminInitialPasswordsManager } from "./AdminInitialPasswordsManager";
-import { Products } from "../pages/admin/Products";
+import { AdminProducts } from "./AdminProducts";
 
 export function AdminPanel() {
   const { user, logout } = useAuth();
@@ -37,7 +37,7 @@ export function AdminPanel() {
       case "dashboard":
         return <AdminDashboard />;
       case "products":
-        return <Products />;
+        return <AdminProducts />;
       case "news":
         return <AdminNewsManager />;
       case "events":
