@@ -69,30 +69,20 @@ export function Notes({ onNavigateToItem }: NotesProps) {
     });
   };
 
-  const handleCreateNote = async () => {
+  const handleCreateNote = () => {
     if (!fullText.trim()) return;
     const { title, content } = extractTitleAndContent(fullText);
-    try {
-      await addNote({ title, content });
-      setFullText("");
-      setIsCreating(false);
-      toast.success("Заметка сохранена");
-    } catch (error) {
-      toast.error("Не удалось сохранить заметку");
-    }
+    addNote({ title, content });
+    setFullText("");
+    setIsCreating(false);
   };
 
-  const handleUpdateNote = async () => {
+  const handleUpdateNote = () => {
     if (!editingNote || !fullText.trim()) return;
     const { title, content } = extractTitleAndContent(fullText);
-    try {
-      await updateNote(editingNote.id, { title, content });
-      setEditingNote(null);
-      setFullText("");
-      toast.success("Заметка обновлена");
-    } catch (error) {
-      toast.error("Не удалось обновить заметку");
-    }
+    updateNote(editingNote.id, { title, content });
+    setEditingNote(null);
+    setFullText("");
   };
 
   const handleEditClick = (note: Note) => {
@@ -108,14 +98,9 @@ export function Notes({ onNavigateToItem }: NotesProps) {
     setFullText("");
   };
 
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteNote(id);
-      setNoteToDelete(null);
-      toast.success("Заметка удалена");
-    } catch (error) {
-      toast.error("Не удалось удалить заметку");
-    }
+  const handleDelete = (id: string) => {
+    deleteNote(id);
+    setNoteToDelete(null);
   };
 
   const toggleNoteFavorite = (note: Note) => {

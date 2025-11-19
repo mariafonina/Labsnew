@@ -1,3 +1,5 @@
+import { Button } from "./ui/button";
+import { Badge } from "./ui/badge";
 import {
   LayoutDashboard,
   Newspaper,
@@ -61,12 +63,12 @@ export function AdminSidebar({
       transition={{ duration: 0.3, ease: "easeInOut" }}
       className="bg-white border-r border-gray-200 min-h-screen flex flex-col relative"
     >
-      <div className={`border-b border-gray-200 ${isCollapsed ? 'px-3 pt-6 pb-1' : 'pt-6 pb-1 px-6'}`}>
+      <div className={`p-6 border-b border-gray-200 ${isCollapsed ? 'px-3' : ''}`}>
         {!isCollapsed ? (
           <div className="flex flex-col gap-3">
             <Logo size="lg" onClick={() => onSectionChange("dashboard")} />
             <div>
-              <p className="text-sm text-gray-500 leading-5">Управление контентом</p>
+              <p className="text-sm text-gray-500">Управление контентом</p>
             </div>
           </div>
         ) : (
@@ -76,26 +78,26 @@ export function AdminSidebar({
         )}
       </div>
 
-      <nav className={`flex-1 ${isCollapsed ? 'px-2 pt-4' : 'pt-4 px-4'} space-y-1`}>
+      <nav className={`flex-1 p-4 space-y-1 ${isCollapsed ? 'px-2' : ''}`}>
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeSection === item.id;
 
           return (
-            <button
+            <Button
               key={item.id}
               onClick={() => onSectionChange(item.id)}
+              variant={isActive ? "default" : "ghost"}
               title={isCollapsed ? item.label : undefined}
-              className={`w-full h-10 rounded-lg flex items-center ${
-                isCollapsed ? 'justify-center px-2' : 'justify-start px-6 gap-3'
-              } transition-colors ${
+              size={isCollapsed ? "default" : "lg"}
+              className={`w-full ${isCollapsed ? 'justify-center px-2' : 'justify-start gap-3 text-base'} ${
                 isActive
-                  ? "bg-gradient-to-r from-[#fb64b6] to-[#ff637e] text-white shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)]"
-                  : "text-[#364153] hover:bg-gray-100"
+                  ? "bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 shadow-md"
+                  : "text-gray-700 hover:text-gray-900 hover:bg-gray-100"
               }`}
             >
-              <div className="relative flex items-center justify-center w-4 h-4">
-                <Icon className="w-4 h-4" />
+              <div className="relative">
+                <Icon className="h-5 w-5" />
                 {isCollapsed && item.badge && item.badge > 0 && (
                   <div className="absolute -top-2 -right-2 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
                     {item.badge}
@@ -104,42 +106,42 @@ export function AdminSidebar({
               </div>
               {!isCollapsed && (
                 <>
-                  <span className="flex-1 text-left font-medium text-base leading-6 tracking-[-0.3125px]">
-                    {item.label}
-                  </span>
-                  {item.badge !== undefined && (
-                    <span className={`font-medium text-base leading-6 tracking-[-0.3125px] ${
-                      isActive ? "text-white" : "text-[#364153]"
-                    }`}>
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {item.badge && item.badge > 0 && (
+                    <Badge
+                      className={`${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-pink-100 text-pink-600"
+                      }`}
+                    >
                       {item.badge}
-                    </span>
+                    </Badge>
                   )}
                 </>
               )}
-            </button>
+            </Button>
           );
         })}
       </nav>
 
-      <div className={`border-t border-gray-200 ${isCollapsed ? 'px-2 pt-4 pb-0' : 'pt-4 pb-0 px-4'}`}>
-        <button
+      <div className={`p-4 border-t border-gray-200 ${isCollapsed ? 'px-2' : ''}`}>
+        <Button
           onClick={onLogout}
+          variant="ghost"
           title={isCollapsed ? "Выйти" : undefined}
-          className={`w-full h-10 rounded-lg flex items-center ${
-            isCollapsed ? 'justify-center px-2' : 'justify-start px-4 gap-3'
-          } text-[#e7000b] hover:bg-red-50 transition-colors`}
+          size={isCollapsed ? "default" : "lg"}
+          className={`w-full ${isCollapsed ? 'justify-center px-2' : 'justify-start gap-3 text-base'} text-red-600 hover:text-red-700 hover:bg-red-50`}
         >
-          <LogOut className="w-4 h-4" />
-          {!isCollapsed && (
-            <span className="font-semibold text-base leading-6 tracking-[-0.3125px]">Выйти</span>
-          )}
-        </button>
+          <LogOut className="h-5 w-5" />
+          {!isCollapsed && <span className="font-semibold">Выйти</span>}
+        </Button>
       </div>
 
       {/* Toggle Button */}
       <button
         onClick={onToggleCollapse}
-        className="absolute -right-[18px] top-20 bg-white border-2 border-gray-200 rounded-full w-9 h-9 flex items-center justify-center shadow-lg hover:bg-gray-50 hover:shadow-xl hover:border-pink-300 transition-all z-10"
+        className="absolute -right-3 top-20 bg-white border-2 border-gray-200 rounded-full p-2 shadow-lg hover:bg-gray-50 hover:shadow-xl hover:border-pink-300 transition-all z-10"
         aria-label={isCollapsed ? "Развернуть меню" : "Свернуть меню"}
       >
         {isCollapsed ? (

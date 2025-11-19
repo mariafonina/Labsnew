@@ -476,73 +476,6 @@ router.get(
       [id],
     );
 
-    // Получаем статистику посещений страниц
-    const pageVisitsStats = await query(
-      `
-      SELECT 
-        COUNT(*) as total_visits,
-        COUNT(DISTINCT page_path) as unique_pages,
-        COUNT(DISTINCT session_id) as unique_sessions,
-        AVG(time_spent_seconds) as avg_time_spent,
-        SUM(time_spent_seconds) as total_time_spent
-      FROM labs.page_visits
-      WHERE user_id = $1
-    `,
-      [id],
-    );
-
-    // Получаем популярные страницы
-    const popularPages = await query(
-      `
-      SELECT 
-        page_path,
-        page_title,
-        page_type,
-        COUNT(*) as visit_count,
-        AVG(time_spent_seconds) as avg_time_spent
-      FROM labs.page_visits
-      WHERE user_id = $1
-      GROUP BY page_path, page_title, page_type
-      ORDER BY visit_count DESC
-      LIMIT 10
-    `,
-      [id],
-    );
-
-    // Получаем последние посещения
-    const recentVisits = await query(
-      `
-      SELECT 
-        id,
-        page_path,
-        page_title,
-        page_type,
-        page_id,
-        visited_at,
-        time_spent_seconds,
-        device_type
-      FROM labs.page_visits
-      WHERE user_id = $1
-      ORDER BY visited_at DESC
-      LIMIT 50
-    `,
-      [id],
-    );
-
-    // Получаем посещения по типам страниц
-    const visitsByType = await query(
-      `
-      SELECT 
-        page_type,
-        COUNT(*) as visit_count
-      FROM labs.page_visits
-      WHERE user_id = $1 AND page_type IS NOT NULL
-      GROUP BY page_type
-      ORDER BY visit_count DESC
-    `,
-      [id],
-    );
-
     res.json({
       user: user.rows[0],
       cohorts: cohorts.rows,
@@ -557,18 +490,6 @@ router.get(
         favorites: favorites.rows,
         comments: comments.rows,
         likedComments: likedComments.rows,
-        pageVisits: {
-          statistics: {
-            total_visits: parseInt(pageVisitsStats.rows[0]?.total_visits || '0'),
-            unique_pages: parseInt(pageVisitsStats.rows[0]?.unique_pages || '0'),
-            unique_sessions: parseInt(pageVisitsStats.rows[0]?.unique_sessions || '0'),
-            avg_time_spent: parseFloat(pageVisitsStats.rows[0]?.avg_time_spent || '0'),
-            total_time_spent: parseInt(pageVisitsStats.rows[0]?.total_time_spent || '0'),
-          },
-          popular_pages: popularPages.rows,
-          recent_visits: recentVisits.rows,
-          visits_by_type: visitsByType.rows,
-        },
       },
     });
   }),

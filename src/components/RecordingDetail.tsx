@@ -7,7 +7,7 @@ import { ArrowLeft, Bookmark, ThumbsUp, Send, Download } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { LoomEmbed } from "./LoomEmbed";
-import type { Recording, Comment } from "../contexts/AppContext";
+import type { Recording } from "../contexts/AppContext";
 import { validateAndNormalizeLoomUrl } from "../utils/loom-validator";
 import { apiClient } from "../api/client";
 
@@ -33,26 +33,9 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
   const [noteText, setNoteText] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loadingComments, setLoadingComments] = useState(true);
 
+  const comments = getCommentsByEvent(recording.id);
   const questions = comments.filter(c => !c.parentId);
-
-  // Load comments for this recording
-  useEffect(() => {
-    const loadComments = async () => {
-      setLoadingComments(true);
-      try {
-        const loadedComments = await getCommentsByEvent(recording.id);
-        setComments(loadedComments);
-      } catch (error) {
-        console.error('Failed to load comments:', error);
-      } finally {
-        setLoadingComments(false);
-      }
-    };
-    loadComments();
-  }, [recording.id]);
 
   // Записываем просмотр записи при открытии страницы
   useEffect(() => {
@@ -85,83 +68,63 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
     }
   };
 
-  const handleSubmitQuestion = async () => {
+  const handleSubmitQuestion = () => {
     if (!questionText.trim()) {
       toast.error("«Введите текст вопроса»");
       return;
     }
 
-    try {
-      await addComment({
-        eventId: recording.id,
-        authorName: "Александр",
-        authorRole: "user",
-        content: questionText,
-      }, recording.title, "recording");
+    addComment({
+      eventId: recording.id,
+      authorName: "Александр",
+      authorRole: "user",
+      content: questionText,
+    }, recording.title, "recording");
 
-      // Reload comments to get the new one (addComment updates global state, but we need to refresh local state)
-      const loadedComments = await getCommentsByEvent(recording.id);
-      setComments(loadedComments);
-
-      toast.success("«Вопрос отправлен»");
-      setQuestionText("");
-    } catch (error) {
-      toast.error("«Не удалось отправить вопрос»");
-    }
+    toast.success("«Вопрос отправлен»");
+    setQuestionText("");
   };
 
-  const handleSubmitReply = async (parentId: string) => {
+  const handleSubmitReply = (parentId: string) => {
     if (!replyText.trim()) {
       toast.error("«Введите текст ответа»");
       return;
     }
 
-    try {
-      await addComment({
-        eventId: recording.id,
-        parentId,
-        authorName: auth.isAdmin ? "Анна Смирнова" : "Александр",
-        authorRole: auth.isAdmin ? "admin" : "user",
-        content: replyText,
-      }, recording.title, "recording");
+    addComment({
+      eventId: recording.id,
+      parentId,
+      authorName: auth.isAdmin ? "Анна Смирнова" : "Александр",
+      authorRole: auth.isAdmin ? "admin" : "user",
+      content: replyText,
+    }, recording.title, "recording");
 
-      // Reload comments to get the new one
-      const loadedComments = await getCommentsByEvent(recording.id);
-      setComments(loadedComments);
-
-      toast.success("«Ответ отправлен»");
-      setReplyText("");
-      setReplyingTo(null);
-    } catch (error) {
-      toast.error("«Не удалось отправить ответ»");
-    }
+    toast.success("«Ответ отправлен»");
+    setReplyText("");
+    setReplyingTo(null);
   };
 
-  const handleSaveNote = async () => {
+  const handleSaveNote = () => {
     if (!noteText.trim()) {
       toast.error("«Введите текст заметки»");
       return;
     }
 
-    try {
-      await addNote({
-        title: `Заметка к: ${recording.title}`,
-        content: noteText,
-        linkedItem: {
-          id: recording.id,
-          type: "recording",
-          title: recording.title,
-          description: recording.description,
-          date: recording.date,
-          addedAt: new Date().toISOString(),
-        },
-      });
+    addNote({
+      title: `Заметка к: ${recording.title}`,
+      content: noteText,
+      linkedItem: {
+        id: recording.id,
+        type: "recording",
+        title: recording.title,
+        description: recording.description,
+        date: recording.date,
+        addedAt: new Date().toISOString(),
+      },
+    });
 
-      toast.success("«Заметка сохранена»");
-      setNoteText("");
-    } catch (error) {
-      toast.error("«Не удалось сохранить заметку»");
-    }
+    toast.success("«Заметка сохранена»");
+    setNoteText("");
   };
 
   const handleDownloadSummary = () => {

@@ -170,30 +170,6 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_recording_views_recording_id ON labs.recording_views(recording_id)');
 
     await query(`
-      CREATE TABLE IF NOT EXISTS labs.page_visits (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
-        page_path VARCHAR(500) NOT NULL,
-        page_title VARCHAR(200),
-        page_type VARCHAR(50),
-        page_id VARCHAR(100),
-        referrer VARCHAR(500),
-        session_id VARCHAR(100),
-        visited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        time_spent_seconds INTEGER,
-        user_agent TEXT,
-        device_type VARCHAR(20)
-      )
-    `);
-    console.log('Table "labs.page_visits" created');
-
-    await query('CREATE INDEX IF NOT EXISTS idx_page_visits_user_id ON labs.page_visits(user_id)');
-    await query('CREATE INDEX IF NOT EXISTS idx_page_visits_visited_at ON labs.page_visits(visited_at)');
-    await query('CREATE INDEX IF NOT EXISTS idx_page_visits_page_path ON labs.page_visits(page_path)');
-    await query('CREATE INDEX IF NOT EXISTS idx_page_visits_page_type ON labs.page_visits(page_type)');
-    await query('CREATE INDEX IF NOT EXISTS idx_page_visits_session_id ON labs.page_visits(session_id)');
-
-    await query(`
       CREATE TABLE IF NOT EXISTS labs.news (
         id SERIAL PRIMARY KEY,
         title VARCHAR(200) NOT NULL,

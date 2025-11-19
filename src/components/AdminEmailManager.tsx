@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
-import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
-import { Plus, Send, Trash2, Mail, Search, Eye, Pencil } from "lucide-react";
+import { Plus, Send, Trash2, Mail, Search, Eye } from "lucide-react";
 import { AdminFormField } from "./AdminFormField";
 import { AdminEmptyState } from "./AdminEmptyState";
 import { apiClient } from "../api/client";
@@ -181,19 +180,19 @@ export function AdminEmailManager() {
     <div className="space-y-8">
       <div className="flex items-center justify-between gap-6">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-labs-text-secondary" />
           <Input
             type="text"
             placeholder="Поиск кампаний..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-12 bg-white border-2 border-gray-200 focus:border-pink-400 rounded-lg h-12"
+            className="pl-12 bg-white/50 border-labs-border-light focus:border-labs-pink"
           />
         </div>
 
         <Button
           onClick={() => setIsAdding(true)}
-          className="bg-gradient-to-r from-[#fb64b6] to-[#ff637e] hover:opacity-90 text-white gap-2 shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.1),0px_2px_4px_-2px_rgba(0,0,0,0.1)] rounded-lg h-12 px-6"
+          className="bg-labs-pink hover:bg-labs-pink/90 text-white gap-2 shadow-lg"
         >
           <Plus className="w-5 h-5" />
           Создать кампанию
@@ -213,16 +212,16 @@ export function AdminEmailManager() {
       ) : (
         <div className="grid gap-6">
           {filteredCampaigns.map((campaign) => (
-            <Card
+            <div
               key={campaign.id}
-              className="p-6 border-2 border-[rgba(0,0,0,0.1)] rounded-[14px] hover:shadow-lg transition-all"
+              className="bg-white rounded-xl border border-labs-border-light p-6 hover:shadow-lg transition-all"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 space-y-4">
                   <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-pink-500" />
-                    <h3 className="text-lg font-semibold text-neutral-950">{campaign.name}</h3>
-                    <span className={`px-3 py-1 rounded-lg text-xs font-medium ${
+                    <Mail className="w-5 h-5 text-labs-pink" />
+                    <h3 className="text-lg font-semibold text-labs-text">{campaign.name}</h3>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                       campaign.status === 'sent' ? 'bg-green-100 text-green-700' :
                       campaign.status === 'sending' ? 'bg-blue-100 text-blue-700' :
                       'bg-gray-100 text-gray-700'
@@ -234,34 +233,34 @@ export function AdminEmailManager() {
 
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div>
-                      <span className="text-[#6a7282]">Тип:</span>
-                      <span className="ml-2 text-neutral-950 font-medium">{campaign.type}</span>
+                      <span className="text-labs-text-secondary">Тип:</span>
+                      <span className="ml-2 text-labs-text font-medium">{campaign.type}</span>
                     </div>
                     <div>
-                      <span className="text-[#6a7282]">Получателей:</span>
-                      <span className="ml-2 text-neutral-950 font-medium">{campaign.recipients_count}</span>
+                      <span className="text-labs-text-secondary">Получателей:</span>
+                      <span className="ml-2 text-labs-text font-medium">{campaign.recipients_count}</span>
                     </div>
                     <div>
-                      <span className="text-[#6a7282]">Отправлено:</span>
+                      <span className="text-labs-text-secondary">Отправлено:</span>
                       <span className="ml-2 text-green-600 font-medium">{campaign.sent_count}</span>
                     </div>
                     <div>
-                      <span className="text-[#6a7282]">Ошибок:</span>
+                      <span className="text-labs-text-secondary">Ошибок:</span>
                       <span className="ml-2 text-red-600 font-medium">{campaign.failed_count}</span>
                     </div>
                   </div>
 
                   {campaign.subject && (
                     <div className="text-sm">
-                      <span className="text-[#6a7282]">Тема:</span>
-                      <span className="ml-2 text-neutral-950">{campaign.subject}</span>
+                      <span className="text-labs-text-secondary">Тема:</span>
+                      <span className="ml-2 text-labs-text">{campaign.subject}</span>
                     </div>
                   )}
 
                   {campaign.template_id && (
                     <div className="text-sm">
-                      <span className="text-[#6a7282]">Template ID:</span>
-                      <span className="ml-2 text-pink-500 font-mono">{campaign.template_id}</span>
+                      <span className="text-labs-text-secondary">Template ID:</span>
+                      <span className="ml-2 text-labs-pink font-mono">{campaign.template_id}</span>
                     </div>
                   )}
                 </div>
@@ -279,15 +278,6 @@ export function AdminEmailManager() {
                     </Button>
                   )}
                   
-                  <Button
-                    onClick={() => startEdit(campaign)}
-                    variant="outline"
-                    size="sm"
-                    className="gap-2"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-
                   <Button
                     onClick={() => handleViewDetails(campaign.id)}
                     variant="outline"
@@ -307,115 +297,96 @@ export function AdminEmailManager() {
                   </Button>
                 </div>
               </div>
-            </Card>
+            </div>
           ))}
         </div>
       )}
 
       <Dialog open={isAdding || editingItem !== null} onOpenChange={(open: boolean) => !open && resetForm()}>
-        <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto p-0">
-          <div className="p-[34px] space-y-8">
-            <DialogHeader className="pb-0">
-              <DialogTitle className="text-[48px] leading-[48px] tracking-[0.3516px] font-black text-neutral-950">
-                {editingItem ? "Редактировать кампанию" : "Создать кампанию"}
-              </DialogTitle>
-              <DialogDescription className="text-[18px] leading-[28px] tracking-[-0.4395px] text-[#6a7282] mt-2">
-                {editingItem ? "Измените информацию о email-кампании" : "Заполните информацию о email-кампании"}
-              </DialogDescription>
-            </DialogHeader>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingItem ? "Редактировать кампанию" : "Создать кампанию"}</DialogTitle>
+            <DialogDescription>
+              Заполните информацию о email-кампании
+            </DialogDescription>
+          </DialogHeader>
 
-            <div className="space-y-8">
-              <AdminFormField label="Название кампании" required>
-                <Input
-                  value={campaignForm.name}
-                  onChange={(e) => setCampaignForm({ ...campaignForm, name: e.target.value })}
-                  placeholder="Например: Новостная рассылка №1"
-                  className="h-14 border-2 rounded-lg"
-                />
-              </AdminFormField>
+          <div className="space-y-6 py-4">
+            <AdminFormField label="Название кампании" required>
+              <Input
+                value={campaignForm.name}
+                onChange={(e) => setCampaignForm({ ...campaignForm, name: e.target.value })}
+                placeholder="Например: Новостная рассылка №1"
+              />
+            </AdminFormField>
 
-              <AdminFormField label="Тип рассылки" required>
-                <Select
-                  value={campaignForm.type}
-                  onValueChange={(value: string) => setCampaignForm({ ...campaignForm, type: value })}
-                >
-                  <SelectTrigger className="h-14 border-2 rounded-lg">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="news">Новости</SelectItem>
-                    <SelectItem value="marketing">Маркетинг</SelectItem>
-                    <SelectItem value="transactional">Транзакционные</SelectItem>
-                    <SelectItem value="credentials">Данные для входа</SelectItem>
-                  </SelectContent>
-                </Select>
-              </AdminFormField>
-
-              <AdminFormField 
-                label="Template ID (из Notisend)" 
-                helpText="Если указан, письмо будет отправлено по шаблону из Notisend"
+            <AdminFormField label="Тип рассылки" required>
+              <Select
+                value={campaignForm.type}
+                onValueChange={(value) => setCampaignForm({ ...campaignForm, type: value })}
               >
-                <Input
-                  value={campaignForm.template_id}
-                  onChange={(e) => setCampaignForm({ ...campaignForm, template_id: e.target.value })}
-                  placeholder="template_12345"
-                  className="h-14 border-2 rounded-lg"
-                />
-              </AdminFormField>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="news">Новости</SelectItem>
+                  <SelectItem value="marketing">Маркетинг</SelectItem>
+                  <SelectItem value="transactional">Транзакционные</SelectItem>
+                  <SelectItem value="credentials">Данные для входа</SelectItem>
+                </SelectContent>
+              </Select>
+            </AdminFormField>
 
-              {!campaignForm.template_id && (
-                <>
-                  <AdminFormField label="Тема письма" required>
-                    <Input
-                      value={campaignForm.subject}
-                      onChange={(e) => setCampaignForm({ ...campaignForm, subject: e.target.value })}
-                      placeholder="Введите тему письма"
-                      className="h-14 border-2 rounded-lg bg-[#f3f3f5] border-transparent"
-                    />
-                  </AdminFormField>
+            <AdminFormField 
+              label="Template ID (из Notisend)" 
+              hint="Если указан, письмо будет отправлено по шаблону из Notisend"
+            >
+              <Input
+                value={campaignForm.template_id}
+                onChange={(e) => setCampaignForm({ ...campaignForm, template_id: e.target.value })}
+                placeholder="template_12345"
+              />
+            </AdminFormField>
 
-                  <AdminFormField label="HTML контент" required>
-                    <Textarea
-                      value={campaignForm.html_content}
-                      onChange={(e) => setCampaignForm({ ...campaignForm, html_content: e.target.value })}
-                      placeholder="Введите текст письма..."
-                      rows={12}
-                      className="border-2 rounded-lg bg-[#f3f3f5] border-transparent min-h-[300px]"
-                    />
-                    <p className="text-sm text-[#6a7282] mt-2">
-                      💡 Вы можете использовать HTML для форматирования текста
-                    </p>
-                  </AdminFormField>
+            {!campaignForm.template_id && (
+              <>
+                <AdminFormField label="Тема письма">
+                  <Input
+                    value={campaignForm.subject}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, subject: e.target.value })}
+                    placeholder="Тема письма"
+                  />
+                </AdminFormField>
 
-                  <AdminFormField label="Текстовый контент (опционально)">
-                    <Textarea
-                      value={campaignForm.text_content}
-                      onChange={(e) => setCampaignForm({ ...campaignForm, text_content: e.target.value })}
-                      placeholder="Текстовая версия письма"
-                      rows={4}
-                      className="border-2 rounded-lg bg-[#f3f3f5] border-transparent"
-                    />
-                  </AdminFormField>
-                </>
-              )}
-            </div>
+                <AdminFormField label="HTML контент">
+                  <Textarea
+                    value={campaignForm.html_content}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, html_content: e.target.value })}
+                    placeholder="<h1>Привет!</h1><p>Контент письма...</p>"
+                    rows={8}
+                  />
+                </AdminFormField>
 
-            <div className="flex gap-4 pt-4 border-t border-gray-200">
-              <Button 
-                variant="outline" 
-                onClick={resetForm}
-                className="flex-1 h-12 border-2 border-[rgba(0,0,0,0.1)] rounded-lg"
-              >
-                Отмена
-              </Button>
-              <Button 
-                onClick={editingItem ? handleUpdate : handleAdd} 
-                className="flex-1 h-12 bg-gradient-to-r from-[#fb64b6] to-[#ff637e] hover:opacity-90 text-white rounded-lg shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.1),0px_4px_6px_-4px_rgba(0,0,0,0.1)]"
-              >
-                {editingItem ? "Сохранить" : "Создать"}
-              </Button>
-            </div>
+                <AdminFormField label="Текстовый контент (опционально)">
+                  <Textarea
+                    value={campaignForm.text_content}
+                    onChange={(e) => setCampaignForm({ ...campaignForm, text_content: e.target.value })}
+                    placeholder="Текстовая версия письма"
+                    rows={4}
+                  />
+                </AdminFormField>
+              </>
+            )}
           </div>
+
+          <DialogFooter className="gap-3">
+            <Button variant="outline" onClick={resetForm}>
+              Отмена
+            </Button>
+            <Button onClick={editingItem ? handleUpdate : handleAdd} className="bg-labs-pink hover:bg-labs-pink/90">
+              {editingItem ? "Сохранить" : "Создать"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

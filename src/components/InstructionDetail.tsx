@@ -4,7 +4,7 @@ import { Textarea } from "./ui/textarea";
 import { Card } from "./ui/card";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { ArrowLeft, Bookmark, ThumbsUp, Send } from "lucide-react";
-import { useApp, type Comment } from "../contexts/AppContext";
+import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { sanitizeHtml } from "../utils/sanitize";
 import { LoomEmbed } from "./LoomEmbed";
@@ -32,26 +32,9 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
   const [noteText, setNoteText] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [loadingComments, setLoadingComments] = useState(true);
 
+  const comments = getCommentsByEvent(instruction.id);
   const questions = comments.filter(c => !c.parentId);
-
-  // Load comments for this instruction
-  useEffect(() => {
-    const loadComments = async () => {
-      setLoadingComments(true);
-      try {
-        const loadedComments = await getCommentsByEvent(instruction.id);
-        setComments(loadedComments);
-      } catch (error) {
-        console.error('Failed to load comments:', error);
-      } finally {
-        setLoadingComments(false);
-      }
-    };
-    loadComments();
-  }, [instruction.id]);
 
   const handleToggleFavorite = () => {
     if (isFavorite(instruction.id)) {
@@ -69,82 +52,62 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
     }
   };
 
-  const handleSubmitQuestion = async () => {
+  const handleSubmitQuestion = () => {
     if (!questionText.trim()) {
       toast.error("Введите текст вопроса");
       return;
     }
 
-    try {
-      await addComment({
-        eventId: instruction.id,
-        authorName: "Александр",
-        authorRole: "user",
-        content: questionText,
-      }, instruction.title, "instruction");
+    addComment({
+      eventId: instruction.id,
+      authorName: "Александр",
+      authorRole: "user",
+      content: questionText,
+    }, instruction.title, "instruction");
 
-      // Reload comments to get the new one
-      const loadedComments = await getCommentsByEvent(instruction.id);
-      setComments(loadedComments);
-
-      toast.success("Вопрос отправлен");
-      setQuestionText("");
-    } catch (error) {
-      toast.error("Не удалось отправить вопрос");
-    }
+    toast.success("Вопрос отправлен");
+    setQuestionText("");
   };
 
-  const handleSubmitReply = async (parentId: string) => {
+  const handleSubmitReply = (parentId: string) => {
     if (!replyText.trim()) {
       toast.error("Введите текст ответа");
       return;
     }
 
-    try {
-      await addComment({
-        eventId: instruction.id,
-        parentId,
-        authorName: auth.isAdmin ? "Анна Смирнова" : "Александр",
-        authorRole: auth.isAdmin ? "admin" : "user",
-        content: replyText,
-      }, instruction.title, "instruction");
+    addComment({
+      eventId: instruction.id,
+      parentId,
+      authorName: auth.isAdmin ? "Анна Смирнова" : "Александр",
+      authorRole: auth.isAdmin ? "admin" : "user",
+      content: replyText,
+    }, instruction.title, "instruction");
 
-      // Reload comments to get the new one
-      const loadedComments = await getCommentsByEvent(instruction.id);
-      setComments(loadedComments);
-
-      toast.success("Ответ отправлен");
-      setReplyText("");
-      setReplyingTo(null);
-    } catch (error) {
-      toast.error("Не удалось отправить ответ");
-    }
+    toast.success("Ответ отправлен");
+    setReplyText("");
+    setReplyingTo(null);
   };
 
-  const handleSaveNote = async () => {
+  const handleSaveNote = () => {
     if (!noteText.trim()) {
       toast.error("Введите текст заметки");
       return;
     }
 
-    try {
-      await addNote({
-        title: `Заметка к: ${instruction.title}`,
-        content: noteText,
-        linkedItem: {
-          id: instruction.id,
-          type: "instruction",
-          title: instruction.title,
-          description: instruction.description,
-          addedAt: new Date().toISOString(),
-        },
-      });
+    addNote({
+      title: `Заметка к: ${instruction.title}`,
+      content: noteText,
+      linkedItem: {
+        id: instruction.id,
+        type: "instruction",
+        title: instruction.title,
+        description: instruction.description,
+        addedAt: new Date().toISOString(),
+      },
+    });
 
-      toast.success("Заметка сохранена");
-      setNoteText("");
-    } catch (error) {
-      toast.error("Не удалось сохранить заметку");
-    }
+    toast.success("Заметка сохранена");
+    setNoteText("");
   };
 
   const getInitials = (name: string) => {

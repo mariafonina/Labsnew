@@ -10,13 +10,13 @@ interface AdminFormFieldProps {
 
 export function AdminFormField({ label, required, children, helpText }: AdminFormFieldProps) {
   return (
-    <div className="space-y-3">
-      <Label className="text-[18px] leading-[28px] tracking-[-0.4395px] font-bold text-neutral-950">
-        {label} {required && <span className="text-[#f6339a]">*</span>}
+    <div className="space-y-2">
+      <Label className="text-base font-semibold">
+        {label} {required && <span className="text-pink-500">*</span>}
       </Label>
       {children}
       {helpText && (
-        <p className="text-sm leading-5 tracking-[-0.1504px] text-[#6a7282] mt-1">{helpText}</p>
+        <p className="text-sm text-gray-500 mt-1">{helpText}</p>
       )}
     </div>
   );
