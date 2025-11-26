@@ -9,7 +9,7 @@ interface TierFormData {
   name: string;
   description: string;
   price: number;
-  tier_level: number;
+  tier_level?: number;
   features: { value: string }[];
   access_start_date?: string;
   access_end_date?: string;
@@ -34,7 +34,7 @@ export function TierForm({ tier, onSubmit }: TierFormProps) {
       name: '',
       description: '',
       price: 0,
-      tier_level: 1,
+      tier_level: undefined,
       features: [{ value: '' }],
       access_start_date: '',
       access_end_date: ''
@@ -97,21 +97,21 @@ export function TierForm({ tier, onSubmit }: TierFormProps) {
         </div>
 
         <div>
-          <Label htmlFor="tier_level">Уровень доступа *</Label>
+          <Label htmlFor="tier_level">Уровень доступа</Label>
           <Input
             id="tier_level"
             type="number"
             {...register('tier_level', {
-              required: 'Уровень обязателен',
-              min: { value: 1, message: 'Минимальный уровень: 1' }
+              min: { value: 1, message: 'Минимальный уровень: 1' },
+              valueAsNumber: true
             })}
-            placeholder="1"
+            placeholder="Необязательно"
           />
           {errors.tier_level && (
             <p className="text-sm text-red-500 mt-1">{errors.tier_level.message}</p>
           )}
           <p className="text-xs text-muted-foreground mt-1">
-            1 - базовый, 2 - стандарт, 3 - премиум и т.д.
+            Для системы контроля доступа (необязательно)
           </p>
         </div>
       </div>

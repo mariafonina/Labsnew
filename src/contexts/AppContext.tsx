@@ -223,12 +223,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState<AuthData>(() => {
     const saved = localStorage.getItem("auth");
     if (saved) {
-      const authData = JSON.parse(saved);
-      // Если rememberMe был установлен, возвращаем данные авторизации
-      if (authData.rememberMe) {
-        return authData;
+      try {
+        const authData = JSON.parse(saved);
+        // Всегда возвращаем данные авторизации если они есть
+        if (authData.isAuthenticated) {
+          console.log('[AppContext] Auth restored from localStorage:', authData.email);
+          return authData;
+        }
+      } catch (e) {
+        console.error('[AppContext] Failed to parse auth from localStorage', e);
       }
     }
+    console.log('[AppContext] No auth in localStorage, user not authenticated');
     // По умолчанию - не авторизован
     return {
       email: "",
@@ -735,6 +741,45 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setCompletedInstructions([]);
       setComments([]);
     };
+  }, [auth.isAuthenticated]);
+
+  // Sync with AuthContext - check if user is logged in via real API
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    const savedUser = localStorage.getItem('user');
+
+    if (token && savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        console.log('[AppContext] Found auth token and user, syncing auth state');
+        setAuth({
+          email: user.email,
+          password: '',
+          isAuthenticated: true,
+          rememberMe: true,
+          isAdmin: user.role === 'admin',
+        });
+      } catch (e) {
+        console.error('[AppContext] Failed to sync auth from localStorage', e);
+      }
+    }
+  }, []); // Run once on mount
+
+  // Load content when auth state changes
+  useEffect(() => {
+    console.log('[AppContext] Auth changed, isAuthenticated:', auth.isAuthenticated);
+    if (auth.isAuthenticated) {
+      console.log('[AppContext] User is authenticated, calling fetchContent');
+      fetchContent();
+    } else {
+      console.log('[AppContext] User is not authenticated, clearing content');
+      // Clear content when not authenticated
+      setNewsItems([]);
+      setEvents([]);
+      setInstructions([]);
+      setRecordings([]);
+      setFaqItems([]);
+    }
   }, [auth.isAuthenticated]);
 
   const addToFavorites = (item: FavoriteItem) => {
@@ -1251,6 +1296,113 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setInstructionCategories(categories);
     } catch (error) {
       console.error('Error fetching instruction categories:', error);
+    }
+  };
+
+  // Fetch content from API (news, events, instructions, recordings, FAQ)
+  const fetchContent = async () => {
+    console.log('[AppContext] fetchContent called');
+    try {
+      const [newsData, eventsData, instructionsData, recordingsData, faqData] = await Promise.allSettled([
+        apiClient.getNews(),
+        apiClient.getEvents(),
+        apiClient.getInstructions(),
+        apiClient.getRecordings(),
+        apiClient.getFAQ()
+      ]);
+
+      console.log('[AppContext] News data:', newsData);
+      console.log('[AppContext] Events data:', eventsData);
+      console.log('[AppContext] Instructions data:', instructionsData);
+
+      if (newsData.status === 'fulfilled') {
+        console.log('[AppContext] News value:', newsData.value);
+        const items = newsData.value.length > 0 ? newsData.value.map((item: any) => ({
+          id: String(item.id),
+          title: item.title,
+          content: item.content,
+          author: item.author,
+          authorAvatar: item.author_avatar,
+          date: item.date,
+          category: item.category,
+          image: item.image,
+          isNew: item.is_new
+        })) : [];
+        console.log('[AppContext] Setting news items:', items.length);
+        setNewsItems(items);
+      } else {
+        console.error('[AppContext] News data rejected:', newsData.reason);
+      }
+
+      if (eventsData.status === 'fulfilled') {
+        console.log('[AppContext] Events value:', eventsData.value);
+        const items = eventsData.value.length > 0 ? eventsData.value.map((item: any) => ({
+          id: String(item.id),
+          title: item.title,
+          description: item.description,
+          date: item.event_date,
+          time: item.event_time,
+          location: item.location,
+          duration: item.duration,
+          instructor: item.instructor,
+          type: item.type,
+          link: item.link
+        })) : [];
+        console.log('[AppContext] Setting events:', items.length);
+        setEvents(items);
+      } else {
+        console.error('[AppContext] Events data rejected:', eventsData.reason);
+      }
+
+      if (instructionsData.status === 'fulfilled') {
+        console.log('[AppContext] Instructions value:', instructionsData.value);
+        const items = instructionsData.value.length > 0 ? instructionsData.value.map((item: any) => ({
+          id: item.id,
+          title: item.title,
+          categoryId: item.category_id,
+          description: item.description || '',
+          views: item.views || 0,
+          updatedAt: item.updated_at,
+          content: item.content,
+          imageUrl: item.image_url,
+          loomVideoUrl: item.loom_embed_url,
+          order: item.display_order || 0
+        })) : [];
+        console.log('[AppContext] Setting instructions:', items.length);
+        setInstructions(items);
+      } else {
+        console.error('[AppContext] Instructions data rejected:', instructionsData.reason);
+      }
+
+      if (recordingsData.status === 'fulfilled') {
+        const items = recordingsData.value.length > 0 ? recordingsData.value.map((item: any) => ({
+          id: String(item.id),
+          title: item.title,
+          description: item.description,
+          date: item.date,
+          duration: item.duration,
+          loomUrl: item.loom_url,
+          instructor: item.instructor,
+          views: item.views || 0,
+          thumbnail: item.thumbnail,
+          category: item.category
+        })) : [];
+        setRecordings(items);
+      }
+
+      if (faqData.status === 'fulfilled') {
+        const items = faqData.value.length > 0 ? faqData.value.map((item: any) => ({
+          id: String(item.id),
+          question: item.question,
+          answer: item.answer,
+          category: item.category,
+          createdAt: item.created_at,
+          helpful: 0
+        })) : [];
+        setFaqItems(items);
+      }
+    } catch (error) {
+      console.error('Error fetching content:', error);
     }
   };
 

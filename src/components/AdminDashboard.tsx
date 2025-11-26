@@ -26,7 +26,8 @@ export function AdminDashboard() {
     try {
       setLoading(true);
       const response = await apiClient.get("/admin/dashboard/stats");
-      setStats(response.data);
+      console.log("Dashboard stats response:", response);
+      setStats(response);
     } catch (error) {
       console.error("Error loading dashboard stats:", error);
     } finally {

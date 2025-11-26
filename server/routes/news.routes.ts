@@ -1,26 +1,95 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { query } from '../db';
 import { asyncHandler } from '../utils/async-handler';
+import { verifyToken, AuthRequest } from '../auth';
+import { filterResourcesByAccess } from '../utils/access-control';
 
 const router = Router();
 
-router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 20;
-  const offset = (page - 1) * limit;
+// Debug endpoint
+router.get('/debug', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userCohorts = await query(`
+    SELECT ue.cohort_id, c.name as cohort_name
+    FROM labs.user_enrollments ue
+    LEFT JOIN labs.cohorts c ON ue.cohort_id = c.id
+    WHERE ue.user_id = $1 AND ue.status = 'active'
+    AND (ue.expires_at IS NULL OR ue.expires_at > NOW())
+  `, [req.userId]);
 
-  // Получаем общее количество записей
-  const countResult = await query('SELECT COUNT(*) as total FROM labs.news');
-  const total = parseInt(countResult.rows[0].total);
+  const allNews = await query(`SELECT id, title, cohort_id FROM labs.news ORDER BY created_at DESC`);
 
-  // Получаем записи с пагинацией
-  const result = await query(
-    'SELECT * FROM labs.news ORDER BY created_at DESC LIMIT $1 OFFSET $2',
-    [limit, offset]
-  );
+  const newsInProductResources = await query(`
+    SELECT pr.resource_id, pr.cohort_ids, pr.tier_ids
+    FROM labs.product_resources pr
+    WHERE pr.resource_type = 'news'
+  `);
 
   res.json({
-    data: result.rows,
+    userId: req.userId,
+    userCohorts: userCohorts.rows,
+    allNews: allNews.rows,
+    newsInProductResources: newsInProductResources.rows
+  });
+}));
+
+router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+
+  // Получаем cohort_ids пользователя для обратной совместимости
+  const userCohorts = await query(`
+    SELECT cohort_id FROM labs.user_enrollments
+    WHERE user_id = $1 AND status = 'active'
+    AND (expires_at IS NULL OR expires_at > NOW())
+  `, [req.userId]);
+
+  const cohortIds = userCohorts.rows.map(r => r.cohort_id).filter(id => id !== null);
+  console.log(`[NEWS] User ${req.userId} cohorts:`, cohortIds);
+
+  // Получаем все новости
+  const result = await query(`
+    SELECT * FROM labs.news
+    ORDER BY created_at DESC
+  `);
+  console.log(`[NEWS] Total news in DB:`, result.rows.length);
+
+  // Фильтруем по доступу через product_resources (новая система)
+  const filteredByProductResources = await filterResourcesByAccess(
+    req.userId!,
+    'news',
+    result.rows
+  );
+  console.log(`[NEWS] Filtered by product_resources:`, filteredByProductResources.length);
+
+  // Обратная совместимость: добавляем новости с cohort_id (старая система)
+  const newsWithCohortId = result.rows.filter((item: any) =>
+    item.cohort_id && cohortIds.includes(item.cohort_id)
+  );
+  console.log(`[NEWS] News with cohort_id:`, newsWithCohortId.length);
+
+  // Объединяем результаты (убираем дубликаты по id)
+  const allNews = [...filteredByProductResources];
+  const existingIds = new Set(allNews.map(n => n.id));
+
+  for (const news of newsWithCohortId) {
+    if (!existingIds.has(news.id)) {
+      allNews.push(news);
+      existingIds.add(news.id);
+    }
+  }
+
+  console.log(`[NEWS] Total accessible news for user ${req.userId}:`, allNews.length);
+
+  // Сортируем по дате
+  allNews.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+  // Применяем пагинацию к отфильтрованным данным
+  const total = allNews.length;
+  const offset = (page - 1) * limit;
+  const paginatedNews = allNews.slice(offset, offset + limit);
+
+  res.json({
+    data: paginatedNews,
     pagination: {
       page,
       limit,

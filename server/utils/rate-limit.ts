@@ -25,7 +25,7 @@ setInterval(() => {
 
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
+  max: 1000, // 1000 requests per window (increased for development)
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -245,7 +245,7 @@ export const requestSizeLimiter = (req: Request, res: Response, next: NextFuncti
 
 export const burstLimiter = rateLimit({
   windowMs: 10 * 1000, // 10 seconds
-  max: 20, // 20 requests per 10 seconds
+  max: 200, // 200 requests per 10 seconds (increased for development)
   message: 'Too many requests in a short period. Please slow down.',
   standardHeaders: true,
   legacyHeaders: false,

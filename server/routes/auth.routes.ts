@@ -35,6 +35,33 @@ router.post('/register', authLimiter, async (req, res) => {
     );
 
     const user = result.rows[0];
+
+    // Автоматически зачислить в дефолтный продукт и cohort
+    const defaultProduct = await query(`
+      SELECT p.id as product_id, c.id as cohort_id, pt.id as tier_id
+      FROM labs.products p
+      JOIN labs.cohorts c ON c.product_id = p.id AND c.name = 'Основной поток'
+      JOIN labs.pricing_tiers pt ON pt.product_id = p.id AND pt.tier_level = 1
+      WHERE p.name = 'Общая программа'
+      LIMIT 1
+    `);
+
+    if (defaultProduct.rows.length > 0) {
+      const { product_id, cohort_id, tier_id } = defaultProduct.rows[0];
+
+      await query(`
+        INSERT INTO labs.user_enrollments (user_id, product_id, cohort_id, pricing_tier_id, status)
+        VALUES ($1, $2, $3, $4, 'active')
+        ON CONFLICT (user_id, product_id, cohort_id) DO NOTHING
+      `, [user.id, product_id, cohort_id, tier_id]);
+
+      await query(`
+        INSERT INTO labs.cohort_members (cohort_id, user_id)
+        VALUES ($1, $2)
+        ON CONFLICT (cohort_id, user_id) DO NOTHING
+      `, [cohort_id, user.id]);
+    }
+
     const token = generateToken(user.id, user.role);
 
     res.status(201).json({

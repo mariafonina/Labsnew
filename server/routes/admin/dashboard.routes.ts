@@ -1,12 +1,15 @@
-import { Router, Request, Response } from "express";
+import { Router, Response } from "express";
 import { query } from "../../db";
 import { asyncHandler } from "../../utils/async-handler";
+import { verifyToken, requireAdmin, AuthRequest } from "../../auth";
 
 const router = Router();
 
 router.get(
   "/stats",
-  asyncHandler(async (req: Request, res: Response) => {
+  verifyToken,
+  requireAdmin,
+  asyncHandler(async (req: AuthRequest, res: Response) => {
     const [
       usersResult,
       productsResult,

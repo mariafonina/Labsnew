@@ -58,9 +58,24 @@ export function EventsCalendar() {
   };
 
 
-  // Группируем события по типу
-  const upcomingEvents = events.filter(e => e.type === "upcoming");
-  const pastEvents = events.filter(e => e.type === "past");
+  // Группируем события по дате
+  const now = new Date();
+  const upcomingEvents = events.filter(e => {
+    try {
+      const eventDate = new Date(e.date);
+      return eventDate >= now;
+    } catch {
+      return true; // если ошибка парсинга - показываем как upcoming
+    }
+  });
+  const pastEvents = events.filter(e => {
+    try {
+      const eventDate = new Date(e.date);
+      return eventDate < now;
+    } catch {
+      return false;
+    }
+  });
 
   return (
     <>

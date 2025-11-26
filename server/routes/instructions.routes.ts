@@ -5,38 +5,118 @@ import { sanitizeHtml } from '../utils/sanitize';
 import { asyncHandler } from '../utils/async-handler';
 import { findOneOrFail, deleteOneOrFail } from '../utils/db-helpers';
 import { validateAndNormalizeLoomUrl } from '../utils/loom-validator';
+import { filterResourcesByAccess } from '../utils/access-control';
 
 const router = Router();
 
 router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { category, category_id, search } = req.query;
-  let queryText = 'SELECT * FROM labs.instructions WHERE user_id = $1';
-  const params: any[] = [req.userId];
+
+  // Получаем cohort_ids пользователя для обратной совместимости
+  const userCohorts = await query(`
+    SELECT cohort_id FROM labs.user_enrollments
+    WHERE user_id = $1 AND status = 'active'
+    AND (expires_at IS NULL OR expires_at > NOW())
+  `, [req.userId]);
+
+  const cohortIds = userCohorts.rows.map(r => r.cohort_id).filter(id => id !== null);
+  console.log(`[INSTRUCTIONS] User ${req.userId} cohorts:`, cohortIds);
+
+  let queryText = 'SELECT * FROM labs.instructions';
+  const params: any[] = [];
+  let paramIndex = 1;
+  const whereClauses: string[] = [];
 
   if (category_id) {
-    queryText += ' AND category_id = $2';
+    whereClauses.push(`category_id = $${paramIndex++}`);
     params.push(category_id);
   } else if (category) {
-    queryText += ' AND category = $2';
+    whereClauses.push(`category = $${paramIndex++}`);
     params.push(category);
   }
 
   if (search) {
-    const searchIndex = params.length + 1;
-    queryText += ` AND (title ILIKE $${searchIndex} OR content ILIKE $${searchIndex})`;
+    whereClauses.push(`(title ILIKE $${paramIndex} OR content ILIKE $${paramIndex})`);
     params.push(`%${search}%`);
+    paramIndex++;
+  }
+
+  if (whereClauses.length > 0) {
+    queryText += ' WHERE ' + whereClauses.join(' AND ');
   }
 
   queryText += ' ORDER BY category_id NULLS LAST, display_order ASC, created_at DESC';
 
   const result = await query(queryText, params);
-  res.json(result.rows);
+  console.log(`[INSTRUCTIONS] Total instructions in DB:`, result.rows.length);
+  console.log(`[INSTRUCTIONS] Sample instructions:`, result.rows.map((i: any) => ({ id: i.id, title: i.title, cohort_id: i.cohort_id })));
+
+  // Фильтруем по доступу через product_resources (новая система)
+  const filteredByProductResources = await filterResourcesByAccess(
+    req.userId!,
+    'instruction',
+    result.rows
+  );
+  console.log(`[INSTRUCTIONS] Filtered by product_resources:`, filteredByProductResources.length);
+
+  // Обратная совместимость: добавляем инструкции с cohort_id (старая система)
+  const instructionsWithCohortId = result.rows.filter((item: any) =>
+    item.cohort_id && cohortIds.includes(item.cohort_id)
+  );
+  console.log(`[INSTRUCTIONS] Instructions with cohort_id:`, instructionsWithCohortId.length);
+
+  // Объединяем результаты (убираем дубликаты по id)
+  const allInstructions = [...filteredByProductResources];
+  const existingIds = new Set(allInstructions.map(i => i.id));
+
+  for (const instruction of instructionsWithCohortId) {
+    if (!existingIds.has(instruction.id)) {
+      allInstructions.push(instruction);
+      existingIds.add(instruction.id);
+    }
+  }
+
+  console.log(`[INSTRUCTIONS] Total accessible instructions for user ${req.userId}:`, allInstructions.length);
+
+  // Сортируем
+  allInstructions.sort((a, b) => {
+    if (a.category_id !== b.category_id) {
+      if (a.category_id === null) return 1;
+      if (b.category_id === null) return -1;
+      return a.category_id - b.category_id;
+    }
+    if (a.display_order !== b.display_order) {
+      return (a.display_order || 999) - (b.display_order || 999);
+    }
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+  });
+
+  res.json(allInstructions);
 }));
 
 router.get('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const instruction = await findOneOrFail('instructions', { id: req.params.id, user_id: req.userId! }, res);
-  if (!instruction) return;
-  res.json(instruction);
+  // Получаем инструкцию
+  const result = await query(`
+    SELECT * FROM labs.instructions
+    WHERE id = $1
+  `, [req.params.id]);
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Instruction not found' });
+  }
+
+  // Проверяем доступ через product_resources
+  const filteredInstructions = await filterResourcesByAccess(
+    req.userId!,
+    'instruction',
+    result.rows
+  );
+
+  if (filteredInstructions.length === 0) {
+    return res.status(403).json({ error: 'Access denied to this instruction' });
+  }
+
+  res.json(filteredInstructions[0]);
 }));
 
 router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {

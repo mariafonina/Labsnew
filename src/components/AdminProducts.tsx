@@ -29,10 +29,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "./ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./ui/dialog";
 import { toast } from "sonner";
 import { AdminFormWrapper } from "./AdminFormWrapper";
 import { AdminFormField } from "./AdminFormField";
 import { AdminStreamDetail } from "./AdminStreamDetail";
+import { TierForm } from "./admin/TierForm";
 import { apiClient } from "../api/client";
 
 type Tier = {
@@ -112,11 +120,6 @@ export function AdminProducts() {
     end_date: "",
   });
 
-  const [tierForm, setTierForm] = useState({
-    name: "",
-    price: "",
-    tier_level: "",
-  });
 
   const [copyNameForm, setCopyNameForm] = useState("");
 
@@ -152,7 +155,7 @@ export function AdminProducts() {
 
   const loadCohortTiers = async (cohortId: number, productId: number) => {
     try {
-      const tiers = await apiClient.getProductTiers(productId);
+      const tiers = await apiClient.getCohortTiers(productId, cohortId);
 
       setProducts(
         products.map((p) => {
@@ -205,7 +208,6 @@ export function AdminProducts() {
   const resetForms = () => {
     setProductForm({ name: "", description: "", type: "" });
     setCohortForm({ name: "", description: "", start_date: "", end_date: "" });
-    setTierForm({ name: "", price: "", tier_level: "" });
     setCopyNameForm("");
     setIsAddingProduct(false);
     setIsAddingCohort(false);
@@ -286,26 +288,19 @@ export function AdminProducts() {
     }
   };
 
-  const handleAddTier = async () => {
-    if (
-      !selectedCohortForTier ||
-      !tierForm.name ||
-      !tierForm.price ||
-      !tierForm.tier_level
-    ) {
-      toast.error("Заполните все поля");
-      return;
-    }
+  const handleAddTier = async (data: any) => {
+    if (!selectedCohortForTier) return;
 
     try {
-      await apiClient.createProductTier(selectedCohortForTier.productId, {
-        name: tierForm.name,
-        price: parseFloat(tierForm.price),
-        tier_level: parseInt(tierForm.tier_level),
-      });
+      await apiClient.createCohortTier(
+        selectedCohortForTier.productId,
+        selectedCohortForTier.cohortId,
+        data
+      );
 
       await loadCohortTiers(selectedCohortForTier.cohortId, selectedCohortForTier.productId);
-      resetForms();
+      setIsAddingTier(false);
+      setSelectedCohortForTier(null);
       toast.success("Тариф добавлен");
     } catch (error: any) {
       toast.error(error.message || "Не удалось добавить тариф");
@@ -394,7 +389,7 @@ export function AdminProducts() {
     }
 
     try {
-      await apiClient.updateProductTier(productId, tierId, {
+      await apiClient.updateCohortTier(productId, cohortId, tierId, {
         name: editingTierData.name,
         price: parseFloat(editingTierData.price),
       });
@@ -591,44 +586,23 @@ export function AdminProducts() {
         </AdminFormWrapper>
       )}
 
-      {/* Add Tier Form */}
-      {isAddingTier && selectedCohortForTier && (
-        <AdminFormWrapper
-          title="Новый тариф"
-          description="Создайте новый тариф"
-          onSubmit={handleAddTier}
-          onCancel={resetForms}
-        >
-          <AdminFormField label="Название тарифа" required emoji="🏷️">
-            <Input
-              value={tierForm.name}
-              onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
-              placeholder="Тариф VIP"
-              className="h-12 text-base"
-            />
-          </AdminFormField>
-
-          <AdminFormField label="Цена (₽)" required emoji="💰">
-            <Input
-              type="number"
-              value={tierForm.price}
-              onChange={(e) => setTierForm({ ...tierForm, price: e.target.value })}
-              placeholder="15000"
-              className="h-12 text-base"
-            />
-          </AdminFormField>
-
-          <AdminFormField label="Уровень тарифа" required emoji="📊">
-            <Input
-              type="number"
-              value={tierForm.tier_level}
-              onChange={(e) => setTierForm({ ...tierForm, tier_level: e.target.value })}
-              placeholder="1"
-              className="h-12 text-base"
-            />
-          </AdminFormField>
-        </AdminFormWrapper>
-      )}
+      {/* Add Tier Dialog */}
+      <Dialog open={isAddingTier} onOpenChange={(open) => {
+        setIsAddingTier(open);
+        if (!open) {
+          setSelectedCohortForTier(null);
+        }
+      }}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Добавить тариф</DialogTitle>
+            <DialogDescription>
+              Создайте новый тариф с настройками доступа и возможностями
+            </DialogDescription>
+          </DialogHeader>
+          <TierForm onSubmit={handleAddTier} />
+        </DialogContent>
+      </Dialog>
 
       {/* Products List */}
       {products.length === 0 ? (

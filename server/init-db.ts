@@ -413,6 +413,48 @@ export async function initializeDatabase() {
       }
     }
 
+    // Миграция: добавить cohort_id к тарифам
+    try {
+      await query(`ALTER TABLE labs.pricing_tiers ADD COLUMN IF NOT EXISTS cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE`);
+      console.log('Added cohort_id to pricing_tiers');
+
+      // Удалить старый UNIQUE constraint если он есть
+      await query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'pricing_tiers_product_id_tier_level_key'
+          ) THEN
+            ALTER TABLE labs.pricing_tiers DROP CONSTRAINT pricing_tiers_product_id_tier_level_key;
+          END IF;
+        END $$;
+      `);
+      console.log('Removed old UNIQUE constraint from pricing_tiers');
+
+      // Удалить новый UNIQUE constraint если он есть (чтобы можно было сделать tier_level nullable)
+      await query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM pg_constraint
+            WHERE conname = 'pricing_tiers_cohort_id_tier_level_key'
+          ) THEN
+            ALTER TABLE labs.pricing_tiers DROP CONSTRAINT pricing_tiers_cohort_id_tier_level_key;
+          END IF;
+        END $$;
+      `);
+      console.log('Removed cohort_id/tier_level UNIQUE constraint from pricing_tiers');
+
+      // Сделать tier_level nullable
+      await query(`ALTER TABLE labs.pricing_tiers ALTER COLUMN tier_level DROP NOT NULL`);
+      console.log('Made tier_level nullable in pricing_tiers');
+    } catch (err: any) {
+      if (!err.message?.includes('already exists') && !err.message?.includes('duplicate')) {
+        console.error('Error migrating pricing_tiers cohort_id:', err);
+      }
+    }
+
     await query(`
       CREATE TABLE IF NOT EXISTS labs.cohorts (
         id SERIAL PRIMARY KEY,
@@ -562,13 +604,27 @@ export async function initializeDatabase() {
       // Constraints already exist, that's fine
     }
 
+    // Migration: Add cohort_id to materials tables
+    try {
+      await query(`ALTER TABLE labs.instructions ADD COLUMN IF NOT EXISTS cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE`);
+      await query(`ALTER TABLE labs.recordings ADD COLUMN IF NOT EXISTS cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE`);
+      await query(`ALTER TABLE labs.news ADD COLUMN IF NOT EXISTS cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE`);
+      await query(`ALTER TABLE labs.events ADD COLUMN IF NOT EXISTS cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE`);
+      await query(`ALTER TABLE labs.faq ADD COLUMN IF NOT EXISTS cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE`);
+      console.log('Added cohort_id to materials tables (instructions, recordings, news, events, faq)');
+    } catch (err) {
+      console.error('Error adding cohort_id to materials tables:', err);
+    }
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category_id ON labs.instructions(category_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_display_order ON labs.instructions(category_id, display_order)');
+    await query('CREATE INDEX IF NOT EXISTS idx_instructions_cohort_id ON labs.instructions(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instruction_categories_display_order ON labs.instruction_categories(display_order)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_date ON labs.events(event_date)');
+    await query('CREATE INDEX IF NOT EXISTS idx_events_cohort_id ON labs.events(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON labs.favorites(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_favorites_item ON labs.favorites(item_type, item_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_notes_user_id ON labs.notes(user_id)');
@@ -577,8 +633,11 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_progress_user_instruction ON labs.progress(user_id, instruction_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_news_category ON labs.news(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_news_created_at ON labs.news(created_at)');
+    await query('CREATE INDEX IF NOT EXISTS idx_news_cohort_id ON labs.news(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_recordings_created_at ON labs.recordings(created_at)');
+    await query('CREATE INDEX IF NOT EXISTS idx_recordings_cohort_id ON labs.recordings(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_faq_category ON labs.faq(category)');
+    await query('CREATE INDEX IF NOT EXISTS idx_faq_cohort_id ON labs.faq(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_email_campaigns_status ON labs.email_campaigns(status)');
     await query('CREATE INDEX IF NOT EXISTS idx_email_campaigns_created_by ON labs.email_campaigns(created_by)');
     await query('CREATE INDEX IF NOT EXISTS idx_email_logs_campaign_id ON labs.email_logs(campaign_id)');

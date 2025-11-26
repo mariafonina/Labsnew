@@ -19,17 +19,18 @@ interface Tier {
 
 interface TiersListProps {
   productId: number;
+  cohortId: number;
   tiers: Tier[];
   onUpdate: () => void;
 }
 
-export function TiersList({ productId, tiers, onUpdate }: TiersListProps) {
+export function TiersList({ productId, cohortId, tiers, onUpdate }: TiersListProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingTier, setEditingTier] = useState<Tier | null>(null);
 
   const handleCreateTier = async (data: any) => {
     try {
-      await apiClient.createProductTier(productId, data);
+      await apiClient.createCohortTier(productId, cohortId, data);
       toast.success('Тариф успешно создан');
       setIsCreateDialogOpen(false);
       onUpdate();
@@ -43,7 +44,7 @@ export function TiersList({ productId, tiers, onUpdate }: TiersListProps) {
     if (!editingTier) return;
 
     try {
-      await apiClient.updateProductTier(productId, editingTier.id, data);
+      await apiClient.updateCohortTier(productId, cohortId, editingTier.id, data);
       toast.success('Тариф успешно обновлен');
       setEditingTier(null);
       onUpdate();
@@ -57,7 +58,7 @@ export function TiersList({ productId, tiers, onUpdate }: TiersListProps) {
     if (!confirm('Вы уверены, что хотите удалить этот тариф?')) return;
 
     try {
-      await apiClient.deleteProductTier(productId, tierId);
+      await apiClient.deleteCohortTier(productId, cohortId, tierId);
       toast.success('Тариф удален');
       onUpdate();
     } catch (error) {
@@ -68,7 +69,7 @@ export function TiersList({ productId, tiers, onUpdate }: TiersListProps) {
 
   const handleToggleActive = async (tier: Tier) => {
     try {
-      await apiClient.updateProductTier(productId, tier.id, {
+      await apiClient.updateCohortTier(productId, cohortId, tier.id, {
         is_active: !tier.is_active
       });
       toast.success(tier.is_active ? 'Тариф деактивирован' : 'Тариф активирован');

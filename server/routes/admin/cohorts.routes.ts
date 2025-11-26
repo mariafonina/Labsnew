@@ -294,68 +294,22 @@ router.get('/:id/available-materials', verifyToken, requireAdmin, asyncHandler(a
     return res.status(404).json({ error: 'Cohort not found' });
   }
 
-  // Get all resources available through the product
-  const resources = await query(`
-    SELECT DISTINCT pr.resource_type, pr.resource_id
-    FROM labs.product_resources pr
-    WHERE pr.product_id = $1
-    ORDER BY pr.resource_type, pr.resource_id
-  `, [cohort.rows[0].product_id]);
+  // Get ALL materials from the system for admin to assign
+  const [instructions, recordings, news, events, faq] = await Promise.all([
+    query('SELECT id, title FROM labs.instructions ORDER BY title'),
+    query('SELECT id, title FROM labs.recordings ORDER BY title'),
+    query('SELECT id, title FROM labs.news ORDER BY title'),
+    query('SELECT id, title FROM labs.events ORDER BY title'),
+    query('SELECT id, question as title FROM labs.faq ORDER BY question')
+  ]);
 
-  // Group by type
-  const grouped: any = {
-    instructions: [],
-    recordings: [],
-    news: [],
-    events: [],
-    faq: []
+  const availableMaterials = {
+    instructions: instructions.rows,
+    recordings: recordings.rows,
+    news: news.rows,
+    events: events.rows,
+    faq: faq.rows
   };
-
-  for (const resource of resources.rows) {
-    const type = resource.resource_type;
-    const typeKey = type === 'instruction' ? 'instructions' :
-                    type === 'recording' ? 'recordings' :
-                    type === 'news' ? 'news' :
-                    type === 'event' ? 'events' :
-                    type === 'faq' ? 'faq' : null;
-
-    if (typeKey) {
-      grouped[typeKey].push(resource.resource_id);
-    }
-  }
-
-  // Fetch details for each type
-  const availableMaterials: any = {};
-
-  if (grouped.instructions.length > 0) {
-    const placeholders = grouped.instructions.map((_: any, i: number) => `$${i + 1}`).join(',');
-    const result = await query(`SELECT id, title FROM labs.instructions WHERE id IN (${placeholders})`, grouped.instructions);
-    availableMaterials.instructions = result.rows;
-  }
-
-  if (grouped.recordings.length > 0) {
-    const placeholders = grouped.recordings.map((_: any, i: number) => `$${i + 1}`).join(',');
-    const result = await query(`SELECT id, title FROM labs.recordings WHERE id IN (${placeholders})`, grouped.recordings);
-    availableMaterials.recordings = result.rows;
-  }
-
-  if (grouped.news.length > 0) {
-    const placeholders = grouped.news.map((_: any, i: number) => `$${i + 1}`).join(',');
-    const result = await query(`SELECT id, title FROM labs.news WHERE id IN (${placeholders})`, grouped.news);
-    availableMaterials.news = result.rows;
-  }
-
-  if (grouped.events.length > 0) {
-    const placeholders = grouped.events.map((_: any, i: number) => `$${i + 1}`).join(',');
-    const result = await query(`SELECT id, title FROM labs.events WHERE id IN (${placeholders})`, grouped.events);
-    availableMaterials.events = result.rows;
-  }
-
-  if (grouped.faq.length > 0) {
-    const placeholders = grouped.faq.map((_: any, i: number) => `$${i + 1}`).join(',');
-    const result = await query(`SELECT id, question as title FROM labs.faq WHERE id IN (${placeholders})`, grouped.faq);
-    availableMaterials.faq = result.rows;
-  }
 
   res.json(availableMaterials);
 }));

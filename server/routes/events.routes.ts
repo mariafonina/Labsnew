@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { query } from '../db';
 import { verifyToken, AuthRequest } from '../auth';
 import { asyncHandler } from '../utils/async-handler';
@@ -6,11 +6,61 @@ import { deleteOneOrFail } from '../utils/db-helpers';
 
 const router = Router();
 
-router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const result = await query(
-    'SELECT * FROM labs.events ORDER BY event_date ASC, event_time ASC'
+router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
+  // Получаем cohort_ids пользователя для обратной совместимости
+  const userCohorts = await query(`
+    SELECT cohort_id FROM labs.user_enrollments
+    WHERE user_id = $1 AND status = 'active'
+    AND (expires_at IS NULL OR expires_at > NOW())
+  `, [req.userId]);
+
+  const cohortIds = userCohorts.rows.map(r => r.cohort_id).filter(id => id !== null);
+  console.log(`[EVENTS] User ${req.userId} cohorts:`, cohortIds);
+
+  // Получаем все события
+  const result = await query(`
+    SELECT * FROM labs.events
+    ORDER BY event_date ASC, event_time ASC
+  `);
+  console.log(`[EVENTS] Total events in DB:`, result.rows.length);
+  console.log(`[EVENTS] Sample events:`, result.rows.map((e: any) => ({ id: e.id, title: e.title, cohort_id: e.cohort_id })));
+
+  // Фильтруем по доступу через product_resources (новая система)
+  const { filterResourcesByAccess } = await import('../utils/access-control');
+  const filteredByProductResources = await filterResourcesByAccess(
+    req.userId!,
+    'event',
+    result.rows
   );
-  res.json(result.rows);
+  console.log(`[EVENTS] Filtered by product_resources:`, filteredByProductResources.length);
+
+  // Обратная совместимость: добавляем события с cohort_id (старая система)
+  const eventsWithCohortId = result.rows.filter((item: any) =>
+    item.cohort_id && cohortIds.includes(item.cohort_id)
+  );
+  console.log(`[EVENTS] Events with cohort_id:`, eventsWithCohortId.length);
+
+  // Объединяем результаты (убираем дубликаты по id)
+  const allEvents = [...filteredByProductResources];
+  const existingIds = new Set(allEvents.map(e => e.id));
+
+  for (const event of eventsWithCohortId) {
+    if (!existingIds.has(event.id)) {
+      allEvents.push(event);
+      existingIds.add(event.id);
+    }
+  }
+
+  console.log(`[EVENTS] Total accessible events for user ${req.userId}:`, allEvents.length);
+
+  // Сортируем по дате
+  allEvents.sort((a, b) => {
+    const dateA = new Date(a.event_date + ' ' + (a.event_time || '00:00'));
+    const dateB = new Date(b.event_date + ' ' + (b.event_time || '00:00'));
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  res.json(allEvents);
 }));
 
 router.get('/my', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {

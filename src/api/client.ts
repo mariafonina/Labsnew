@@ -514,6 +514,23 @@ class ApiClient {
   }
 
   // Pricing tiers management
+  async getCohortTiers(productId: number, cohortId: number) {
+    return this.get<any[]>(`/admin/products/${productId}/cohorts/${cohortId}/tiers`);
+  }
+
+  async createCohortTier(productId: number, cohortId: number, data: any) {
+    return this.post<any>(`/admin/products/${productId}/cohorts/${cohortId}/tiers`, data);
+  }
+
+  async updateCohortTier(productId: number, cohortId: number, tierId: number, data: any) {
+    return this.put<any>(`/admin/products/${productId}/cohorts/${cohortId}/tiers/${tierId}`, data);
+  }
+
+  async deleteCohortTier(productId: number, cohortId: number, tierId: number) {
+    return this.delete(`/admin/products/${productId}/cohorts/${cohortId}/tiers/${tierId}`);
+  }
+
+  // Backward compatibility (deprecated - use cohort-specific methods instead)
   async getProductTiers(productId: number) {
     return this.get<any[]>(`/admin/products/${productId}/tiers`);
   }

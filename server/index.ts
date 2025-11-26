@@ -25,6 +25,7 @@ import adminEmailsRoutes from './routes/admin/emails.routes';
 import adminInitialPasswordsRoutes from './routes/admin/initial-passwords.routes';
 import adminProductsRoutes from './routes/admin/products.routes';
 import adminCohortsRoutes from './routes/admin/cohorts.routes';
+import adminCohortMaterialsRoutes from './routes/admin/cohort-materials.routes';
 import adminEnrollmentsRoutes from './routes/admin/enrollments.routes';
 import adminResourcesRoutes from './routes/admin/resources.routes';
 import adminDashboardRoutes from './routes/admin/dashboard.routes';
@@ -73,7 +74,7 @@ app.use('/api/notes', notesRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/comments', commentsRoutes);
 
-// Public content routes (no authentication required)
+// Content routes (authentication required for cohort-based filtering)
 app.use('/api/news', newsRoutes);
 app.use('/api/recordings', recordingsRoutes);
 app.use('/api/faq', faqRoutes);
@@ -88,6 +89,7 @@ app.use('/api/admin/users', adminUsersRoutes);
 app.use('/api/admin/emails', adminEmailsRoutes);
 app.use('/api/admin/products', adminProductsRoutes);
 app.use('/api/admin/cohorts', adminCohortsRoutes);
+app.use('/api/admin/cohort-materials', adminCohortMaterialsRoutes);
 app.use('/api/admin/enrollments', adminEnrollmentsRoutes);
 app.use('/api/admin/resources', adminResourcesRoutes);
 app.use('/api/admin', adminInitialPasswordsRoutes);
