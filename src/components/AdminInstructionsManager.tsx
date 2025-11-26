@@ -430,15 +430,20 @@ export function AdminInstructionsManager() {
       .sort((a, b) => a.order - b.order);
   };
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!categoryForm.name) {
       toast.error("Введите название категории");
       return;
     }
-    addInstructionCategory(categoryForm);
-    setCategoryForm({ name: "", description: "" });
-    setIsAddingCategory(false);
-    toast.success("Категория добавлена");
+    try {
+      await addInstructionCategory(categoryForm);
+      setCategoryForm({ name: "", description: "" });
+      setIsAddingCategory(false);
+      toast.success("Категория добавлена");
+    } catch (error) {
+      toast.error("Ошибка при добавлении категории");
+      console.error("Error adding category:", error);
+    }
   };
 
   const handleAddInstruction = () => {

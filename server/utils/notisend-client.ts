@@ -31,10 +31,14 @@ class NotisendClient {
     this.apiKey = process.env.NOTISEND_API_KEY || "";
     this.projectName = process.env.NOTISEND_PROJECT_NAME || "";
 
+    // В dev окружении можно работать без Notisend
     if (!this.apiKey || !this.projectName) {
-      throw new Error(
-        "NOTISEND_API_KEY and NOTISEND_PROJECT_NAME must be set in environment variables",
-      );
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error(
+          "NOTISEND_API_KEY and NOTISEND_PROJECT_NAME must be set in environment variables",
+        );
+      }
+      console.warn('⚠️  Notisend credentials not set. Email functionality will be disabled.');
     }
   }
 
@@ -52,6 +56,12 @@ class NotisendClient {
   }
 
   async sendEmail(params: NotisendEmailParams): Promise<any> {
+    // Проверка credentials
+    if (!this.apiKey || !this.projectName) {
+      console.warn('⚠️  Notisend not configured. Email not sent:', params.to);
+      return { success: false, message: 'Email service not configured' };
+    }
+
     try {
       // Валидация параметров
       if (!params.to || !params.subject) {

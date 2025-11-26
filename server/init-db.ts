@@ -32,19 +32,44 @@ export async function initializeDatabase() {
     }
 
     await query(`
+      CREATE TABLE IF NOT EXISTS labs.instruction_categories (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(200) NOT NULL,
+        description TEXT,
+        display_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.instruction_categories" created');
+
+    await query(`
       CREATE TABLE IF NOT EXISTS labs.instructions (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
+        category_id INTEGER REFERENCES labs.instruction_categories(id) ON DELETE SET NULL,
         title VARCHAR(200) NOT NULL,
         content TEXT NOT NULL,
         category VARCHAR(50),
         tags TEXT[],
         image_url VARCHAR(500),
+        display_order INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('Table "labs.instructions" created');
+
+    // Migrate existing instructions table
+    try {
+      await query(`ALTER TABLE labs.instructions ADD COLUMN IF NOT EXISTS category_id INTEGER REFERENCES labs.instruction_categories(id) ON DELETE SET NULL`);
+      await query(`ALTER TABLE labs.instructions ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0`);
+      console.log('Migrated labs.instructions table');
+    } catch (err: any) {
+      if (!err.message?.includes('already exists') && !err.message?.includes('duplicate')) {
+        console.error('Error migrating instructions table:', err);
+      }
+    }
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.events (
@@ -156,20 +181,6 @@ export async function initializeDatabase() {
     console.log('Table "labs.progress" created');
 
     await query(`
-      CREATE TABLE IF NOT EXISTS labs.recording_views (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
-        recording_id INTEGER REFERENCES labs.recordings(id) ON DELETE CASCADE,
-        viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(user_id, recording_id)
-      )
-    `);
-    console.log('Table "labs.recording_views" created');
-
-    await query('CREATE INDEX IF NOT EXISTS idx_recording_views_user_id ON labs.recording_views(user_id)');
-    await query('CREATE INDEX IF NOT EXISTS idx_recording_views_recording_id ON labs.recording_views(recording_id)');
-
-    await query(`
       CREATE TABLE IF NOT EXISTS labs.news (
         id SERIAL PRIMARY KEY,
         title VARCHAR(200) NOT NULL,
@@ -204,6 +215,20 @@ export async function initializeDatabase() {
     console.log('Table "labs.recordings" created');
 
     await query(`
+      CREATE TABLE IF NOT EXISTS labs.recording_views (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
+        recording_id INTEGER REFERENCES labs.recordings(id) ON DELETE CASCADE,
+        viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, recording_id)
+      )
+    `);
+    console.log('Table "labs.recording_views" created');
+
+    await query('CREATE INDEX IF NOT EXISTS idx_recording_views_user_id ON labs.recording_views(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_recording_views_recording_id ON labs.recording_views(recording_id)');
+
+    await query(`
       CREATE TABLE IF NOT EXISTS labs.faq (
         id SERIAL PRIMARY KEY,
         question TEXT NOT NULL,
@@ -232,8 +257,8 @@ export async function initializeDatabase() {
         scheduled_at TIMESTAMP,
         sent_at TIMESTAMP,
         segment_type VARCHAR(20) DEFAULT 'all',
-        segment_product_id INTEGER REFERENCES labs.products(id),
-        segment_cohort_id INTEGER REFERENCES labs.cohorts(id),
+        segment_product_id INTEGER,
+        segment_cohort_id INTEGER,
         opened_count INTEGER DEFAULT 0,
         clicked_count INTEGER DEFAULT 0,
         created_by INTEGER REFERENCES labs.users(id),
@@ -246,8 +271,8 @@ export async function initializeDatabase() {
     // Migrate existing email_campaigns table
     try {
       await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS segment_type VARCHAR(20) DEFAULT 'all'`);
-      await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS segment_product_id INTEGER REFERENCES labs.products(id)`);
-      await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS segment_cohort_id INTEGER REFERENCES labs.cohorts(id)`);
+      await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS segment_product_id INTEGER`);
+      await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS segment_cohort_id INTEGER`);
       await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS opened_count INTEGER DEFAULT 0`);
       await query(`ALTER TABLE labs.email_campaigns ADD COLUMN IF NOT EXISTS clicked_count INTEGER DEFAULT 0`);
       await query(`UPDATE labs.email_campaigns SET segment_type = 'all', opened_count = 0, clicked_count = 0 WHERE segment_type IS NULL`);
@@ -502,8 +527,46 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.materials" created for cohort-material relationships');
 
+    // Добавить foreign key constraints для email_campaigns после создания products/cohorts
+    try {
+      await query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'email_campaigns_segment_product_id_fkey'
+            AND table_schema = 'labs'
+          ) THEN
+            ALTER TABLE labs.email_campaigns
+            ADD CONSTRAINT email_campaigns_segment_product_id_fkey
+            FOREIGN KEY (segment_product_id) REFERENCES labs.products(id);
+          END IF;
+        END $$;
+      `);
+      await query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'email_campaigns_segment_cohort_id_fkey'
+            AND table_schema = 'labs'
+          ) THEN
+            ALTER TABLE labs.email_campaigns
+            ADD CONSTRAINT email_campaigns_segment_cohort_id_fkey
+            FOREIGN KEY (segment_cohort_id) REFERENCES labs.cohorts(id);
+          END IF;
+        END $$;
+      `);
+      console.log('Added foreign key constraints to email_campaigns');
+    } catch (err) {
+      // Constraints already exist, that's fine
+    }
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
+    await query('CREATE INDEX IF NOT EXISTS idx_instructions_category_id ON labs.instructions(category_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_instructions_display_order ON labs.instructions(category_id, display_order)');
+    await query('CREATE INDEX IF NOT EXISTS idx_instruction_categories_display_order ON labs.instruction_categories(display_order)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_date ON labs.events(event_date)');
     await query('CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON labs.favorites(user_id)');

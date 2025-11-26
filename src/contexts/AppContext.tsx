@@ -1,5 +1,14 @@
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { apiClient } from "../api/client";
+
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  return '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 import { validateAndNormalizeLoomUrl } from "../utils/loom-validator";
 
 export interface FavoriteItem {
@@ -81,25 +90,30 @@ export interface Event {
 }
 
 export interface Instruction {
-  id: string;
+  id: string | number;
   title: string;
-  categoryId: string; // ID категории вместо строки
+  categoryId: string | number | null; // ID категории
+  category_id?: number | null; // Поле из БД
   description: string;
   views: number;
   updatedAt: string;
   content?: string;
   downloadUrl?: string;
   order: number; // порядок внутри категории
+  display_order?: number; // Поле из БД
   loom_embed_url?: string; // URL Loom видео для встраивания
   imageUrl?: string; // URL изображения на всю ширину
 }
 
 export interface InstructionCategory {
-  id: string;
+  id: string | number;
   name: string;
   description?: string;
-  order: number; // порядок категории
+  order: number; // порядок категории (для фронтенда)
+  display_order?: number; // Поле из БД
   createdAt: string;
+  created_at?: string; // Поле из БД
+  updated_at?: string; // Поле из БД
 }
 
 export interface Recording {
@@ -288,8 +302,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   });
 
   const [instructionCategories, setInstructionCategories] = useState<InstructionCategory[]>(() => {
-    const saved = localStorage.getItem("instructionCategories");
-    return saved ? JSON.parse(saved) : [
+    // Categories are now loaded from DB via API, not localStorage
+    return [
       {
         id: "cat-1",
         name: "Базовые навыки",
@@ -571,9 +585,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("instructions", JSON.stringify(instructions));
   }, [instructions]);
 
-  useEffect(() => {
-    localStorage.setItem("instructionCategories", JSON.stringify(instructionCategories));
-  }, [instructionCategories]);
+  // Categories are now stored in DB, not localStorage
+  // useEffect(() => {
+  //   localStorage.setItem("instructionCategories", JSON.stringify(instructionCategories));
+  // }, [instructionCategories]);
 
   useEffect(() => {
     localStorage.setItem("recordings", JSON.stringify(recordings));
@@ -707,6 +722,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
 
     loadUserData();
+    fetchInstructionCategories(); // Load categories from DB
 
     // Cleanup: invalidate this request and clear state
     return () => {
@@ -1033,53 +1049,209 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   // Admin functions for Instruction Categories
-  const addInstructionCategory = (category: Omit<InstructionCategory, "id" | "order" | "createdAt">) => {
-    const maxOrder = instructionCategories.length > 0
-      ? Math.max(...instructionCategories.map(c => c.order))
-      : -1;
-    
-    const newCategory: InstructionCategory = {
-      ...category,
-      id: `cat-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      order: maxOrder + 1,
-      createdAt: new Date().toISOString(),
-    };
-    setInstructionCategories((prev) => [...prev, newCategory]);
-  };
+  const addInstructionCategory = async (category: Omit<InstructionCategory, "id" | "order" | "createdAt">) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Не авторизован');
+      }
 
-  const updateInstructionCategory = (id: string, updates: Partial<InstructionCategory>) => {
-    setInstructionCategories((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
-    );
-  };
-
-  const deleteInstructionCategory = (id: string) => {
-    // Удаляем категорию и все инструкции в ней
-    setInstructionCategories((prev) => prev.filter((item) => item.id !== id));
-    setInstructions((prev) => prev.filter((item) => item.categoryId !== id));
-  };
-
-  const moveInstructionCategory = (categoryId: string, newOrder: number) => {
-    setInstructionCategories((prev) => {
-      const category = prev.find(c => c.id === categoryId);
-      if (!category) return prev;
-
-      return prev.map(item => {
-        if (item.id === categoryId) {
-          return { ...item, order: newOrder };
-        }
-        
-        if (newOrder < category.order && item.order >= newOrder && item.order < category.order) {
-          return { ...item, order: item.order + 1 };
-        }
-        
-        if (newOrder > category.order && item.order <= newOrder && item.order > category.order) {
-          return { ...item, order: item.order - 1 };
-        }
-        
-        return item;
+      const response = await fetch(`${API_BASE_URL}/instruction-categories`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: category.name,
+          description: category.description,
+        }),
       });
-    });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Ошибка при создании категории');
+      }
+
+      const newCategoryFromDB = await response.json();
+
+      // Конвертируем из БД формата в фронтенд формат
+      const newCategory: InstructionCategory = {
+        id: newCategoryFromDB.id,
+        name: newCategoryFromDB.name,
+        description: newCategoryFromDB.description,
+        order: newCategoryFromDB.display_order,
+        createdAt: newCategoryFromDB.created_at,
+        display_order: newCategoryFromDB.display_order,
+        created_at: newCategoryFromDB.created_at,
+        updated_at: newCategoryFromDB.updated_at,
+      };
+
+      setInstructionCategories((prev) => [...prev, newCategory]);
+    } catch (error) {
+      console.error('Error adding instruction category:', error);
+      throw error;
+    }
+  };
+
+  const updateInstructionCategory = async (id: string | number, updates: Partial<InstructionCategory>) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Не авторизован');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/instruction-categories/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: updates.name,
+          description: updates.description,
+          display_order: updates.order ?? updates.display_order,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Ошибка при обновлении категории');
+      }
+
+      const updatedCategoryFromDB = await response.json();
+
+      setInstructionCategories((prev) =>
+        prev.map((item) => item.id === id ? {
+          ...item,
+          name: updatedCategoryFromDB.name,
+          description: updatedCategoryFromDB.description,
+          order: updatedCategoryFromDB.display_order,
+          display_order: updatedCategoryFromDB.display_order,
+          updated_at: updatedCategoryFromDB.updated_at,
+        } : item)
+      );
+    } catch (error) {
+      console.error('Error updating instruction category:', error);
+      throw error;
+    }
+  };
+
+  const deleteInstructionCategory = async (id: string | number) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Не авторизован');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/instruction-categories/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Ошибка при удалении категории');
+      }
+
+      // Удаляем категорию и все инструкции в ней из локального состояния
+      setInstructionCategories((prev) => prev.filter((item) => item.id !== id));
+      setInstructions((prev) => prev.filter((item) => item.categoryId !== id && item.category_id !== id));
+    } catch (error) {
+      console.error('Error deleting instruction category:', error);
+      throw error;
+    }
+  };
+
+  const moveInstructionCategory = async (categoryId: string | number, newOrder: number) => {
+    try {
+      // Сначала обновляем локально для плавности
+      setInstructionCategories((prev) => {
+        const category = prev.find(c => c.id === categoryId);
+        if (!category) return prev;
+
+        return prev.map(item => {
+          if (item.id === categoryId) {
+            return { ...item, order: newOrder };
+          }
+
+          if (newOrder < category.order && item.order >= newOrder && item.order < category.order) {
+            return { ...item, order: item.order + 1 };
+          }
+
+          if (newOrder > category.order && item.order <= newOrder && item.order > category.order) {
+            return { ...item, order: item.order - 1 };
+          }
+
+          return item;
+        });
+      });
+
+      // Затем отправляем на сервер
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Не авторизован');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/instruction-categories/${categoryId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          display_order: newOrder,
+        }),
+      });
+
+      if (!response.ok) {
+        // Если ошибка, откатываем изменения
+        throw new Error('Ошибка при изменении порядка категории');
+      }
+    } catch (error) {
+      console.error('Error moving instruction category:', error);
+      // Перезагружаем категории при ошибке
+      fetchInstructionCategories();
+      throw error;
+    }
+  };
+
+  // Fetch instruction categories from API
+  const fetchInstructionCategories = async () => {
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/instruction-categories`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка при загрузке категорий инструкций');
+      }
+
+      const categoriesFromDB = await response.json();
+
+      // Конвертируем из БД формата в фронтенд формат
+      const categories: InstructionCategory[] = categoriesFromDB.map((cat: any) => ({
+        id: cat.id,
+        name: cat.name,
+        description: cat.description,
+        order: cat.display_order,
+        createdAt: cat.created_at,
+        display_order: cat.display_order,
+        created_at: cat.created_at,
+        updated_at: cat.updated_at,
+      }));
+
+      setInstructionCategories(categories);
+    } catch (error) {
+      console.error('Error fetching instruction categories:', error);
+    }
   };
 
   // Admin functions for Recordings

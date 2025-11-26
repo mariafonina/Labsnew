@@ -9,11 +9,14 @@ import { validateAndNormalizeLoomUrl } from '../utils/loom-validator';
 const router = Router();
 
 router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { category, search } = req.query;
+  const { category, category_id, search } = req.query;
   let queryText = 'SELECT * FROM labs.instructions WHERE user_id = $1';
   const params: any[] = [req.userId];
 
-  if (category) {
+  if (category_id) {
+    queryText += ' AND category_id = $2';
+    params.push(category_id);
+  } else if (category) {
     queryText += ' AND category = $2';
     params.push(category);
   }
@@ -24,7 +27,7 @@ router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response
     params.push(`%${search}%`);
   }
 
-  queryText += ' ORDER BY created_at DESC';
+  queryText += ' ORDER BY category_id NULLS LAST, display_order ASC, created_at DESC';
 
   const result = await query(queryText, params);
   res.json(result.rows);
@@ -37,7 +40,7 @@ router.get('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Respo
 }));
 
 router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { title, content, category, tags, image_url, loom_embed_url } = req.body;
+  const { title, content, category, category_id, tags, image_url, loom_embed_url, display_order } = req.body;
 
   if (!title || !content) {
     return res.status(400).json({ error: 'Title and content are required' });
@@ -46,9 +49,21 @@ router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Respons
   const sanitizedContent = sanitizeHtml(content);
   const validatedLoomUrl = validateAndNormalizeLoomUrl(loom_embed_url);
 
+  // Get max order for category if display_order not provided
+  let order = display_order;
+  if (order === undefined && category_id) {
+    const maxOrderResult = await query(
+      'SELECT COALESCE(MAX(display_order), -1) as max_order FROM labs.instructions WHERE category_id = $1',
+      [category_id]
+    );
+    order = maxOrderResult.rows[0].max_order + 1;
+  } else if (order === undefined) {
+    order = 0;
+  }
+
   const result = await query(
-    'INSERT INTO labs.instructions (user_id, title, content, category, tags, image_url, loom_embed_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
-    [req.userId, title, sanitizedContent, category, tags, image_url, validatedLoomUrl]
+    'INSERT INTO labs.instructions (user_id, title, content, category, category_id, tags, image_url, loom_embed_url, display_order) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+    [req.userId, title, sanitizedContent, category, category_id || null, tags, image_url, validatedLoomUrl, order]
   );
 
   res.status(201).json(result.rows[0]);
@@ -56,7 +71,7 @@ router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Respons
 
 router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { title, content, category, tags, image_url, loom_embed_url } = req.body;
+  const { title, content, category, category_id, tags, image_url, loom_embed_url, display_order } = req.body;
 
   const sanitizedContent = content !== undefined ? sanitizeHtml(content) : undefined;
   const validatedLoomUrl = loom_embed_url !== undefined ? validateAndNormalizeLoomUrl(loom_embed_url) : undefined;
@@ -77,6 +92,10 @@ router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Respo
     updateParts.push(`category = $${paramIndex++}`);
     values.push(category);
   }
+  if (category_id !== undefined) {
+    updateParts.push(`category_id = $${paramIndex++}`);
+    values.push(category_id);
+  }
   if (tags !== undefined) {
     updateParts.push(`tags = $${paramIndex++}`);
     values.push(tags);
@@ -88,6 +107,10 @@ router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Respo
   if (validatedLoomUrl !== undefined) {
     updateParts.push(`loom_embed_url = $${paramIndex++}`);
     values.push(validatedLoomUrl);
+  }
+  if (display_order !== undefined) {
+    updateParts.push(`display_order = $${paramIndex++}`);
+    values.push(display_order);
   }
 
   if (updateParts.length === 0) {

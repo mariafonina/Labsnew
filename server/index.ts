@@ -8,6 +8,7 @@ import { globalLimiter, burstLimiter, requestSizeLimiter } from './utils/rate-li
 import authRoutes from './routes/auth.routes';
 import profileRoutes from './routes/profile.routes';
 import instructionsRoutes from './routes/instructions.routes';
+import instructionCategoriesRoutes from './routes/instruction-categories.routes';
 import eventsRoutes from './routes/events.routes';
 import favoritesRoutes from './routes/favorites.routes';
 import notesRoutes from './routes/notes.routes';
@@ -65,6 +66,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api', passwordResetRoutes);
 app.use('/api', setupPasswordRoutes);
 app.use('/api/instructions', instructionsRoutes);
+app.use('/api/instruction-categories', instructionCategoriesRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use('/api/notes', notesRoutes);

@@ -92,9 +92,14 @@
       },
       "scripts": {
             "dev": "concurrently \"npm run server\" \"npm run client\"",
+            "dev:local": "./dev-start.sh",
             "client": "vite",
             "server": "tsx watch server/index.ts",
             "build": "vite build",
-            "migrate": "tsx server/migrate.ts"
+            "migrate": "tsx server/migrate.ts",
+            "db:up": "docker-compose up -d",
+            "db:down": "docker-compose down",
+            "db:logs": "docker-compose logs -f postgres",
+            "db:reset": "docker-compose down -v && docker-compose up -d && npm run migrate"
       }
 }

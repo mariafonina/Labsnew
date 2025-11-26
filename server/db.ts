@@ -1,4 +1,8 @@
+import { config } from 'dotenv';
 import { Pool } from 'pg';
+
+// Загрузить переменные окружения ДО создания pool
+config();
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -6,7 +10,8 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  ssl: {
+  // SSL только для production (не для localhost)
+  ssl: process.env.DB_HOST === 'localhost' ? false : {
     rejectUnauthorized: false
   },
   max: 20,

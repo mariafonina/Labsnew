@@ -34,45 +34,6 @@ export function AdminDashboard() {
     }
   };
 
-  const statCards = [
-    {
-      title: "Пользователи",
-      value: stats?.totalUsers || 0,
-      icon: Users,
-      color: "from-blue-400 to-cyan-400",
-    },
-    {
-      title: "Продукты",
-      value: stats?.totalProducts || 0,
-      icon: Package,
-      color: "from-pink-400 to-rose-400",
-    },
-    {
-      title: "Потоки",
-      value: stats?.totalCohorts || 0,
-      icon: Layers,
-      color: "from-purple-400 to-indigo-400",
-    },
-    {
-      title: "Тарифы",
-      value: stats?.totalTiers || 0,
-      icon: Shield,
-      color: "from-green-400 to-emerald-400",
-    },
-    {
-      title: "Общий доход",
-      value: `${stats?.totalRevenue || 0} ₽`,
-      icon: DollarSign,
-      color: "from-orange-400 to-amber-400",
-    },
-    {
-      title: "Средний чек",
-      value: `${stats?.averageCheck || 0} ₽`,
-      icon: TrendingUp,
-      color: "from-teal-400 to-cyan-400",
-    },
-  ];
-
   const quickActions = [
     {
       title: "Создать продукт",
@@ -112,31 +73,81 @@ export function AdminDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading
-          ? Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="p-6">
-                <Skeleton className="h-32 w-full" />
-              </Card>
-            ))
-          : statCards.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <Card
-                  key={index}
-                  className="p-6 hover:shadow-lg transition-shadow border-2"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`h-14 w-14 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center shadow-md`}>
-                      <Icon className="h-7 w-7 text-white" />
-                    </div>
-                  </div>
-                  <p className="text-sm font-semibold text-gray-500 mb-1">
-                    {stat.title}
-                  </p>
-                  <p className="font-black text-4xl text-gray-900">{stat.value}</p>
-                </Card>
-              );
-            })}
+        {loading ? (
+          Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="p-6">
+              <Skeleton className="h-32 w-full" />
+            </Card>
+          ))
+        ) : (
+          <>
+            {/* Пользователи */}
+            <Card className="p-6 hover:shadow-lg transition-shadow border-2">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center shadow-md">
+                  <Users className="h-7 w-7 text-white" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-gray-500 mb-1">Пользователи</p>
+              <p className="font-black text-4xl text-gray-900">{stats?.totalUsers || 0}</p>
+            </Card>
+
+            {/* Продукты */}
+            <Card className="p-6 hover:shadow-lg transition-shadow border-2">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-pink-400 to-rose-400 flex items-center justify-center shadow-md">
+                  <Package className="h-7 w-7 text-white" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-gray-500 mb-1">Продукты</p>
+              <p className="font-black text-4xl text-gray-900">{stats?.totalProducts || 0}</p>
+            </Card>
+
+            {/* Потоки */}
+            <Card className="p-6 hover:shadow-lg transition-shadow border-2">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-purple-400 to-indigo-400 flex items-center justify-center shadow-md">
+                  <Layers className="h-7 w-7 text-white" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-gray-500 mb-1">Потоки</p>
+              <p className="font-black text-4xl text-gray-900">{stats?.totalCohorts || 0}</p>
+            </Card>
+
+            {/* Тарифы */}
+            <Card className="p-6 hover:shadow-lg transition-shadow border-2">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-green-400 to-emerald-400 flex items-center justify-center shadow-md">
+                  <Shield className="h-7 w-7 text-white" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-gray-500 mb-1">Тарифы</p>
+              <p className="font-black text-4xl text-gray-900">{stats?.totalTiers || 0}</p>
+            </Card>
+
+            {/* Общий доход */}
+            <Card className="p-6 hover:shadow-lg transition-shadow border-2">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-orange-400 to-amber-400 flex items-center justify-center shadow-md">
+                  <DollarSign className="h-7 w-7 text-white" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-gray-500 mb-1">Общий доход</p>
+              <p className="font-black text-4xl text-gray-900">{stats?.totalRevenue || 0} ₽</p>
+            </Card>
+
+            {/* Средний чек */}
+            <Card className="p-6 hover:shadow-lg transition-shadow border-2">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-14 w-14 rounded-xl bg-gradient-to-br from-teal-400 to-cyan-400 flex items-center justify-center shadow-md">
+                  <TrendingUp className="h-7 w-7 text-white" />
+                </div>
+              </div>
+              <p className="text-sm font-semibold text-gray-500 mb-1">Средний чек</p>
+              <p className="font-black text-4xl text-gray-900">{stats?.averageCheck || 0} ₽</p>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Bottom Grid - Products by Users + Quick Actions */}

@@ -1,4 +1,8 @@
+import { config } from 'dotenv';
 import { initializeDatabase } from './init-db';
+
+// Загрузить .env файл
+config();
 
 async function runMigration() {
   try {
