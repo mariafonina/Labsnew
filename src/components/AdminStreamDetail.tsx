@@ -85,10 +85,12 @@ interface AdminStreamDetailProps {
   cohortId: number;
   cohortName: string;
   productName: string;
+  productType?: string;
+  tiersCount?: number;
   onBack: () => void;
 }
 
-export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }: AdminStreamDetailProps) {
+export function AdminStreamDetail({ cohortId, cohortName, productName, productType, tiersCount = 0, onBack }: AdminStreamDetailProps) {
   const [materials, setMaterials] = useState<StreamMaterials>({
     faqs: [],
     instructions: [],
@@ -415,11 +417,11 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }:
   };
 
   const materialSections = [
-    { id: "news", label: "Лента новостей", icon: Newspaper, count: materials.news.length, color: "from-pink-400 to-rose-400" },
-    { id: "schedule", label: "Расписание", icon: Calendar, count: materials.schedule.length, color: "from-orange-400 to-amber-400" },
-    { id: "recordings", label: "Записи эфиров", icon: Video, count: materials.recordings.length, color: "from-green-400 to-emerald-400" },
-    { id: "faqs", label: "Вопрос-ответ", icon: HelpCircle, count: materials.faqs.length, color: "from-blue-400 to-cyan-400" },
-    { id: "instructions", label: "База знаний", icon: BookOpen, count: materials.instructions.length, color: "from-purple-400 to-indigo-400" },
+    { id: "news", label: "Лента новостей", icon: Newspaper, count: materials.news.length, color: "bg-pink-400" },
+    { id: "schedule", label: "Расписание", icon: Calendar, count: materials.schedule.length, color: "bg-emerald-400" },
+    { id: "recordings", label: "Записи эфиров", icon: Video, count: materials.recordings.length, color: "bg-cyan-400" },
+    { id: "faqs", label: "Вопрос-ответ", icon: HelpCircle, count: materials.faqs.length, color: "bg-purple-400" },
+    { id: "instructions", label: "База знаний", icon: BookOpen, count: materials.instructions.length, color: "bg-orange-400" },
   ];
 
   if (loading) {
@@ -443,38 +445,35 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }:
           Назад к продукту
         </Button>
 
-        <div className="flex items-start justify-between flex-wrap gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="font-black text-5xl">{cohortName}</h1>
-              <Badge className="bg-purple-100 text-purple-700 text-lg px-3 py-1">
-                {productName}
-              </Badge>
-            </div>
-            <p className="text-gray-500 text-lg">
-              Управление материалами потока
-            </p>
-          </div>
+        <div className="flex items-center gap-4 mb-2">
+          <h1 className="font-black text-5xl">{cohortName}</h1>
+          <Badge className="bg-gradient-to-r from-emerald-400 to-green-400 text-white text-base px-4 py-1.5 rounded-full">
+            {productType || productName}
+          </Badge>
         </div>
+        <p className="text-gray-500 text-lg">
+          Управление материалами потока{tiersCount > 0 ? ` • ${tiersCount} ${tiersCount === 1 ? 'тариф' : tiersCount < 5 ? 'тарифа' : 'тарифов'}` : ''}
+        </p>
       </div>
 
       {/* Material Sections Navigation */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {materialSections.map((section) => {
           const Icon = section.icon;
+          const isSelected = activeSection === section.id;
           return (
             <Card
               key={section.id}
-              className={`p-4 cursor-pointer transition-all hover:shadow-md ${
-                activeSection === section.id ? "ring-2 ring-purple-400 shadow-lg" : ""
+              className={`p-5 cursor-pointer transition-all hover:shadow-md border-2 ${
+                isSelected ? "border-purple-400 shadow-lg" : "border-transparent"
               }`}
               onClick={() => setActiveSection(section.id)}
             >
-              <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${section.color} flex items-center justify-center mb-3`}>
-                <Icon className="h-5 w-5 text-white" />
+              <div className={`h-12 w-12 rounded-2xl ${section.color} flex items-center justify-center mb-4`}>
+                <Icon className="h-6 w-6 text-white" />
               </div>
-              <h3 className="font-bold text-gray-900 mb-1">{section.label}</h3>
-              <p className="text-sm text-gray-500">{section.count} {section.count === 1 ? 'элемент' : 'элементов'}</p>
+              <h3 className="font-bold text-gray-900 text-base mb-1">{section.label}</h3>
+              <p className="text-sm text-gray-500">{section.count} элементов</p>
             </Card>
           );
         })}
