@@ -14,7 +14,15 @@ import {
   Newspaper,
   Calendar,
   Video,
+  Users,
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,6 +81,38 @@ interface Recording {
   description?: string;
 }
 
+interface CohortMember {
+  id: number;
+  user_id: number;
+  username: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+  enrollment_id?: number;
+  pricing_tier_id?: number;
+  tier_name?: string;
+  tier_price?: number;
+  tier_level?: number;
+  enrollment_status?: string;
+  expires_at?: string;
+  joined_at: string;
+}
+
+interface PricingTier {
+  id: number;
+  name: string;
+  price: number;
+  tier_level?: number;
+}
+
+interface User {
+  id: number;
+  username: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+}
+
 interface StreamMaterials {
   faqs: FAQ[];
   instructions: Instruction[];
@@ -85,10 +125,11 @@ interface AdminStreamDetailProps {
   cohortId: number;
   cohortName: string;
   productName: string;
+  productId: number;
   onBack: () => void;
 }
 
-export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }: AdminStreamDetailProps) {
+export function AdminStreamDetail({ cohortId, cohortName, productName, productId, onBack }: AdminStreamDetailProps) {
   const [materials, setMaterials] = useState<StreamMaterials>({
     faqs: [],
     instructions: [],
@@ -124,6 +165,15 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }:
   const [editingRecording, setEditingRecording] = useState<Recording | null>(null);
   const [isAddingRecording, setIsAddingRecording] = useState(false);
   const [recordingForm, setRecordingForm] = useState({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", description: "" });
+
+  // Members states
+  const [members, setMembers] = useState<CohortMember[]>([]);
+  const [tiers, setTiers] = useState<PricingTier[]>([]);
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [editingMember, setEditingMember] = useState<CohortMember | null>(null);
+  const [memberForm, setMemberForm] = useState<{ user_id: number | null; pricing_tier_id: number | null; expires_at: string }>({ user_id: null, pricing_tier_id: null, expires_at: "" });
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [deletingType, setDeletingType] = useState<string>("");
@@ -414,12 +464,105 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }:
     });
   };
 
+  // Members handlers
+  const loadMembers = async () => {
+    try {
+      setLoadingMembers(true);
+      const data = await apiClient.get<CohortMember[]>(`/admin/cohorts/${cohortId}/members`);
+      setMembers(data);
+    } catch (error: any) {
+      toast.error("Не удалось загрузить участников");
+      console.error("Failed to load members:", error);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const loadTiers = async () => {
+    try {
+      const data = await apiClient.get<PricingTier[]>(`/admin/products/${productId}/cohorts/${cohortId}/tiers`);
+      setTiers(data);
+    } catch (error: any) {
+      console.error("Failed to load tiers:", error);
+    }
+  };
+
+  const loadAllUsers = async () => {
+    try {
+      const response = await apiClient.get<{ data: User[]; pagination: any }>(`/admin/users?limit=1000`);
+      setAllUsers(response.data || []);
+    } catch (error: any) {
+      console.error("Failed to load users:", error);
+    }
+  };
+
+  const handleAddMember = async () => {
+    if (!memberForm.user_id) {
+      toast.error("Выберите пользователя");
+      return;
+    }
+
+    try {
+      await apiClient.post(`/admin/cohorts/${cohortId}/members`, {
+        user_id: memberForm.user_id,
+        pricing_tier_id: memberForm.pricing_tier_id,
+        expires_at: memberForm.expires_at || null,
+      });
+      await loadMembers();
+      setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
+      setIsAddingMember(false);
+      toast.success("Участник добавлен");
+    } catch (error: any) {
+      toast.error(error.message || "Не удалось добавить участника");
+    }
+  };
+
+  const handleUpdateMember = async (userId: number) => {
+    try {
+      await apiClient.put(`/admin/cohorts/${cohortId}/members/${userId}`, {
+        pricing_tier_id: memberForm.pricing_tier_id,
+        expires_at: memberForm.expires_at || null,
+      });
+      await loadMembers();
+      setEditingMember(null);
+      setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
+      toast.success("Участник обновлён");
+    } catch (error: any) {
+      toast.error(error.message || "Не удалось обновить участника");
+    }
+  };
+
+  const handleRemoveMember = async (userId: number) => {
+    try {
+      await apiClient.delete(`/admin/cohorts/${cohortId}/members/${userId}`);
+      await loadMembers();
+      setDeletingId(null);
+      toast.success("Участник удалён");
+    } catch (error: any) {
+      toast.error(error.message || "Не удалось удалить участника");
+    }
+  };
+
+  const startEditMember = (member: CohortMember) => {
+    setEditingMember(member);
+    setMemberForm({
+      user_id: member.user_id,
+      pricing_tier_id: member.pricing_tier_id || null,
+      expires_at: member.expires_at || "",
+    });
+  };
+
+  const availableUsers = allUsers.filter(
+    (user) => !members.some((member) => member.user_id === user.id)
+  );
+
   const materialSections = [
     { id: "news", label: "Лента новостей", icon: Newspaper, count: materials.news.length, color: "from-pink-400 to-rose-400" },
     { id: "schedule", label: "Расписание", icon: Calendar, count: materials.schedule.length, color: "from-orange-400 to-amber-400" },
     { id: "recordings", label: "Записи эфиров", icon: Video, count: materials.recordings.length, color: "from-green-400 to-emerald-400" },
     { id: "faqs", label: "Вопрос-ответ", icon: HelpCircle, count: materials.faqs.length, color: "from-blue-400 to-cyan-400" },
     { id: "instructions", label: "База знаний", icon: BookOpen, count: materials.instructions.length, color: "from-purple-400 to-indigo-400" },
+    { id: "members", label: "Участники", icon: Users, count: members.length, color: "from-teal-400 to-cyan-400" },
   ];
 
   if (loading) {
@@ -459,7 +602,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }:
       </div>
 
       {/* Material Sections Navigation */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
         {materialSections.map((section) => {
           const Icon = section.icon;
           return (
@@ -468,7 +611,14 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }:
               className={`p-4 cursor-pointer transition-all hover:shadow-md ${
                 activeSection === section.id ? "ring-2 ring-purple-400 shadow-lg" : ""
               }`}
-              onClick={() => setActiveSection(section.id)}
+              onClick={() => {
+                setActiveSection(section.id);
+                if (section.id === "members" && members.length === 0) {
+                  loadMembers();
+                  loadTiers();
+                  loadAllUsers();
+                }
+              }}
             >
               <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${section.color} flex items-center justify-center mb-3`}>
                 <Icon className="h-5 w-5 text-white" />
@@ -1048,6 +1198,222 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }:
         </div>
       )}
 
+      {/* Members Section */}
+      {activeSection === "members" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-black text-3xl">Участники</h2>
+            <Button
+              onClick={() => {
+                setIsAddingMember(true);
+                if (allUsers.length === 0) {
+                  loadAllUsers();
+                }
+                if (tiers.length === 0) {
+                  loadTiers();
+                }
+              }}
+              className="bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Добавить участника
+            </Button>
+          </div>
+
+          {isAddingMember && (
+            <AdminFormWrapper
+              title="Добавить участника"
+              description="Выберите пользователя и настройте доступ"
+              onSubmit={handleAddMember}
+              onCancel={() => {
+                setIsAddingMember(false);
+                setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
+              }}
+              submitText="Добавить"
+            >
+              <div className="space-y-6">
+                <AdminFormField label="Пользователь" required emoji="👤">
+                  <Select
+                    value={memberForm.user_id?.toString() || ""}
+                    onValueChange={(value: string) => setMemberForm({ ...memberForm, user_id: parseInt(value) })}
+                  >
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="Выберите пользователя" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableUsers.map((user) => (
+                        <SelectItem key={user.id} value={user.id.toString()}>
+                          {user.first_name && user.last_name
+                            ? `${user.first_name} ${user.last_name} (${user.email})`
+                            : `${user.username} (${user.email})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </AdminFormField>
+
+                <AdminFormField label="Тариф" emoji="🏷️">
+                  <Select
+                    value={memberForm.pricing_tier_id?.toString() || ""}
+                    onValueChange={(value: string) => setMemberForm({ ...memberForm, pricing_tier_id: value ? parseInt(value) : null })}
+                  >
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="Выберите тариф (опционально)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiers.map((tier) => (
+                        <SelectItem key={tier.id} value={tier.id.toString()}>
+                          {tier.name} - {tier.price.toLocaleString("ru-RU")} ₽
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </AdminFormField>
+
+                <AdminFormField label="Срок действия" emoji="📅">
+                  <Input
+                    type="date"
+                    value={memberForm.expires_at}
+                    onChange={(e) => setMemberForm({ ...memberForm, expires_at: e.target.value })}
+                    className="h-12"
+                  />
+                </AdminFormField>
+              </div>
+            </AdminFormWrapper>
+          )}
+
+          {editingMember && (
+            <AdminFormWrapper
+              title="Редактировать участника"
+              description={`${editingMember.first_name && editingMember.last_name ? `${editingMember.first_name} ${editingMember.last_name}` : editingMember.username}`}
+              onSubmit={() => handleUpdateMember(editingMember.user_id)}
+              onCancel={() => {
+                setEditingMember(null);
+                setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
+              }}
+              submitText="Сохранить"
+            >
+              <div className="space-y-6">
+                <AdminFormField label="Тариф" emoji="🏷️">
+                  <Select
+                    value={memberForm.pricing_tier_id?.toString() || ""}
+                    onValueChange={(value: string) => setMemberForm({ ...memberForm, pricing_tier_id: value ? parseInt(value) : null })}
+                  >
+                    <SelectTrigger className="h-12">
+                      <SelectValue placeholder="Выберите тариф" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiers.map((tier) => (
+                        <SelectItem key={tier.id} value={tier.id.toString()}>
+                          {tier.name} - {tier.price.toLocaleString("ru-RU")} ₽
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </AdminFormField>
+
+                <AdminFormField label="Срок действия" emoji="📅">
+                  <Input
+                    type="date"
+                    value={memberForm.expires_at}
+                    onChange={(e) => setMemberForm({ ...memberForm, expires_at: e.target.value })}
+                    className="h-12"
+                  />
+                </AdminFormField>
+              </div>
+            </AdminFormWrapper>
+          )}
+
+          {loadingMembers ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-gray-500">Загрузка участников...</p>
+            </div>
+          ) : members.length === 0 ? (
+            <Card className="p-12 text-center border-2 border-dashed">
+              <Users className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="font-black text-2xl text-gray-900 mb-2">Нет участников</h3>
+              <p className="text-gray-500 mb-4">Добавьте первого участника в поток</p>
+            </Card>
+          ) : (
+            <Card className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Пользователь</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Тариф</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Дата вступления</th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700">Истекает</th>
+                      <th className="text-right py-3 px-4 font-semibold text-gray-700">Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {members.map((member) => (
+                      <tr key={member.id} className="border-b last:border-b-0 hover:bg-gray-50">
+                        <td className="py-3 px-4">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {member.first_name && member.last_name
+                                ? `${member.first_name} ${member.last_name}`
+                                : member.username}
+                            </p>
+                            <p className="text-sm text-gray-500">{member.email}</p>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          {member.tier_name ? (
+                            <Badge className="bg-teal-100 text-teal-700">
+                              {member.tier_name}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-gray-600">
+                          {new Date(member.joined_at).toLocaleDateString("ru-RU")}
+                        </td>
+                        <td className="py-3 px-4 text-gray-600">
+                          {member.expires_at
+                            ? new Date(member.expires_at).toLocaleDateString("ru-RU")
+                            : "—"}
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                if (tiers.length === 0) {
+                                  loadTiers();
+                                }
+                                startEditMember(member);
+                              }}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setDeletingId(member.user_id);
+                                setDeletingType("member");
+                              }}
+                              className="hover:bg-red-50 hover:text-red-600"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* Delete Confirmation */}
       <AlertDialog open={!!deletingId} onOpenChange={() => setDeletingId(null)}>
         <AlertDialogContent>
@@ -1058,6 +1424,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }:
                 deletingType === "instruction" ? "статью" :
                 deletingType === "news" ? "новость" :
                 deletingType === "event" ? "событие" :
+                deletingType === "member" ? "участника" :
                 "запись"
               }?
             </AlertDialogTitle>
@@ -1080,6 +1447,8 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, onBack }:
                     handleDeleteEvent(deletingId);
                   } else if (deletingType === "recording") {
                     handleDeleteRecording(deletingId);
+                  } else if (deletingType === "member") {
+                    handleRemoveMember(deletingId);
                   }
                 }
               }}

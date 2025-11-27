@@ -132,9 +132,13 @@ router.delete('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthRe
 router.get('/:id/members', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const result = await query(`
-    SELECT cm.*, u.username, u.email, u.first_name, u.last_name
+    SELECT cm.*, u.username, u.email, u.first_name, u.last_name,
+           ue.id as enrollment_id, ue.pricing_tier_id, ue.status as enrollment_status, ue.expires_at,
+           pt.name as tier_name, pt.price as tier_price, pt.tier_level
     FROM labs.cohort_members cm
     JOIN labs.users u ON cm.user_id = u.id
+    LEFT JOIN labs.user_enrollments ue ON ue.cohort_id = cm.cohort_id AND ue.user_id = cm.user_id AND ue.status = 'active'
+    LEFT JOIN labs.pricing_tiers pt ON ue.pricing_tier_id = pt.id
     WHERE cm.cohort_id = $1 AND cm.left_at IS NULL
     ORDER BY cm.joined_at DESC
   `, [id]);
@@ -143,27 +147,78 @@ router.get('/:id/members', verifyToken, requireAdmin, asyncHandler(async (req: A
 
 router.post('/:id/members', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { user_ids } = req.body;
+  const { user_ids, user_id, pricing_tier_id, expires_at } = req.body;
 
-  if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
-    return res.status(400).json({ error: 'user_ids array is required' });
-  }
-
-  const cohort = await query('SELECT id, max_participants FROM labs.cohorts WHERE id = $1', [id]);
+  // Get cohort with product_id
+  const cohort = await query('SELECT id, product_id, max_participants FROM labs.cohorts WHERE id = $1', [id]);
   if (cohort.rows.length === 0) {
     return res.status(404).json({ error: 'Cohort not found' });
   }
 
-  if (cohort.rows[0].max_participants) {
+  const cohortData = cohort.rows[0];
+
+  // Single user with tier (new format)
+  if (user_id && pricing_tier_id) {
+    // Validate tier belongs to this cohort
+    const tier = await query('SELECT id FROM labs.pricing_tiers WHERE id = $1 AND cohort_id = $2', [pricing_tier_id, id]);
+    if (tier.rows.length === 0) {
+      return res.status(404).json({ error: 'Pricing tier not found for this cohort' });
+    }
+
+    // Check capacity
+    if (cohortData.max_participants) {
+      const currentCount = await query(`
+        SELECT COUNT(*) as count FROM labs.cohort_members 
+        WHERE cohort_id = $1 AND left_at IS NULL
+      `, [id]);
+      
+      if (parseInt(currentCount.rows[0].count) >= cohortData.max_participants) {
+        return res.status(400).json({ error: 'Cohort capacity exceeded' });
+      }
+    }
+
+    // Add to cohort_members
+    await query(`
+      INSERT INTO labs.cohort_members (cohort_id, user_id)
+      VALUES ($1, $2)
+      ON CONFLICT (cohort_id, user_id) 
+      DO UPDATE SET left_at = NULL, joined_at = CURRENT_TIMESTAMP
+    `, [id, user_id]);
+
+    // Create/update enrollment
+    const enrollment = await query(`
+      INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status, expires_at)
+      VALUES ($1, $2, $3, $4, 'active', $5)
+      ON CONFLICT (user_id, product_id, cohort_id) 
+      DO UPDATE SET 
+        pricing_tier_id = EXCLUDED.pricing_tier_id,
+        status = 'active',
+        expires_at = EXCLUDED.expires_at,
+        updated_at = CURRENT_TIMESTAMP
+      RETURNING *
+    `, [user_id, cohortData.product_id, pricing_tier_id, id, expires_at || null]);
+
+    return res.status(201).json({ 
+      message: 'Member added to cohort with tier', 
+      enrollment: enrollment.rows[0] 
+    });
+  }
+
+  // Batch add users without tier (legacy format)
+  if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+    return res.status(400).json({ error: 'Either user_id with pricing_tier_id, or user_ids array is required' });
+  }
+
+  if (cohortData.max_participants) {
     const currentCount = await query(`
       SELECT COUNT(*) as count FROM labs.cohort_members 
       WHERE cohort_id = $1 AND left_at IS NULL
     `, [id]);
     
     const newCount = parseInt(currentCount.rows[0].count) + user_ids.length;
-    if (newCount > cohort.rows[0].max_participants) {
+    if (newCount > cohortData.max_participants) {
       return res.status(400).json({ 
-        error: `Cohort capacity exceeded. Max: ${cohort.rows[0].max_participants}, Current: ${currentCount.rows[0].count}, Trying to add: ${user_ids.length}` 
+        error: `Cohort capacity exceeded. Max: ${cohortData.max_participants}, Current: ${currentCount.rows[0].count}, Trying to add: ${user_ids.length}` 
       });
     }
   }
@@ -183,9 +238,56 @@ router.post('/:id/members', verifyToken, requireAdmin, createLimiter, asyncHandl
   res.status(201).json({ message: `Added ${added.length} members to cohort`, members: added });
 }));
 
+router.put('/:id/members/:userId', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id, userId } = req.params;
+  const { pricing_tier_id, expires_at, status } = req.body;
+
+  // Get cohort with product_id
+  const cohort = await query('SELECT id, product_id FROM labs.cohorts WHERE id = $1', [id]);
+  if (cohort.rows.length === 0) {
+    return res.status(404).json({ error: 'Cohort not found' });
+  }
+
+  // Check member exists
+  const member = await query(`
+    SELECT id FROM labs.cohort_members 
+    WHERE cohort_id = $1 AND user_id = $2 AND left_at IS NULL
+  `, [id, userId]);
+  if (member.rows.length === 0) {
+    return res.status(404).json({ error: 'Member not found in cohort' });
+  }
+
+  // Validate tier if provided
+  if (pricing_tier_id) {
+    const tier = await query('SELECT id FROM labs.pricing_tiers WHERE id = $1 AND cohort_id = $2', [pricing_tier_id, id]);
+    if (tier.rows.length === 0) {
+      return res.status(404).json({ error: 'Pricing tier not found for this cohort' });
+    }
+  }
+
+  // Update or create enrollment
+  const enrollment = await query(`
+    INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status, expires_at)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    ON CONFLICT (user_id, product_id, cohort_id) 
+    DO UPDATE SET 
+      pricing_tier_id = COALESCE(EXCLUDED.pricing_tier_id, labs.user_enrollments.pricing_tier_id),
+      status = COALESCE(EXCLUDED.status, labs.user_enrollments.status),
+      expires_at = EXCLUDED.expires_at,
+      updated_at = CURRENT_TIMESTAMP
+    RETURNING *
+  `, [userId, cohort.rows[0].product_id, pricing_tier_id || null, id, status || 'active', expires_at || null]);
+
+  res.json({ message: 'Member enrollment updated', enrollment: enrollment.rows[0] });
+}));
+
 router.delete('/:id/members/:userId', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id, userId } = req.params;
 
+  // Get cohort with product_id for enrollment deletion
+  const cohort = await query('SELECT product_id FROM labs.cohorts WHERE id = $1', [id]);
+
+  // Remove from cohort_members
   const result = await query(`
     UPDATE labs.cohort_members 
     SET left_at = CURRENT_TIMESTAMP 
@@ -195,6 +297,15 @@ router.delete('/:id/members/:userId', verifyToken, requireAdmin, asyncHandler(as
   
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'Member not found in cohort' });
+  }
+
+  // Also deactivate enrollment
+  if (cohort.rows.length > 0) {
+    await query(`
+      UPDATE labs.user_enrollments 
+      SET status = 'inactive', updated_at = CURRENT_TIMESTAMP
+      WHERE cohort_id = $1 AND user_id = $2
+    `, [id, userId]);
   }
 
   res.json({ message: 'Member removed from cohort successfully' });

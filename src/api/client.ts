@@ -577,6 +577,15 @@ class ApiClient {
     return this.post<any>(`/admin/cohorts/${cohortId}/members`, { user_ids: userIds });
   }
 
+  async addCohortMemberWithTier(cohortId: number, data: { 
+    user_id: number; 
+    pricing_tier_id: number; 
+    status?: string;
+    expires_at?: string | null;
+  }) {
+    return this.post<any>(`/admin/cohorts/${cohortId}/members`, data);
+  }
+
   async removeCohortMembers(cohortId: number, userIds: number[]) {
     return this.post<any>(`/admin/cohorts/${cohortId}/members/remove`, { user_ids: userIds });
   }

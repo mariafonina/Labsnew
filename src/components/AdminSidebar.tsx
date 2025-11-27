@@ -15,7 +15,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  UserCog,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { motion } from "motion/react";
@@ -46,7 +45,6 @@ export function AdminSidebar({
   const menuItems = [
     { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
     { id: "products", label: "Продукты", icon: Package },
-    { id: "enrollments", label: "Зачисления", icon: UserCog },
     { id: "news", label: "Новости", icon: Newspaper },
     { id: "events", label: "События", icon: Calendar },
     { id: "instructions", label: "Инструкции", icon: BookOpen },

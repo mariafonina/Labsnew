@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
 import {
   Plus,
@@ -94,6 +93,7 @@ export function AdminProducts() {
     cohortId: number;
     cohortName: string;
     productName: string;
+    productId: number;
   } | null>(null);
   const [copyingCohort, setCopyingCohort] = useState<{ cohortId: number; productId: number } | null>(
     null
@@ -449,6 +449,7 @@ export function AdminProducts() {
         cohortId={viewingCohortDetail.cohortId}
         cohortName={viewingCohortDetail.cohortName}
         productName={viewingCohortDetail.productName}
+        productId={viewingCohortDetail.productId}
         onBack={() => setViewingCohortDetail(null)}
       />
     );
@@ -587,7 +588,7 @@ export function AdminProducts() {
       )}
 
       {/* Add Tier Dialog */}
-      <Dialog open={isAddingTier} onOpenChange={(open) => {
+      <Dialog open={isAddingTier} onOpenChange={(open: boolean) => {
         setIsAddingTier(open);
         if (!open) {
           setSelectedCohortForTier(null);
@@ -806,6 +807,7 @@ export function AdminProducts() {
                                     cohortId: cohort.id,
                                     cohortName: cohort.name,
                                     productName: product.name,
+                                    productId: product.id,
                                   });
                                 }}
                                 className="bg-purple-600 hover:bg-purple-700 text-white shadow-md hover:shadow-lg transition-all"

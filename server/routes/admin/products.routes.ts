@@ -10,11 +10,12 @@ const router = Router();
 router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
   const result = await query(`
     SELECT p.*, 
-           COUNT(DISTINCT pt.id) as tier_count,
            COUNT(DISTINCT c.id) as cohort_count,
-           COUNT(DISTINCT ue.id) as enrollment_count
+           COUNT(DISTINCT ue.id) as enrollment_count,
+           (SELECT COUNT(*) FROM labs.pricing_tiers pt 
+            JOIN labs.cohorts c2 ON pt.cohort_id = c2.id 
+            WHERE c2.product_id = p.id AND pt.is_active = TRUE) as tier_count
     FROM labs.products p
-    LEFT JOIN labs.pricing_tiers pt ON p.id = pt.product_id AND pt.is_active = TRUE
     LEFT JOIN labs.cohorts c ON p.id = c.product_id AND c.is_active = TRUE
     LEFT JOIN labs.user_enrollments ue ON p.id = ue.product_id AND ue.status = 'active'
     GROUP BY p.id

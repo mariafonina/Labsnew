@@ -29,11 +29,11 @@ export function UserCard({ user, onClose }: UserCardProps) {
   const [showEnrollDialog, setShowEnrollDialog] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [selectedCohortId, setSelectedCohortId] = useState<string>('');
   const [tiers, setTiers] = useState<any[]>([]);
   const [cohorts, setCohorts] = useState<any[]>([]);
   const [enrollFormData, setEnrollFormData] = useState({
     pricing_tier_id: '',
-    cohort_id: '',
     status: 'active',
     expires_at: ''
   });
@@ -45,12 +45,22 @@ export function UserCard({ user, onClose }: UserCardProps) {
 
   useEffect(() => {
     if (selectedProductId) {
-      loadProductData(parseInt(selectedProductId));
+      loadCohorts(parseInt(selectedProductId));
     } else {
-      setTiers([]);
       setCohorts([]);
+      setSelectedCohortId('');
+      setTiers([]);
     }
   }, [selectedProductId]);
+
+  useEffect(() => {
+    if (selectedProductId && selectedCohortId) {
+      loadCohortTiers(parseInt(selectedProductId), parseInt(selectedCohortId));
+    } else {
+      setTiers([]);
+      setEnrollFormData(prev => ({ ...prev, pricing_tier_id: '' }));
+    }
+  }, [selectedProductId, selectedCohortId]);
 
   const loadProducts = async () => {
     try {
@@ -61,48 +71,54 @@ export function UserCard({ user, onClose }: UserCardProps) {
     }
   };
 
-  const loadProductData = async (productId: number) => {
+  const loadCohorts = async (productId: number) => {
     try {
-      const [tiersData, cohortsData] = await Promise.all([
-        apiClient.getProductTiers(productId),
-        apiClient.getCohorts(productId)
-      ]);
-      setTiers(tiersData);
+      const cohortsData = await apiClient.getCohorts(productId);
       setCohorts(cohortsData);
     } catch (error) {
-      console.error('Failed to load product data:', error);
+      console.error('Failed to load cohorts:', error);
+    }
+  };
+
+  const loadCohortTiers = async (productId: number, cohortId: number) => {
+    try {
+      const tiersData = await apiClient.getCohortTiers(productId, cohortId);
+      setTiers(tiersData);
+    } catch (error) {
+      console.error('Failed to load cohort tiers:', error);
     }
   };
 
   const handleEnroll = async () => {
-    if (!selectedProductId || !enrollFormData.pricing_tier_id) {
-      toast.error('Выберите продукт и тариф');
+    if (!selectedCohortId || !enrollFormData.pricing_tier_id) {
+      toast.error('Выберите поток и тариф');
       return;
     }
 
     try {
-      await apiClient.createEnrollment({
-        user_id: user.id,
-        product_id: parseInt(selectedProductId),
-        pricing_tier_id: parseInt(enrollFormData.pricing_tier_id),
-        cohort_id: enrollFormData.cohort_id ? parseInt(enrollFormData.cohort_id) : null,
-        status: enrollFormData.status,
-        expires_at: enrollFormData.expires_at || null
-      });
+      await apiClient.addCohortMemberWithTier(
+        parseInt(selectedCohortId),
+        {
+          user_id: user.id,
+          pricing_tier_id: parseInt(enrollFormData.pricing_tier_id),
+          status: enrollFormData.status,
+          expires_at: enrollFormData.expires_at || null
+        }
+      );
 
-      toast.success('Пользователь зачислен в продукт');
+      toast.success('Пользователь добавлен в поток');
       setShowEnrollDialog(false);
       setSelectedProductId('');
+      setSelectedCohortId('');
       setEnrollFormData({
         pricing_tier_id: '',
-        cohort_id: '',
         status: 'active',
         expires_at: ''
       });
       loadStats();
     } catch (error: any) {
       console.error('Failed to enroll user:', error);
-      toast.error(error.response?.data?.error || 'Не удалось зачислить пользователя');
+      toast.error(error.response?.data?.error || 'Не удалось добавить пользователя в поток');
     }
   };
 
@@ -187,12 +203,18 @@ export function UserCard({ user, onClose }: UserCardProps) {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Зачислить пользователя в продукт</DialogTitle>
+                    <DialogTitle>Добавить пользователя в поток</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div>
                       <Label htmlFor="product">Продукт *</Label>
-                      <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                      <Select 
+                        value={selectedProductId} 
+                        onValueChange={(value: string) => {
+                          setSelectedProductId(value);
+                          setSelectedCohortId('');
+                        }}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="Выберите продукт" />
                         </SelectTrigger>
@@ -206,7 +228,32 @@ export function UserCard({ user, onClose }: UserCardProps) {
                       </Select>
                     </div>
 
-                    {selectedProductId && tiers.length > 0 && (
+                    {selectedProductId && (
+                      <div>
+                        <Label htmlFor="cohort">Поток *</Label>
+                        <Select 
+                          value={selectedCohortId} 
+                          onValueChange={setSelectedCohortId}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Выберите поток" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {cohorts.length === 0 ? (
+                              <SelectItem value="no-cohorts" disabled>Нет доступных потоков</SelectItem>
+                            ) : (
+                              cohorts.map((cohort) => (
+                                <SelectItem key={cohort.id} value={cohort.id.toString()}>
+                                  {cohort.name}
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {selectedCohortId && tiers.length > 0 && (
                       <div>
                         <Label htmlFor="tier">Тариф *</Label>
                         <Select 
@@ -219,7 +266,7 @@ export function UserCard({ user, onClose }: UserCardProps) {
                           <SelectContent>
                             {tiers.map((tier) => (
                               <SelectItem key={tier.id} value={tier.id.toString()}>
-                                {tier.name} (уровень {tier.tier_level})
+                                {tier.name} - {tier.price?.toLocaleString('ru-RU') || 0} ₽
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -227,26 +274,10 @@ export function UserCard({ user, onClose }: UserCardProps) {
                       </div>
                     )}
 
-                    {selectedProductId && cohorts.length > 0 && (
-                      <div>
-                        <Label htmlFor="cohort">Поток (необязательно)</Label>
-                        <Select 
-                          value={enrollFormData.cohort_id || "none"} 
-                          onValueChange={(value: string) => setEnrollFormData({ ...enrollFormData, cohort_id: value === "none" ? "" : value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Выберите поток" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Без потока</SelectItem>
-                            {cohorts.map((cohort) => (
-                              <SelectItem key={cohort.id} value={cohort.id.toString()}>
-                                {cohort.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
+                    {selectedCohortId && tiers.length === 0 && (
+                      <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded-lg">
+                        В этом потоке нет тарифов. Сначала создайте тариф.
+                      </p>
                     )}
 
                     <div>
@@ -271,7 +302,7 @@ export function UserCard({ user, onClose }: UserCardProps) {
                         id="expires_at"
                         type="date"
                         value={enrollFormData.expires_at}
-                        onChange={(e) => setEnrollFormData({ ...enrollFormData, expires_at: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEnrollFormData({ ...enrollFormData, expires_at: e.target.value })}
                       />
                     </div>
 
@@ -279,8 +310,11 @@ export function UserCard({ user, onClose }: UserCardProps) {
                       <Button variant="outline" onClick={() => setShowEnrollDialog(false)}>
                         Отмена
                       </Button>
-                      <Button onClick={handleEnroll}>
-                        Зачислить
+                      <Button 
+                        onClick={handleEnroll}
+                        disabled={!selectedCohortId || !enrollFormData.pricing_tier_id}
+                      >
+                        Добавить в поток
                       </Button>
                     </div>
                   </div>
