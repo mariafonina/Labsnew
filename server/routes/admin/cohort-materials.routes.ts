@@ -77,7 +77,7 @@ router.post('/:cohortId/instructions', verifyToken, requireAdmin, createLimiter,
     cohortId,
     cohort_category_id || null,
     sanitizeText(title),
-    sanitizeText(content),
+    content, // Content stored as-is (markdown/HTML), sanitized on frontend
     category ? sanitizeText(category) : null,
     req.userId,
     maxOrder + 1,
@@ -107,7 +107,7 @@ router.put('/:cohortId/instructions/:id', verifyToken, requireAdmin, createLimit
     RETURNING *
   `, [
     sanitizeText(title),
-    sanitizeText(content),
+    content, // Content stored as-is (markdown/HTML), sanitized on frontend
     category ? sanitizeText(category) : null,
     cohort_category_id || null,
     loom_embed_url || null,

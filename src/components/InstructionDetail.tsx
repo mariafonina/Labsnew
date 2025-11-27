@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { ArrowLeft, Bookmark, ThumbsUp, Send } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
-import { sanitizeHtml } from "../utils/sanitize";
+import { sanitizeMarkdown } from "../utils/sanitize";
 import { LoomEmbed } from "./LoomEmbed";
 import type { Instruction } from "../contexts/AppContext";
 
@@ -190,8 +190,8 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
         <div className="mb-10">
           <Card className="p-8 md:p-10 bg-white/80 backdrop-blur-sm border-gray-200/60 shadow-lg overflow-hidden">
             <div className="rich-content prose prose-lg max-w-none">
-              <div 
-                dangerouslySetInnerHTML={{ __html: sanitizeHtml(instruction.content) }}
+              <div
+                dangerouslySetInnerHTML={{ __html: sanitizeMarkdown(instruction.content) }}
               />
             </div>
           </Card>

@@ -1,7 +1,6 @@
 import { Router, Response } from 'express';
 import { query } from '../db';
 import { verifyToken, AuthRequest } from '../auth';
-import { sanitizeHtml } from '../utils/sanitize';
 import { asyncHandler } from '../utils/async-handler';
 import { findOneOrFail, deleteOneOrFail } from '../utils/db-helpers';
 import { validateAndNormalizeLoomUrl } from '../utils/loom-validator';
@@ -97,7 +96,8 @@ router.post('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Respons
     return res.status(400).json({ error: 'Title and content are required' });
   }
 
-  const sanitizedContent = sanitizeHtml(content);
+  // Content is stored as-is (markdown or HTML) and sanitized on frontend during render
+  const sanitizedContent = content;
   const validatedLoomUrl = validateAndNormalizeLoomUrl(loom_embed_url);
 
   // Get max order for cohort category if display_order not provided
@@ -130,7 +130,8 @@ router.put('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Respo
   const { id } = req.params;
   const { title, content, category, category_id, cohort_id, cohort_category_id, tags, image_url, loom_embed_url, display_order } = req.body;
 
-  const sanitizedContent = content !== undefined ? sanitizeHtml(content) : undefined;
+  // Content is stored as-is (markdown or HTML) and sanitized on frontend during render
+  const sanitizedContent = content !== undefined ? content : undefined;
   const validatedLoomUrl = loom_embed_url !== undefined ? validateAndNormalizeLoomUrl(loom_embed_url) : undefined;
 
   const updateParts = [];

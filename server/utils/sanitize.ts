@@ -1,4 +1,5 @@
 import DOMPurify from 'isomorphic-dompurify';
+import { marked } from 'marked';
 
 /**
  * Sanitize HTML content to prevent XSS attacks
@@ -6,8 +7,42 @@ import DOMPurify from 'isomorphic-dompurify';
  */
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
-  
+
   return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+      'p', 'br', 'hr',
+      'b', 'i', 'em', 'strong', 'u', 's', 'del',
+      'blockquote', 'code', 'pre',
+      'ul', 'ol', 'li',
+      'a', 'img',
+      'table', 'thead', 'tbody', 'tr', 'th', 'td',
+      'div', 'span',
+    ],
+    ALLOWED_ATTR: [
+      'href', 'target', 'rel',
+      'src', 'alt', 'title',
+      'class',
+    ],
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    KEEP_CONTENT: true,
+    FORCE_BODY: false,
+  });
+}
+
+/**
+ * Sanitize markdown content by converting to HTML and sanitizing
+ * Useful for storing markdown that will be rendered as HTML on frontend
+ */
+export function sanitizeMarkdown(markdown: string): string {
+  if (!markdown) return '';
+
+  const rawHtml = marked(markdown, {
+    breaks: true,
+    gfm: true,
+  });
+
+  return DOMPurify.sanitize(rawHtml as string, {
     ALLOWED_TAGS: [
       'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'p', 'br', 'hr',
