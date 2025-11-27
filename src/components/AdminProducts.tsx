@@ -94,8 +94,6 @@ export function AdminProducts() {
     cohortId: number;
     cohortName: string;
     productName: string;
-    productType?: string;
-    tiersCount?: number;
   } | null>(null);
   const [copyingCohort, setCopyingCohort] = useState<{ cohortId: number; productId: number } | null>(
     null
@@ -451,8 +449,6 @@ export function AdminProducts() {
         cohortId={viewingCohortDetail.cohortId}
         cohortName={viewingCohortDetail.cohortName}
         productName={viewingCohortDetail.productName}
-        productType={viewingCohortDetail.productType}
-        tiersCount={viewingCohortDetail.tiersCount}
         onBack={() => setViewingCohortDetail(null)}
       />
     );
@@ -815,8 +811,6 @@ export function AdminProducts() {
                                     cohortId: cohort.id,
                                     cohortName: cohort.name,
                                     productName: product.name,
-                                    productType: product.type,
-                                    tiersCount: cohort.tiers?.length || 0,
                                   });
                                 }}
                                 className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-md hover:shadow-lg transition-all"
