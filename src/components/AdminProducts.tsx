@@ -794,11 +794,6 @@ export function AdminProducts() {
                                   <p className="text-sm text-gray-500">
                                     {cohort.member_count} участников
                                   </p>
-                                  <span className="text-sm text-gray-400">•</span>
-                                  <span className="text-sm text-gray-500">
-                                    {new Date(cohort.start_date).toLocaleDateString()} -{" "}
-                                    {new Date(cohort.end_date).toLocaleDateString()}
-                                  </span>
                                 </div>
                               </div>
                             </div>
