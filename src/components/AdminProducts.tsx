@@ -808,7 +808,7 @@ export function AdminProducts() {
                                     productName: product.name,
                                   });
                                 }}
-                                className="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white shadow-md hover:shadow-lg transition-all"
+                                className="bg-purple-600 hover:bg-purple-700 text-white shadow-md hover:shadow-lg transition-all"
                                 title="Управление материалами потока"
                               >
                                 <ExternalLink className="h-5 w-5 mr-2" />
