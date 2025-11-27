@@ -295,14 +295,14 @@ export function AdminEmailCompose({ onBack }: AdminEmailComposeProps) {
                 <div className="mb-4">
                   <Label className="text-sm mb-2 block">Сначала выберите продукт (опционально)</Label>
                   <Select
-                    value={selectedProduct?.toString() || ""}
-                    onValueChange={(value: string) => setSelectedProduct(value ? parseInt(value) : null)}
+                    value={selectedProduct?.toString() || "all"}
+                    onValueChange={(value: string) => setSelectedProduct(value === "all" ? null : parseInt(value))}
                   >
                     <SelectTrigger className="h-12 text-base bg-white">
                       <SelectValue placeholder="Все продукты" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Все продукты</SelectItem>
+                      <SelectItem value="all">Все продукты</SelectItem>
                       {products.map((product) => (
                         <SelectItem key={product.id} value={product.id.toString()}>
                           {product.name}
