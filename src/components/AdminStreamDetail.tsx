@@ -37,18 +37,12 @@ import { toast } from "sonner";
 import { AdminFormWrapper } from "./AdminFormWrapper";
 import { AdminFormField } from "./AdminFormField";
 import { apiClient } from "../api/client";
+import { AdminCohortInstructionsManager } from "./AdminCohortInstructionsManager";
 
 interface FAQ {
   id: number;
   question: string;
   answer: string;
-  category?: string;
-}
-
-interface Instruction {
-  id: number;
-  title: string;
-  content: string;
   category?: string;
 }
 
@@ -115,7 +109,6 @@ interface User {
 
 interface StreamMaterials {
   faqs: FAQ[];
-  instructions: Instruction[];
   news: NewsPost[];
   schedule: Event[];
   recordings: Recording[];
@@ -132,7 +125,6 @@ interface AdminStreamDetailProps {
 export function AdminStreamDetail({ cohortId, cohortName, productName, productId, onBack }: AdminStreamDetailProps) {
   const [materials, setMaterials] = useState<StreamMaterials>({
     faqs: [],
-    instructions: [],
     news: [],
     schedule: [],
     recordings: [],
@@ -145,11 +137,6 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
   const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null);
   const [isAddingFAQ, setIsAddingFAQ] = useState(false);
   const [faqForm, setFaqForm] = useState({ question: "", answer: "", category: "" });
-
-  // Instructions states
-  const [editingInstruction, setEditingInstruction] = useState<Instruction | null>(null);
-  const [isAddingInstruction, setIsAddingInstruction] = useState(false);
-  const [instructionForm, setInstructionForm] = useState({ title: "", content: "", category: "" });
 
   // News states
   const [editingNews, setEditingNews] = useState<NewsPost | null>(null);
@@ -238,52 +225,6 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       toast.success("Вопрос удалён");
     } catch (error: any) {
       toast.error(error.message || "Не удалось удалить вопрос");
-    }
-  };
-
-  // Instruction handlers
-  const handleAddInstruction = async () => {
-    if (!instructionForm.title || !instructionForm.content) {
-      toast.error("Заполните название и содержание");
-      return;
-    }
-
-    try {
-      await apiClient.post(`/admin/cohort-materials/${cohortId}/instructions`, instructionForm);
-      await loadMaterials();
-      setInstructionForm({ title: "", content: "", category: "" });
-      setIsAddingInstruction(false);
-      toast.success("Статья добавлена");
-    } catch (error: any) {
-      toast.error(error.message || "Не удалось добавить статью");
-    }
-  };
-
-  const handleUpdateInstruction = async () => {
-    if (!editingInstruction || !instructionForm.title || !instructionForm.content) {
-      toast.error("Заполните название и содержание");
-      return;
-    }
-
-    try {
-      await apiClient.put(`/admin/cohort-materials/${cohortId}/instructions/${editingInstruction.id}`, instructionForm);
-      await loadMaterials();
-      setEditingInstruction(null);
-      setInstructionForm({ title: "", content: "", category: "" });
-      toast.success("Статья обновлена");
-    } catch (error: any) {
-      toast.error(error.message || "Не удалось обновить статью");
-    }
-  };
-
-  const handleDeleteInstruction = async (id: number) => {
-    try {
-      await apiClient.delete(`/admin/cohort-materials/${cohortId}/instructions/${id}`);
-      await loadMaterials();
-      setDeletingId(null);
-      toast.success("Статья удалена");
-    } catch (error: any) {
-      toast.error(error.message || "Не удалось удалить статью");
     }
   };
 
@@ -428,11 +369,6 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
   const startEditFAQ = (faq: FAQ) => {
     setEditingFAQ(faq);
     setFaqForm({ question: faq.question, answer: faq.answer, category: faq.category || "" });
-  };
-
-  const startEditInstruction = (instruction: Instruction) => {
-    setEditingInstruction(instruction);
-    setInstructionForm({ title: instruction.title, content: instruction.content, category: instruction.category || "" });
   };
 
   const startEditNews = (post: NewsPost) => {
@@ -1097,105 +1033,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
 
       {/* Instructions Section */}
       {activeSection === "instructions" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-black text-3xl">База знаний</h2>
-            <Button
-              onClick={() => setIsAddingInstruction(true)}
-              className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Добавить статью
-            </Button>
-          </div>
-
-          {(isAddingInstruction || editingInstruction) && (
-            <AdminFormWrapper
-              title={editingInstruction ? "Редактировать статью" : "Новая статья"}
-              description="Заполните название и содержание"
-              onSubmit={editingInstruction ? handleUpdateInstruction : handleAddInstruction}
-              onCancel={() => {
-                setIsAddingInstruction(false);
-                setEditingInstruction(null);
-                setInstructionForm({ title: "", content: "", category: "" });
-              }}
-              submitText={editingInstruction ? "Сохранить" : "Опубликовать"}
-            >
-              <div className="space-y-6">
-                <AdminFormField label="Категория (опционально)" emoji="🏷️">
-                  <Input
-                    value={instructionForm.category}
-                    onChange={(e) => setInstructionForm({ ...instructionForm, category: e.target.value })}
-                    placeholder="Инструкции, Гайды и т.д."
-                    className="h-12"
-                  />
-                </AdminFormField>
-
-                <AdminFormField label="Название" required emoji="📄">
-                  <Input
-                    value={instructionForm.title}
-                    onChange={(e) => setInstructionForm({ ...instructionForm, title: e.target.value })}
-                    placeholder="Как начать работу с платформой"
-                    className="h-12"
-                  />
-                </AdminFormField>
-
-                <AdminFormField label="Содержание" required emoji="📝">
-                  <Textarea
-                    value={instructionForm.content}
-                    onChange={(e) => setInstructionForm({ ...instructionForm, content: e.target.value })}
-                    placeholder="Подробное описание..."
-                    rows={6}
-                  />
-                </AdminFormField>
-              </div>
-            </AdminFormWrapper>
-          )}
-
-          {materials.instructions.length === 0 ? (
-            <Card className="p-12 text-center border-2 border-dashed">
-              <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="font-black text-2xl text-gray-900 mb-2">Нет статей</h3>
-              <p className="text-gray-500 mb-4">Добавьте первую статью в базу знаний</p>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {materials.instructions.map((instruction) => (
-                <Card key={instruction.id} className="p-5 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div className="flex-1">
-                      {instruction.category && (
-                        <Badge className="mb-2 bg-purple-100 text-purple-700">{instruction.category}</Badge>
-                      )}
-                      <h4 className="font-bold text-lg text-gray-900">{instruction.title}</h4>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => startEditInstruction(instruction)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setDeletingId(instruction.id);
-                          setDeletingType("instruction");
-                        }}
-                        className="hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-gray-600 line-clamp-3">{instruction.content}</p>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+        <AdminCohortInstructionsManager cohortId={cohortId} />
       )}
 
       {/* Members Section */}
@@ -1421,7 +1259,6 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
             <AlertDialogTitle>
               Удалить {
                 deletingType === "faq" ? "вопрос" :
-                deletingType === "instruction" ? "статью" :
                 deletingType === "news" ? "новость" :
                 deletingType === "event" ? "событие" :
                 deletingType === "member" ? "участника" :
@@ -1439,8 +1276,6 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
                 if (deletingId) {
                   if (deletingType === "faq") {
                     handleDeleteFAQ(deletingId);
-                  } else if (deletingType === "instruction") {
-                    handleDeleteInstruction(deletingId);
                   } else if (deletingType === "news") {
                     handleDeleteNews(deletingId);
                   } else if (deletingType === "event") {

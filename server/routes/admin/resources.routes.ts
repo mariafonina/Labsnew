@@ -13,7 +13,8 @@ router.get('/:productId', verifyToken, requireAdmin, asyncHandler(async (req: Au
   let queryText = `
     SELECT pr.*, pt.name as min_tier_name
     FROM labs.product_resources pr
-    LEFT JOIN labs.pricing_tiers pt ON pr.product_id = pt.product_id AND pr.min_tier_level = pt.tier_level
+    LEFT JOIN labs.cohorts c ON c.product_id = pr.product_id
+    LEFT JOIN labs.pricing_tiers pt ON pt.cohort_id = c.id AND pr.min_tier_level = pt.tier_level
     WHERE pr.product_id = $1
   `;
   const params: any[] = [productId];

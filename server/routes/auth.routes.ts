@@ -41,7 +41,7 @@ router.post('/register', authLimiter, async (req, res) => {
       SELECT p.id as product_id, c.id as cohort_id, pt.id as tier_id
       FROM labs.products p
       JOIN labs.cohorts c ON c.product_id = p.id AND c.name = 'Основной поток'
-      JOIN labs.pricing_tiers pt ON pt.product_id = p.id AND pt.tier_level = 1
+      JOIN labs.pricing_tiers pt ON pt.cohort_id = c.id AND pt.tier_level = 1
       WHERE p.name = 'Общая программа'
       LIMIT 1
     `);

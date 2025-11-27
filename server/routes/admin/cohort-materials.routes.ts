@@ -18,37 +18,72 @@ router.get('/:cohortId', verifyToken, requireAdmin, asyncHandler(async (req: Aut
   }
 
   // Fetch all materials for this cohort
-  const [instructions, recordings, news, events, faq] = await Promise.all([
-    query('SELECT * FROM labs.instructions WHERE cohort_id = $1 ORDER BY created_at DESC', [cohortId]),
+  const [instructions, recordings, news, events, faq, categories] = await Promise.all([
+    query(`
+      SELECT i.*, c.name as category_name
+      FROM labs.instructions i
+      LEFT JOIN labs.cohort_knowledge_categories c ON i.cohort_category_id = c.id
+      WHERE i.cohort_id = $1
+      ORDER BY c.display_order ASC, i.display_order ASC, i.created_at DESC
+    `, [cohortId]),
     query('SELECT * FROM labs.recordings WHERE cohort_id = $1 ORDER BY created_at DESC', [cohortId]),
     query('SELECT * FROM labs.news WHERE cohort_id = $1 ORDER BY created_at DESC', [cohortId]),
     query('SELECT * FROM labs.events WHERE cohort_id = $1 ORDER BY event_date DESC, event_time DESC', [cohortId]),
-    query('SELECT * FROM labs.faq WHERE cohort_id = $1 ORDER BY created_at DESC', [cohortId])
+    query('SELECT * FROM labs.faq WHERE cohort_id = $1 ORDER BY created_at DESC', [cohortId]),
+    query('SELECT * FROM labs.cohort_knowledge_categories WHERE cohort_id = $1 ORDER BY display_order ASC', [cohortId])
   ]);
 
-  res.json({
+  const response = {
     instructions: instructions.rows,
     recordings: recordings.rows,
     news: news.rows,
     schedule: events.rows,
-    faqs: faq.rows
+    faqs: faq.rows,
+    categories: categories.rows
+  };
+
+  console.log(`[GET cohort-materials] Cohort ${cohortId}:`, {
+    categories: response.categories.length,
+    instructions: response.instructions.length
   });
+
+  res.json(response);
 }));
 
 // Create instruction for cohort
 router.post('/:cohortId/instructions', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohortId } = req.params;
-  const { title, content, category } = req.body;
+  const { title, content, category, cohort_category_id, description, loom_embed_url, downloadUrl } = req.body;
 
   if (!title || !content) {
     return res.status(400).json({ error: 'Title and content are required' });
   }
 
+  // Get max display_order for this category
+  const maxOrderResult = await query(
+    'SELECT COALESCE(MAX(display_order), -1) as max_order FROM labs.instructions WHERE cohort_id = $1 AND cohort_category_id = $2',
+    [cohortId, cohort_category_id || null]
+  );
+  const maxOrder = maxOrderResult.rows[0].max_order;
+
   const result = await query(`
-    INSERT INTO labs.instructions (cohort_id, title, content, category, user_id)
-    VALUES ($1, $2, $3, $4, $5)
+    INSERT INTO labs.instructions (
+      cohort_id, cohort_category_id, title, content, category, user_id,
+      display_order, loom_embed_url, image_url
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING *
-  `, [cohortId, sanitizeText(title), sanitizeText(content), category ? sanitizeText(category) : null, req.userId]);
+  `, [
+    cohortId,
+    cohort_category_id || null,
+    sanitizeText(title),
+    sanitizeText(content),
+    category ? sanitizeText(category) : null,
+    req.userId,
+    maxOrder + 1,
+    loom_embed_url || null,
+    downloadUrl || null
+  ]);
 
   res.status(201).json(result.rows[0]);
 }));
@@ -56,14 +91,30 @@ router.post('/:cohortId/instructions', verifyToken, requireAdmin, createLimiter,
 // Update instruction
 router.put('/:cohortId/instructions/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohortId, id } = req.params;
-  const { title, content, category } = req.body;
+  const { title, content, category, cohort_category_id, description, loom_embed_url, downloadUrl } = req.body;
 
   const result = await query(`
     UPDATE labs.instructions
-    SET title = $1, content = $2, category = $3, updated_at = CURRENT_TIMESTAMP
-    WHERE id = $4 AND cohort_id = $5
+    SET
+      title = $1,
+      content = $2,
+      category = $3,
+      cohort_category_id = $4,
+      loom_embed_url = $5,
+      image_url = $6,
+      updated_at = CURRENT_TIMESTAMP
+    WHERE id = $7 AND cohort_id = $8
     RETURNING *
-  `, [sanitizeText(title), sanitizeText(content), category ? sanitizeText(category) : null, id, cohortId]);
+  `, [
+    sanitizeText(title),
+    sanitizeText(content),
+    category ? sanitizeText(category) : null,
+    cohort_category_id || null,
+    loom_embed_url || null,
+    downloadUrl || null,
+    id,
+    cohortId
+  ]);
 
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'Instruction not found' });
@@ -283,6 +334,26 @@ router.delete('/:cohortId/faq/:id', verifyToken, requireAdmin, asyncHandler(asyn
   }
 
   res.json({ message: 'FAQ deleted successfully' });
+}));
+
+// Reorder instructions (admin only)
+router.post('/:cohortId/instructions/reorder', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { cohortId } = req.params;
+  const { instructions } = req.body; // Array of { id, order, cohort_category_id }
+
+  if (!Array.isArray(instructions)) {
+    return res.status(400).json({ error: 'Invalid data format' });
+  }
+
+  // Update orders in a transaction
+  for (const instr of instructions) {
+    await query(
+      'UPDATE labs.instructions SET display_order = $1, cohort_category_id = $2 WHERE id = $3 AND cohort_id = $4',
+      [instr.order, instr.cohort_category_id || null, instr.id, cohortId]
+    );
+  }
+
+  res.json({ message: 'Instructions reordered successfully' });
 }));
 
 export default router;

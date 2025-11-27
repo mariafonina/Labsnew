@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Users as UsersIcon, Calendar } from 'lucide-react';
+import { Plus, Edit, Trash2, Users as UsersIcon, Calendar, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { CohortForm } from './CohortForm';
 import { CohortMembers } from './CohortMembers';
+import { CohortKnowledgeManager } from './CohortKnowledgeManager';
 import { apiClient } from '@/api/client';
 import { toast } from 'sonner';
 
@@ -29,6 +30,7 @@ export function CohortsList({ productId }: CohortsListProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [editingCohort, setEditingCohort] = useState<Cohort | null>(null);
   const [selectedCohort, setSelectedCohort] = useState<Cohort | null>(null);
+  const [knowledgeBaseCohort, setKnowledgeBaseCohort] = useState<Cohort | null>(null);
 
   useEffect(() => {
     loadCohorts();
@@ -181,6 +183,14 @@ export function CohortsList({ productId }: CohortsListProps) {
                   <Button
                     variant="ghost"
                     size="sm"
+                    onClick={() => setKnowledgeBaseCohort(cohort)}
+                    title="База знаний"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setSelectedCohort(cohort)}
                     title="Управление участниками"
                   >
@@ -231,6 +241,17 @@ export function CohortsList({ productId }: CohortsListProps) {
               <DialogTitle>Участники потока: {selectedCohort.name}</DialogTitle>
             </DialogHeader>
             <CohortMembers cohortId={selectedCohort.id} />
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {knowledgeBaseCohort && (
+        <Dialog open={!!knowledgeBaseCohort} onOpenChange={(open: boolean) => !open && setKnowledgeBaseCohort(null)}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>База знаний: {knowledgeBaseCohort.name}</DialogTitle>
+            </DialogHeader>
+            <CohortKnowledgeManager cohortId={knowledgeBaseCohort.id} cohortName={knowledgeBaseCohort.name} />
           </DialogContent>
         </Dialog>
       )}

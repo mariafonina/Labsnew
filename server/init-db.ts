@@ -382,18 +382,16 @@ export async function initializeDatabase() {
     await query(`
       CREATE TABLE IF NOT EXISTS labs.pricing_tiers (
         id SERIAL PRIMARY KEY,
-        product_id INTEGER REFERENCES labs.products(id) ON DELETE CASCADE,
         name VARCHAR(100) NOT NULL,
         description TEXT,
         price DECIMAL(10, 2) NOT NULL,
-        tier_level INTEGER NOT NULL,
+        tier_level INTEGER,
         features JSONB,
         access_start_date DATE,
         access_end_date DATE,
         is_active BOOLEAN DEFAULT TRUE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(product_id, tier_level)
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('Table "labs.pricing_tiers" created');
@@ -413,7 +411,7 @@ export async function initializeDatabase() {
       }
     }
 
-    // Миграция: добавить cohort_id к тарифам
+    // Миграция: перенести тарифы с product_id на cohort_id
     try {
       await query(`ALTER TABLE labs.pricing_tiers ADD COLUMN IF NOT EXISTS cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE CASCADE`);
       console.log('Added cohort_id to pricing_tiers');
@@ -449,9 +447,97 @@ export async function initializeDatabase() {
       // Сделать tier_level nullable
       await query(`ALTER TABLE labs.pricing_tiers ALTER COLUMN tier_level DROP NOT NULL`);
       console.log('Made tier_level nullable in pricing_tiers');
+
+      // ГЛАВНАЯ МИГРАЦИЯ: Перенести тарифы без cohort_id на первый поток продукта
+      // Сначала проверим, существует ли колонка product_id
+      const productIdColumnExists = await query(`
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'labs'
+        AND table_name = 'pricing_tiers'
+        AND column_name = 'product_id'
+      `);
+
+      if (productIdColumnExists.rows.length > 0) {
+        const tiersWithoutCohort = await query(`
+          SELECT pt.id, pt.product_id
+          FROM labs.pricing_tiers pt
+          WHERE pt.cohort_id IS NULL AND pt.product_id IS NOT NULL
+        `);
+
+        if (tiersWithoutCohort.rows.length > 0) {
+          console.log(`Found ${tiersWithoutCohort.rows.length} tiers without cohort_id, migrating...`);
+
+          for (const tier of tiersWithoutCohort.rows) {
+            // Найти первый активный поток для этого продукта
+            const cohort = await query(`
+              SELECT id FROM labs.cohorts
+              WHERE product_id = $1 AND is_active = TRUE
+              ORDER BY created_at ASC
+              LIMIT 1
+            `, [tier.product_id]);
+
+            if (cohort.rows.length > 0) {
+              await query(`
+                UPDATE labs.pricing_tiers
+                SET cohort_id = $1
+                WHERE id = $2
+              `, [cohort.rows[0].id, tier.id]);
+              console.log(`  Migrated tier ${tier.id} to cohort ${cohort.rows[0].id}`);
+            } else {
+              console.warn(`  WARNING: No cohort found for product ${tier.product_id}, tier ${tier.id} will remain without cohort`);
+            }
+          }
+        }
+      } else {
+        console.log('Column product_id does not exist in pricing_tiers, skipping migration');
+      }
+
+      // Удалить старые индексы для product_id
+      await query(`DROP INDEX IF EXISTS labs.idx_pricing_tiers_product_id`);
+      await query(`DROP INDEX IF EXISTS labs.idx_pricing_tiers_tier_lookup`);
+      console.log('Dropped old pricing_tiers indexes for product_id');
+
+      // Удалить product_id foreign key constraint
+      await query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.table_constraints
+            WHERE constraint_name = 'pricing_tiers_product_id_fkey'
+            AND table_schema = 'labs'
+          ) THEN
+            ALTER TABLE labs.pricing_tiers DROP CONSTRAINT pricing_tiers_product_id_fkey;
+            RAISE NOTICE 'Dropped product_id foreign key constraint from pricing_tiers';
+          END IF;
+        END $$;
+      `);
+      console.log('Dropped product_id foreign key from pricing_tiers');
+
+      // Удалить колонку product_id
+      await query(`
+        DO $$
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'labs'
+            AND table_name = 'pricing_tiers'
+            AND column_name = 'product_id'
+          ) THEN
+            ALTER TABLE labs.pricing_tiers DROP COLUMN product_id;
+            RAISE NOTICE 'Dropped product_id column from pricing_tiers';
+          END IF;
+        END $$;
+      `);
+      console.log('Dropped product_id column from pricing_tiers');
+
+      // Сделать cohort_id обязательным
+      await query(`ALTER TABLE labs.pricing_tiers ALTER COLUMN cohort_id SET NOT NULL`);
+      console.log('Made cohort_id NOT NULL in pricing_tiers');
+
     } catch (err: any) {
       if (!err.message?.includes('already exists') && !err.message?.includes('duplicate')) {
-        console.error('Error migrating pricing_tiers cohort_id:', err);
+        console.error('Error migrating pricing_tiers to cohort-based:', err);
       }
     }
 
@@ -525,6 +611,32 @@ export async function initializeDatabase() {
       )
     `);
     console.log('Table "labs.cohort_members" created');
+
+    // Таблица для категорий базы знаний потоков
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.cohort_knowledge_categories (
+        id SERIAL PRIMARY KEY,
+        cohort_id INTEGER NOT NULL REFERENCES labs.cohorts(id) ON DELETE CASCADE,
+        name VARCHAR(200) NOT NULL,
+        description TEXT,
+        display_order INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(cohort_id, name)
+      )
+    `);
+    console.log('Table "labs.cohort_knowledge_categories" created');
+
+    // Индексы для cohort_knowledge_categories
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_cohort_knowledge_categories_cohort_id
+        ON labs.cohort_knowledge_categories(cohort_id)
+    `);
+    await query(`
+      CREATE INDEX IF NOT EXISTS idx_cohort_knowledge_categories_display_order
+        ON labs.cohort_knowledge_categories(cohort_id, display_order)
+    `);
+    console.log('Indexes for "labs.cohort_knowledge_categories" created');
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.content_access (
@@ -616,11 +728,21 @@ export async function initializeDatabase() {
       console.error('Error adding cohort_id to materials tables:', err);
     }
 
+    // Migration: Add cohort_category_id to instructions for cohort knowledge base
+    try {
+      await query(`ALTER TABLE labs.instructions ADD COLUMN IF NOT EXISTS cohort_category_id INTEGER REFERENCES labs.cohort_knowledge_categories(id) ON DELETE SET NULL`);
+      console.log('Added cohort_category_id to labs.instructions');
+    } catch (err) {
+      console.error('Error adding cohort_category_id to instructions:', err);
+    }
+
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_user_id ON labs.instructions(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category ON labs.instructions(category)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_category_id ON labs.instructions(category_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_display_order ON labs.instructions(category_id, display_order)');
     await query('CREATE INDEX IF NOT EXISTS idx_instructions_cohort_id ON labs.instructions(cohort_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_instructions_cohort_category_id ON labs.instructions(cohort_category_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_instructions_cohort_lookup ON labs.instructions(cohort_id, cohort_category_id, display_order)');
     await query('CREATE INDEX IF NOT EXISTS idx_instruction_categories_display_order ON labs.instruction_categories(display_order)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_user_id ON labs.events(user_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_events_date ON labs.events(event_date)');
@@ -653,9 +775,9 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_products_type ON labs.products(type)');
     await query('CREATE INDEX IF NOT EXISTS idx_products_is_active ON labs.products(is_active)');
     await query('CREATE INDEX IF NOT EXISTS idx_products_status ON labs.products(status)');
-    await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_product_id ON labs.pricing_tiers(product_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_cohort_id ON labs.pricing_tiers(cohort_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_tier_level ON labs.pricing_tiers(tier_level)');
-    await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_tier_lookup ON labs.pricing_tiers(product_id, tier_level)');
+    await query('CREATE INDEX IF NOT EXISTS idx_pricing_tiers_cohort_lookup ON labs.pricing_tiers(cohort_id, tier_level)');
     await query('CREATE INDEX IF NOT EXISTS idx_cohorts_product_id ON labs.cohorts(product_id)');
     await query('CREATE INDEX IF NOT EXISTS idx_cohorts_dates ON labs.cohorts(start_date, end_date)');
     await query('CREATE INDEX IF NOT EXISTS idx_cohorts_active ON labs.cohorts(is_active, product_id)');
@@ -681,6 +803,121 @@ export async function initializeDatabase() {
     await query('CREATE INDEX IF NOT EXISTS idx_materials_visible ON labs.materials(cohort_id, is_visible)');
     console.log('Indexes created');
 
+    // Миграция: копировать категории в cohort_knowledge_categories для существующих потоков
+    try {
+      console.log('Starting cohort knowledge categories migration...');
+      const cohortsWithInstructions = await query(`
+        SELECT DISTINCT cohort_id
+        FROM labs.instructions
+        WHERE cohort_id IS NOT NULL
+      `);
+
+      console.log(`Found ${cohortsWithInstructions.rows.length} cohorts with instructions`);
+
+      for (const cohortRow of cohortsWithInstructions.rows) {
+        const cohortId = cohortRow.cohort_id;
+
+        // Копируем категории из instruction_categories
+        const existingCategories = await query(`
+          SELECT DISTINCT ic.*
+          FROM labs.instruction_categories ic
+          INNER JOIN labs.instructions i ON i.category_id = ic.id
+          WHERE i.cohort_id = $1
+          ORDER BY ic.display_order
+        `, [cohortId]);
+
+        console.log(`  Cohort ${cohortId}: migrating ${existingCategories.rows.length} categories`);
+
+        for (const category of existingCategories.rows) {
+          // Вставляем категорию в cohort_knowledge_categories
+          const newCategory = await query(`
+            INSERT INTO labs.cohort_knowledge_categories
+              (cohort_id, name, description, display_order)
+            VALUES ($1, $2, $3, $4)
+            ON CONFLICT (cohort_id, name) DO UPDATE SET display_order = EXCLUDED.display_order
+            RETURNING id
+          `, [cohortId, category.name, category.description, category.display_order]);
+
+          const newCategoryId = newCategory.rows[0].id;
+
+          // Обновляем инструкции этой категории
+          const updateResult = await query(`
+            UPDATE labs.instructions
+            SET cohort_category_id = $1
+            WHERE cohort_id = $2
+              AND category_id = $3
+              AND cohort_category_id IS NULL
+          `, [newCategoryId, cohortId, category.id]);
+
+          console.log(`    Category "${category.name}": ${updateResult.rowCount} instructions updated`);
+        }
+      }
+
+      console.log('Cohort knowledge categories migration completed');
+    } catch (err) {
+      console.error('Error migrating cohort knowledge categories:', err);
+      // Не бросаем ошибку, продолжаем инициализацию
+    }
+
+    // Миграция: удалить старые enrollments без cohort_id (невалидные данные)
+    try {
+      const invalidEnrollments = await query(`
+        DELETE FROM labs.user_enrollments
+        WHERE cohort_id IS NULL
+        RETURNING id
+      `);
+
+      if (invalidEnrollments.rows.length > 0) {
+        console.log(`Deleted ${invalidEnrollments.rows.length} invalid enrollments without cohort_id`);
+      }
+    } catch (err) {
+      console.error('Error cleaning up invalid enrollments:', err);
+    }
+
+    // Миграция: создать enrollments для пользователей в cohort_members без enrollments
+    try {
+      console.log('Syncing cohort members with enrollments...');
+
+      const orphanedMembers = await query(`
+        SELECT DISTINCT cm.cohort_id, cm.user_id, c.product_id
+        FROM labs.cohort_members cm
+        JOIN labs.cohorts c ON cm.cohort_id = c.id
+        LEFT JOIN labs.user_enrollments ue ON ue.user_id = cm.user_id
+          AND ue.cohort_id = cm.cohort_id
+          AND ue.product_id = c.product_id
+        WHERE cm.left_at IS NULL
+          AND ue.id IS NULL
+      `);
+
+      if (orphanedMembers.rows.length > 0) {
+        console.log(`Found ${orphanedMembers.rows.length} cohort members without enrollments, creating...`);
+
+        for (const member of orphanedMembers.rows) {
+          // Найти первый тариф для этого потока
+          const tier = await query(`
+            SELECT id FROM labs.pricing_tiers
+            WHERE cohort_id = $1
+            ORDER BY tier_level ASC NULLS LAST, id ASC
+            LIMIT 1
+          `, [member.cohort_id]);
+
+          if (tier.rows.length > 0) {
+            await query(`
+              INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status)
+              VALUES ($1, $2, $3, $4, 'active')
+              ON CONFLICT (user_id, product_id, cohort_id) DO NOTHING
+            `, [member.user_id, member.product_id, tier.rows[0].id, member.cohort_id]);
+
+            console.log(`  Created enrollment for user ${member.user_id} in cohort ${member.cohort_id}`);
+          } else {
+            console.warn(`  WARNING: No tier found for cohort ${member.cohort_id}, skipping user ${member.user_id}`);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error syncing cohort members with enrollments:', err);
+    }
+
     const defaultProduct = await query(`
       SELECT id FROM labs.products WHERE name = 'Общая программа' LIMIT 1
     `);
@@ -695,15 +932,6 @@ export async function initializeDatabase() {
 
       const productId = product.rows[0].id;
 
-      const tier = await query(`
-        INSERT INTO labs.pricing_tiers (product_id, name, description, price, tier_level, is_active)
-        VALUES ($1, 'Стандартный', 'Полный доступ ко всем материалам', 0.00, 1, TRUE)
-        RETURNING id
-      `, [productId]);
-      console.log('Default pricing tier created');
-
-      const tierId = tier.rows[0].id;
-
       const cohort = await query(`
         INSERT INTO labs.cohorts (product_id, name, description, start_date, end_date, is_active)
         VALUES ($1, 'Основной поток', 'Основной поток для всех пользователей', '2024-01-01', '2099-12-31', TRUE)
@@ -712,6 +940,15 @@ export async function initializeDatabase() {
       console.log('Default cohort created');
 
       const cohortId = cohort.rows[0].id;
+
+      const tier = await query(`
+        INSERT INTO labs.pricing_tiers (cohort_id, name, description, price, tier_level, is_active)
+        VALUES ($1, 'Стандартный', 'Полный доступ ко всем материалам', 0.00, 1, TRUE)
+        RETURNING id
+      `, [cohortId]);
+      console.log('Default pricing tier created');
+
+      const tierId = tier.rows[0].id;
 
       const users = await query('SELECT id FROM labs.users');
       

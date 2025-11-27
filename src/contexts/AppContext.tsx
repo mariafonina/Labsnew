@@ -92,8 +92,12 @@ export interface Event {
 export interface Instruction {
   id: string | number;
   title: string;
-  categoryId: string | number | null; // ID категории
-  category_id?: number | null; // Поле из БД
+  categoryId: string | number | null; // DEPRECATED - ID старой категории
+  category_id?: number | null; // DEPRECATED - Поле из БД
+  cohortId?: number; // ID потока
+  cohort_id?: number; // Поле из БД
+  cohortCategoryId: string | number | null; // ID категории базы знаний
+  cohort_category_id?: number | null; // Поле из БД
   description: string;
   views: number;
   updatedAt: string;
@@ -114,6 +118,25 @@ export interface InstructionCategory {
   createdAt: string;
   created_at?: string; // Поле из БД
   updated_at?: string; // Поле из БД
+}
+
+export interface CohortKnowledgeCategory {
+  id: string | number;
+  cohort_id: number;
+  name: string;
+  description?: string;
+  order: number;
+  display_order?: number;
+  createdAt: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface UserCohort {
+  id: number;
+  name: string;
+  product_id: number;
+  product_name?: string;
 }
 
 export interface Recording {
@@ -161,6 +184,9 @@ interface AppContextType {
   events: Event[];
   instructions: Instruction[];
   instructionCategories: InstructionCategory[];
+  cohortKnowledgeCategories: CohortKnowledgeCategory[];
+  userCohorts: UserCohort[];
+  selectedCohortId: number | null;
   recordings: Recording[];
   faqItems: FAQItem[];
   users: User[];
@@ -196,6 +222,12 @@ interface AppContextType {
   updateInstructionCategory: (id: string, updates: Partial<InstructionCategory>) => void;
   deleteInstructionCategory: (id: string) => void;
   moveInstructionCategory: (categoryId: string, newOrder: number) => void;
+  setSelectedCohort: (cohortId: number | null) => void;
+  fetchCohortKnowledgeCategories: (cohortId: number) => Promise<void>;
+  addCohortKnowledgeCategory: (cohortId: number, category: Omit<CohortKnowledgeCategory, "id" | "order" | "createdAt" | "cohort_id">) => Promise<void>;
+  updateCohortKnowledgeCategory: (cohortId: number, categoryId: string | number, updates: Partial<CohortKnowledgeCategory>) => Promise<void>;
+  deleteCohortKnowledgeCategory: (cohortId: number, categoryId: string | number) => Promise<void>;
+  moveCohortKnowledgeCategory: (cohortId: number, categoryId: string | number, newOrder: number) => Promise<void>;
   addRecording: (recording: Omit<Recording, "id" | "views">) => void;
   updateRecording: (id: string, updates: Partial<Recording>) => void;
   deleteRecording: (id: string) => void;
@@ -569,6 +601,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return saved ? JSON.parse(saved) : [];
   });
 
+  const [userCohorts, setUserCohorts] = useState<UserCohort[]>([]);
+  const [selectedCohortId, setSelectedCohortIdState] = useState<number | null>(() => {
+    const saved = localStorage.getItem('selectedCohortId');
+    return saved ? parseInt(saved) : null;
+  });
+  const [cohortKnowledgeCategories, setCohortKnowledgeCategories] = useState<CohortKnowledgeCategory[]>([]);
+
   // User-specific data NO LONGER persisted to localStorage for security (loaded from API)
   // Only auth persisted for rememberMe functionality
   useEffect(() => {
@@ -607,6 +646,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem("users", JSON.stringify(users));
   }, [users]);
+
+  useEffect(() => {
+    if (selectedCohortId !== null) {
+      localStorage.setItem('selectedCohortId', selectedCohortId.toString());
+    }
+  }, [selectedCohortId]);
+
+  useEffect(() => {
+    if (selectedCohortId && auth.isAuthenticated) {
+      fetchCohortKnowledgeCategories(selectedCohortId);
+    }
+  }, [selectedCohortId, auth.isAuthenticated]);
 
   // OPTIMIZATION: Removed blocking prefetch of admin content (news, events, recordings, FAQ)
   // These are now loaded on-demand in their respective admin components
@@ -1303,6 +1354,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const fetchContent = async () => {
     console.log('[AppContext] fetchContent called');
     try {
+      // Загружаем потоки пользователя
+      const cohortsData = await Promise.allSettled([
+        apiClient.get(`/profile/cohorts`)
+      ]);
+
+      console.log('[AppContext] Cohorts data:', cohortsData[0]);
+
+      if (cohortsData[0].status === 'fulfilled') {
+        const response = cohortsData[0].value;
+        // API возвращает либо массив напрямую, либо объект с полем data
+        const cohorts = Array.isArray(response) ? response : (response.data || response || []);
+        console.log('[AppContext] Cohorts array:', cohorts, 'length:', cohorts.length);
+        setUserCohorts(cohorts);
+
+        // Автоматически выбрать первый поток если не выбран
+        if (cohorts.length > 0 && !selectedCohortId) {
+          setSelectedCohortIdState(cohorts[0].id);
+        }
+      } else if (cohortsData[0].status === 'rejected') {
+        console.error('[AppContext] Failed to load cohorts:', cohortsData[0].reason);
+        setUserCohorts([]);
+      }
+
       const [newsData, eventsData, instructionsData, recordingsData, faqData] = await Promise.allSettled([
         apiClient.getNews(),
         apiClient.getEvents(),
@@ -1359,7 +1433,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const items = instructionsData.value.length > 0 ? instructionsData.value.map((item: any) => ({
           id: item.id,
           title: item.title,
-          categoryId: item.category_id,
+          categoryId: item.category_id, // deprecated
+          cohortId: item.cohort_id,
+          cohortCategoryId: item.cohort_category_id,
           description: item.description || '',
           views: item.views || 0,
           updatedAt: item.updated_at,
@@ -1492,12 +1568,71 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user.status === 'active' ? 'Активен' : 'Неактивен',
       user.lastActivity ? new Date(user.lastActivity).toLocaleDateString('ru-RU') : ''
     ]);
-    
+
     const csvContent = [headers, ...rows]
       .map(row => row.map(cell => `"${cell}"`).join(','))
       .join('\n');
-    
+
     return csvContent;
+  };
+
+  const setSelectedCohort = (cohortId: number | null) => {
+    setSelectedCohortIdState(cohortId);
+  };
+
+  const fetchCohortKnowledgeCategories = async (cohortId: number) => {
+    try {
+      const data = await apiClient.get(`/cohorts/${cohortId}/knowledge-categories`);
+      setCohortKnowledgeCategories(data.map((cat: any) => ({
+        id: cat.id,
+        cohort_id: cat.cohort_id,
+        name: cat.name,
+        description: cat.description,
+        order: cat.display_order || 0,
+        display_order: cat.display_order,
+        createdAt: cat.created_at,
+        created_at: cat.created_at,
+        updated_at: cat.updated_at
+      })));
+    } catch (error) {
+      console.error('Error fetching cohort knowledge categories:', error);
+    }
+  };
+
+  const addCohortKnowledgeCategory = async (cohortId: number, category: Omit<CohortKnowledgeCategory, "id" | "order" | "createdAt" | "cohort_id">) => {
+    try {
+      const response = await apiClient.post(`/cohorts/${cohortId}/knowledge-categories`, category);
+      await fetchCohortKnowledgeCategories(cohortId);
+    } catch (error) {
+      console.error('Error adding cohort knowledge category:', error);
+    }
+  };
+
+  const updateCohortKnowledgeCategory = async (cohortId: number, categoryId: string | number, updates: Partial<CohortKnowledgeCategory>) => {
+    try {
+      await apiClient.put(`/cohorts/${cohortId}/knowledge-categories/${categoryId}`, updates);
+      await fetchCohortKnowledgeCategories(cohortId);
+    } catch (error) {
+      console.error('Error updating cohort knowledge category:', error);
+    }
+  };
+
+  const deleteCohortKnowledgeCategory = async (cohortId: number, categoryId: string | number) => {
+    try {
+      await apiClient.delete(`/cohorts/${cohortId}/knowledge-categories/${categoryId}`);
+      await fetchCohortKnowledgeCategories(cohortId);
+    } catch (error) {
+      console.error('Error deleting cohort knowledge category:', error);
+    }
+  };
+
+  const moveCohortKnowledgeCategory = async (cohortId: number, categoryId: string | number, newOrder: number) => {
+    try {
+      await apiClient.put(`/cohorts/${cohortId}/knowledge-categories/${categoryId}`, { display_order: newOrder });
+      await fetchCohortKnowledgeCategories(cohortId);
+    } catch (error) {
+      console.error('Error moving cohort knowledge category:', error);
+    }
   };
 
   return (
@@ -1514,6 +1649,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         events,
         instructions,
         instructionCategories,
+        cohortKnowledgeCategories,
+        userCohorts,
+        selectedCohortId,
         recordings,
         faqItems,
         users,
@@ -1549,6 +1687,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateInstructionCategory,
         deleteInstructionCategory,
         moveInstructionCategory,
+        setSelectedCohort,
+        fetchCohortKnowledgeCategories,
+        addCohortKnowledgeCategory,
+        updateCohortKnowledgeCategory,
+        deleteCohortKnowledgeCategory,
+        moveCohortKnowledgeCategory,
         addRecording,
         updateRecording,
         deleteRecording,

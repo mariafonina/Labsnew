@@ -56,12 +56,15 @@ function renderMarkdown(text: string) {
 }
 
 export function InstructionsLibrary() {
-  const { 
-    instructions, 
-    instructionCategories,
-    addToFavorites, 
-    removeFromFavorites, 
-    isFavorite 
+  const {
+    instructions,
+    cohortKnowledgeCategories,
+    userCohorts,
+    selectedCohortId,
+    setSelectedCohort,
+    addToFavorites,
+    removeFromFavorites,
+    isFavorite
   } = useApp();
 
   const [selectedInstruction, setSelectedInstruction] = useState<Instruction | null>(null);
@@ -72,10 +75,32 @@ export function InstructionsLibrary() {
   // Если выбрана инструкция, показываем детальную страницу
   if (selectedInstruction) {
     return (
-      <InstructionDetail 
-        instruction={selectedInstruction} 
-        onBack={() => setSelectedInstruction(null)} 
+      <InstructionDetail
+        instruction={selectedInstruction}
+        onBack={() => setSelectedInstruction(null)}
       />
+    );
+  }
+
+  // Проверка доступа: нет потоков
+  if (userCohorts.length === 0) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-gray-500 text-lg">
+          У вас нет доступа к потокам
+        </p>
+      </Card>
+    );
+  }
+
+  // Проверка доступа: не выбран поток
+  if (!selectedCohortId) {
+    return (
+      <Card className="p-12 text-center">
+        <p className="text-gray-500 text-lg">
+          Выберите поток
+        </p>
+      </Card>
     );
   }
 
@@ -108,22 +133,50 @@ export function InstructionsLibrary() {
     localStorage.setItem("completedInstructions", JSON.stringify(Array.from(newCompleted)));
   };
 
-  // Сортируем категории по order
-  const sortedCategories = [...instructionCategories].sort((a, b) => a.order - b.order);
+  // Фильтруем инструкции по выбранному потоку
+  const cohortInstructions = instructions.filter(i =>
+    i.cohort_id === selectedCohortId || i.cohortId === selectedCohortId
+  );
 
-  // Получаем инструкции для каждой категории
-  const getInstructionsByCategory = (categoryId: string | null) => {
-    return instructions
-      .filter((i) => i.categoryId === categoryId)
+  // Сортируем категории по order
+  const sortedCategories = [...cohortKnowledgeCategories].sort((a, b) => a.order - b.order);
+
+  // Получаем инструкции для каждой категории базы знаний потока
+  const getInstructionsByCohortCategory = (categoryId: string | number | null) => {
+    return cohortInstructions
+      .filter((i) => {
+        const instructionCategoryId = i.cohort_category_id ?? i.cohortCategoryId;
+        return instructionCategoryId === categoryId;
+      })
       .sort((a, b) => a.order - b.order);
   };
 
   // Инструкции без категории
-  const uncategorizedInstructions = getInstructionsByCategory(null);
+  const uncategorizedInstructions = getInstructionsByCohortCategory(null);
 
   return (
     <div className="space-y-16">
-      {instructions.length === 0 ? (
+      {/* Селектор потока (если потоков больше 1) */}
+      {userCohorts.length > 1 && (
+        <Card className="p-4 mb-6">
+          <div className="flex items-center gap-4">
+            <label className="font-semibold text-gray-700">Поток:</label>
+            <select
+              value={selectedCohortId || ''}
+              onChange={(e) => setSelectedCohort(Number(e.target.value))}
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-400"
+            >
+              {userCohorts.map(cohort => (
+                <option key={cohort.id} value={cohort.id}>
+                  {cohort.name} {cohort.product_name ? `(${cohort.product_name})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </Card>
+      )}
+
+      {cohortInstructions.length === 0 ? (
         <Card className="p-12 text-center">
           <p className="text-gray-500 text-lg">
             Пока нет доступных инструкций
@@ -196,7 +249,7 @@ export function InstructionsLibrary() {
 
           {/* Категоризированные инструкции */}
           {sortedCategories.map((category) => {
-            const categoryInstructions = getInstructionsByCategory(category.id);
+            const categoryInstructions = getInstructionsByCohortCategory(category.id);
 
             // Показываем только категории, в которых есть инструкции
             if (categoryInstructions.length === 0) return null;
@@ -205,6 +258,9 @@ export function InstructionsLibrary() {
               <div key={category.id} className="space-y-5">
                 <div className="mb-2">
                   <h2 className="font-black text-2xl text-gray-900">{category.name}</h2>
+                  {category.description && (
+                    <p className="text-gray-600 mt-1">{category.description}</p>
+                  )}
                 </div>
               
               <div className="space-y-3">

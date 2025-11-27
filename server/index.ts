@@ -9,6 +9,7 @@ import authRoutes from './routes/auth.routes';
 import profileRoutes from './routes/profile.routes';
 import instructionsRoutes from './routes/instructions.routes';
 import instructionCategoriesRoutes from './routes/instruction-categories.routes';
+import cohortKnowledgeCategoriesRoutes from './routes/cohort-knowledge-categories.routes';
 import eventsRoutes from './routes/events.routes';
 import favoritesRoutes from './routes/favorites.routes';
 import notesRoutes from './routes/notes.routes';
@@ -57,6 +58,12 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+  next();
+});
+
 app.use('/api/', globalLimiter);
 app.use('/api/', burstLimiter);
 app.use('/api/', requestSizeLimiter);
@@ -68,6 +75,7 @@ app.use('/api', passwordResetRoutes);
 app.use('/api', setupPasswordRoutes);
 app.use('/api/instructions', instructionsRoutes);
 app.use('/api/instruction-categories', instructionCategoriesRoutes);
+app.use('/api/cohorts/:cohortId/knowledge-categories', cohortKnowledgeCategoriesRoutes);
 app.use('/api/events', eventsRoutes);
 app.use('/api/favorites', favoritesRoutes);
 app.use('/api/notes', notesRoutes);
@@ -166,7 +174,14 @@ async function initDB() {
 
 // Start server immediately for fast health check response
 app.listen(PORT, '0.0.0.0', () => {
+  console.log('='.repeat(60));
   console.log(`Backend API server running on port ${PORT}`);
+  console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
+  console.log(`Registered routes:`);
+  console.log('  - GET  /api/health');
+  console.log('  - GET  /api/profile/cohorts');
+  console.log('  - POST /api/auth/login');
+  console.log('='.repeat(60));
   console.log(`Environment: ${isProduction ? 'production' : 'development'}`);
   console.log(`Server listening on 0.0.0.0:${PORT}`);
   

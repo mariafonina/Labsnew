@@ -58,19 +58,19 @@ router.post('/', verifyToken, requireAdmin, createLimiter, asyncHandler(async (r
     return res.status(404).json({ error: 'Product not found' });
   }
 
-  const tier = await query('SELECT id FROM labs.pricing_tiers WHERE id = $1 AND product_id = $2', [pricing_tier_id, product_id]);
-  if (tier.rows.length === 0) {
-    return res.status(404).json({ error: 'Pricing tier not found for this product' });
-  }
-
   if (cohort_id) {
     const cohort = await query('SELECT id FROM labs.cohorts WHERE id = $1 AND product_id = $2', [cohort_id, product_id]);
     if (cohort.rows.length === 0) {
       return res.status(404).json({ error: 'Cohort not found for this product' });
     }
 
+    const tier = await query('SELECT id FROM labs.pricing_tiers WHERE id = $1 AND cohort_id = $2', [pricing_tier_id, cohort_id]);
+    if (tier.rows.length === 0) {
+      return res.status(404).json({ error: 'Pricing tier not found for this cohort' });
+    }
+
     const memberExists = await query(`
-      SELECT id FROM labs.cohort_members 
+      SELECT id FROM labs.cohort_members
       WHERE cohort_id = $1 AND user_id = $2 AND left_at IS NULL
     `, [cohort_id, user_id]);
 
@@ -81,6 +81,8 @@ router.post('/', verifyToken, requireAdmin, createLimiter, asyncHandler(async (r
         ON CONFLICT (cohort_id, user_id) DO UPDATE SET left_at = NULL, joined_at = CURRENT_TIMESTAMP
       `, [cohort_id, user_id]);
     }
+  } else {
+    return res.status(400).json({ error: 'cohort_id is required' });
   }
 
   const result = await query(`
@@ -102,16 +104,20 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async 
   const { id } = req.params;
   const { pricing_tier_id, status, expires_at } = req.body;
 
-  const existingEnrollment = await query('SELECT id, product_id FROM labs.user_enrollments WHERE id = $1', [id]);
+  const existingEnrollment = await query('SELECT id, product_id, cohort_id FROM labs.user_enrollments WHERE id = $1', [id]);
   if (existingEnrollment.rows.length === 0) {
     return res.status(404).json({ error: 'Enrollment not found' });
   }
 
   if (pricing_tier_id) {
-    const tier = await query('SELECT id FROM labs.pricing_tiers WHERE id = $1 AND product_id = $2', 
-      [pricing_tier_id, existingEnrollment.rows[0].product_id]);
+    if (!existingEnrollment.rows[0].cohort_id) {
+      return res.status(400).json({ error: 'Cannot update tier: enrollment has no cohort' });
+    }
+
+    const tier = await query('SELECT id FROM labs.pricing_tiers WHERE id = $1 AND cohort_id = $2',
+      [pricing_tier_id, existingEnrollment.rows[0].cohort_id]);
     if (tier.rows.length === 0) {
-      return res.status(404).json({ error: 'Pricing tier not found for this product' });
+      return res.status(404).json({ error: 'Pricing tier not found for this cohort' });
     }
   }
 

@@ -642,7 +642,7 @@ router.post('/:id/members/upload',
       const cohortInfo = await query(`
         SELECT c.product_id, pt.id as tier_id
         FROM labs.cohorts c
-        LEFT JOIN labs.pricing_tiers pt ON pt.product_id = c.product_id AND pt.tier_level = 1
+        LEFT JOIN labs.pricing_tiers pt ON pt.cohort_id = c.id AND pt.tier_level = 1
         WHERE c.id = $1
       `, [id]);
 
