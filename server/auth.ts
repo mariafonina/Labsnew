@@ -9,7 +9,7 @@ export interface AuthRequest extends Request {
 }
 
 export function generateToken(userId: number, role: string): string {
-  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign({ userId, role }, JWT_SECRET, { expiresIn: '30d' });
 }
 
 export function verifyToken(req: AuthRequest, res: Response, next: NextFunction) {
