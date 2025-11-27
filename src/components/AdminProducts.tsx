@@ -799,8 +799,7 @@ export function AdminProducts() {
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button
-                                size="lg"
+                              <button
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setViewingCohortDetail({
@@ -810,12 +809,21 @@ export function AdminProducts() {
                                     productId: product.id,
                                   });
                                 }}
-                                className="bg-purple-600 hover:bg-purple-700 text-white shadow-md hover:shadow-lg transition-all"
+                                style={{
+                                  background: 'linear-gradient(to right, rgb(99, 102, 241), rgb(168, 85, 247))',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'linear-gradient(to right, rgb(79, 70, 229), rgb(147, 51, 234))';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'linear-gradient(to right, rgb(99, 102, 241), rgb(168, 85, 247))';
+                                }}
+                                className="inline-flex items-center justify-center gap-2 h-10 rounded-md px-6 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all"
                                 title="Управление материалами потока"
                               >
-                                <ExternalLink className="h-5 w-5 mr-2" />
+                                <ExternalLink className="h-5 w-5" />
                                 Управлять потоком
-                              </Button>
+                              </button>
                               <Button
                                 size="sm"
                                 variant="outline"

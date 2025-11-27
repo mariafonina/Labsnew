@@ -193,15 +193,18 @@ function AppContent() {
                       Ваши личные заметки и идеи
                     </p>
                   </div>
-                  <Notes onNavigateToItem={(type) => {
+                  <Notes onNavigateToItem={(linkedItem) => {
                     const tabMap: Record<string, string> = {
                       'news': 'news',
                       'instruction': 'instructions',
                       'recording': 'recordings',
                       'event': 'calendar'
                     };
-                    const tab = tabMap[type];
+                    const tab = tabMap[linkedItem.type];
                     if (tab) {
+                      // Сохраняем выбранный элемент для автоматического открытия
+                      sessionStorage.setItem('selectedItemId', linkedItem.id);
+                      sessionStorage.setItem('selectedItemType', linkedItem.type);
                       setActiveTab(tab);
                     }
                   }} />
@@ -356,15 +359,18 @@ function AppContent() {
                   Ваши личные заметки и идеи
                 </p>
               </div>
-              <Notes onNavigateToItem={(type) => {
+              <Notes onNavigateToItem={(linkedItem) => {
                 const tabMap: Record<string, string> = {
                   'news': 'news',
                   'instruction': 'instructions',
                   'recording': 'recordings',
                   'event': 'calendar'
                 };
-                const tab = tabMap[type];
+                const tab = tabMap[linkedItem.type];
                 if (tab) {
+                  // Сохраняем выбранный элемент для автоматического открытия
+                  sessionStorage.setItem('selectedItemId', linkedItem.id);
+                  sessionStorage.setItem('selectedItemType', linkedItem.type);
                   setActiveTab(tab);
                 }
               }} />

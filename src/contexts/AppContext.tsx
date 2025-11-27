@@ -195,10 +195,10 @@ interface AppContextType {
   isFavorite: (id: string) => boolean;
   toggleLike: (id: string) => void;
   isLiked: (id: string) => boolean;
-  addNote: (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => void;
+  addNote: (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => Promise<void>;
   updateNote: (id: string, updates: Partial<Note>) => void;
   deleteNote: (id: string) => void;
-  addComment: (comment: Omit<Comment, "id" | "createdAt" | "likes">, eventTitle?: string, eventType?: "event" | "instruction" | "recording" | "faq") => void;
+  addComment: (comment: Omit<Comment, "id" | "createdAt" | "likes">, eventTitle?: string, eventType?: "event" | "instruction" | "recording" | "faq") => Promise<void>;
   getCommentsByEvent: (eventId: string) => Comment[];
   toggleCommentLike: (commentId: string) => void;
   toggleInstructionComplete: (id: string) => void;
@@ -376,7 +376,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         description: "Подробное руководство по организации эффективного процесса обучения с практическими примерами и таблицами",
         views: 234,
         updatedAt: "2024-11-01",
-        loomVideoUrl: "https://www.loom.com/embed/example",
+        loom_embed_url: "https://www.loom.com/embed/example",
         imageUrl: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200",
         content: `
           <h2>Введение в систему обучения</h2>
@@ -864,18 +864,29 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return likes.includes(id);
   };
 
-  const addNote = (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
-    // Sanitize note content to prevent XSS
-    const sanitizedContent = note.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    
-    const newNote: Note = {
-      ...note,
-      content: sanitizedContent,
-      id: `note-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setNotes((prev) => [newNote, ...prev]);
+  const addNote = async (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
+    try {
+      // Send to API
+      const result = await apiClient.post('/notes', {
+        title: note.title,
+        content: note.content,
+        linked_item: note.linkedItem
+      });
+
+      // Add to local state
+      const newNote: Note = {
+        id: String(result.id),
+        title: result.title || note.title,
+        content: result.content,
+        linkedItem: result.linked_item || note.linkedItem,
+        createdAt: result.created_at,
+        updatedAt: result.updated_at
+      };
+      setNotes((prev) => [newNote, ...prev]);
+    } catch (error) {
+      console.error('Failed to save note:', error);
+      throw error;
+    }
   };
 
   const updateNote = (id: string, updates: Partial<Note>) => {
@@ -892,47 +903,65 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setNotes((prev) => prev.filter((note) => note.id !== id));
   };
 
-  const addComment = (
+  const addComment = async (
     comment: Omit<Comment, "id" | "createdAt" | "likes">,
     eventTitle?: string,
     eventType?: "event" | "instruction" | "recording" | "faq"
   ) => {
-    // Sanitize comment content to prevent XSS
-    const sanitizedContent = comment.content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    
-    const newComment: Comment = {
-      ...comment,
-      content: sanitizedContent,
-      eventTitle: eventTitle || comment.eventTitle,
-      eventType: eventType || comment.eventType,
-      id: `comment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-      likes: 0,
-    };
-    setComments((prev) => [newComment, ...prev]);
+    try {
+      // Send to API
+      const result = await apiClient.post('/comments', {
+        event_id: comment.eventId,
+        event_type: eventType || comment.eventType || 'event',
+        event_title: eventTitle || comment.eventTitle,
+        author_name: comment.authorName,
+        author_role: comment.authorRole,
+        content: comment.content,
+        parent_id: comment.parentId || null
+      });
 
-    // Если это ответ на вопрос пользователя (есть parentId), создаём уведомление
-    if (comment.parentId && comment.authorRole === "admin") {
-      const parentComment = comments.find((c) => c.id === comment.parentId);
-      
-      // Проверяем, что родительский комментарий принадлежит пользователю
-      if (parentComment && parentComment.authorRole === "user") {
-        const notification: Notification = {
-          id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          type: "answer_received",
-          commentId: newComment.id,
-          questionId: comment.parentId,
-          eventId: comment.eventId,
-          eventType: eventType || "event",
-          eventTitle: eventTitle || "Материал курса",
-          answerAuthor: comment.authorName,
-          answerPreview: comment.content.substring(0, 100),
-          createdAt: new Date().toISOString(),
-          isRead: false,
-        };
-        
-        setNotifications((prev) => [notification, ...prev]);
+      // Add to local state
+      const newComment: Comment = {
+        id: String(result.id),
+        userId: String(result.user_id),
+        eventId: result.event_id,
+        eventType: result.event_type,
+        eventTitle: result.event_title,
+        authorName: result.author_name,
+        authorRole: result.author_role,
+        content: result.content,
+        createdAt: result.created_at,
+        likes: result.likes || 0,
+        parentId: result.parent_id ? String(result.parent_id) : undefined
+      };
+      setComments((prev) => [newComment, ...prev]);
+
+      // Если это ответ на вопрос пользователя (есть parentId), создаём уведомление
+      if (comment.parentId && comment.authorRole === "admin") {
+        const parentComment = comments.find((c) => c.id === comment.parentId);
+
+        // Проверяем, что родительский комментарий принадлежит пользователю
+        if (parentComment && parentComment.authorRole === "user") {
+          const notification: Notification = {
+            id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            type: "answer_received",
+            commentId: newComment.id,
+            questionId: comment.parentId,
+            eventId: comment.eventId,
+            eventType: eventType || "event",
+            eventTitle: eventTitle || "Материал курса",
+            answerAuthor: comment.authorName,
+            answerPreview: comment.content.substring(0, 100),
+            createdAt: new Date().toISOString(),
+            isRead: false,
+          };
+
+          setNotifications((prev) => [notification, ...prev]);
+        }
       }
+    } catch (error) {
+      console.error('Failed to save comment:', error);
+      throw error;
     }
   };
 
@@ -1368,9 +1397,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.log('[AppContext] Cohorts array:', cohorts, 'length:', cohorts.length);
         setUserCohorts(cohorts);
 
-        // Автоматически выбрать первый поток если не выбран
-        if (cohorts.length > 0 && !selectedCohortId) {
-          setSelectedCohortIdState(cohorts[0].id);
+        // Автоматически выбрать первый поток если не выбран или если выбранный поток не существует
+        console.log('[AppContext] Auto-select check: cohorts.length =', cohorts.length, 'selectedCohortId =', selectedCohortId);
+        if (cohorts.length > 0) {
+          // Проверяем что выбранный поток существует в списке
+          const selectedExists = selectedCohortId && cohorts.some(c => c.id === selectedCohortId);
+          if (!selectedExists) {
+            console.log('[AppContext] Auto-selecting first cohort:', cohorts[0].id);
+            setSelectedCohortIdState(cohorts[0].id);
+          } else {
+            console.log('[AppContext] Selected cohort exists:', selectedCohortId);
+          }
+        } else {
+          console.log('[AppContext] No cohorts available');
         }
       } else if (cohortsData[0].status === 'rejected') {
         console.error('[AppContext] Failed to load cohorts:', cohortsData[0].reason);
@@ -1434,14 +1473,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           id: item.id,
           title: item.title,
           categoryId: item.category_id, // deprecated
-          cohortId: item.cohort_id,
+          cohort_id: item.cohort_id, // Поле из БД
+          cohortId: item.cohort_id, // Дублируем для совместимости
+          cohort_category_id: item.cohort_category_id, // Поле из БД
           cohortCategoryId: item.cohort_category_id,
           description: item.description || '',
           views: item.views || 0,
           updatedAt: item.updated_at,
           content: item.content,
           imageUrl: item.image_url,
-          loomVideoUrl: item.loom_embed_url,
+          loom_embed_url: item.loom_embed_url,
           order: item.display_order || 0
         })) : [];
         console.log('[AppContext] Setting instructions:', items.length);

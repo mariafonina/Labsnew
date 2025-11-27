@@ -27,7 +27,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface NotesProps {
-  onNavigateToItem?: (type: string) => void;
+  onNavigateToItem?: (linkedItem: any) => void;
 }
 
 export function Notes({ onNavigateToItem }: NotesProps) {
@@ -69,12 +69,17 @@ export function Notes({ onNavigateToItem }: NotesProps) {
     });
   };
 
-  const handleCreateNote = () => {
+  const handleCreateNote = async () => {
     if (!fullText.trim()) return;
     const { title, content } = extractTitleAndContent(fullText);
-    addNote({ title, content });
-    setFullText("");
-    setIsCreating(false);
+    try {
+      await addNote({ title, content });
+      setFullText("");
+      setIsCreating(false);
+      toast.success("Заметка создана");
+    } catch (error) {
+      toast.error("Не удалось создать заметку");
+    }
   };
 
   const handleUpdateNote = () => {
@@ -122,7 +127,7 @@ export function Notes({ onNavigateToItem }: NotesProps) {
   const handleNavigateToLinkedItem = (note: Note, e: React.MouseEvent) => {
     e.stopPropagation();
     if (note.linkedItem && onNavigateToItem) {
-      onNavigateToItem(note.linkedItem.type);
+      onNavigateToItem(note.linkedItem);
       toast.success(`Переход к: ${note.linkedItem.title}`);
     }
   };

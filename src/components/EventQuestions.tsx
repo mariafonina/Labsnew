@@ -39,38 +39,46 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
     return replies.filter(r => r.parentId === commentId);
   };
 
-  const handleSubmitQuestion = () => {
+  const handleSubmitQuestion = async () => {
     if (!newQuestion.trim()) return;
 
-    addComment({
-      eventId,
-      eventType: eventType,
-      eventTitle: eventTitle,
-      authorName: "Александр",
-      authorRole: "user",
-      content: newQuestion,
-    }, eventTitle, eventType);
+    try {
+      await addComment({
+        eventId,
+        eventType: eventType,
+        eventTitle: eventTitle,
+        authorName: "Александр",
+        authorRole: "user",
+        content: newQuestion,
+      }, eventTitle, eventType);
 
-    setNewQuestion("");
-    toast.success("Вопрос отправлен!");
+      setNewQuestion("");
+      toast.success("Вопрос отправлен!");
+    } catch (error) {
+      toast.error("Не удалось отправить вопрос");
+    }
   };
 
-  const handleSubmitReply = (parentId: string) => {
+  const handleSubmitReply = async (parentId: string) => {
     if (!replyText.trim()) return;
 
-    addComment({
-      eventId,
-      eventType: "event",
-      eventTitle: eventTitle,
-      authorName: isAdmin ? "Администратор" : "Александр",
-      authorRole: isAdmin ? "admin" : "user",
-      content: replyText,
-      parentId,
-    }, eventTitle, "event");
+    try {
+      await addComment({
+        eventId,
+        eventType: "event",
+        eventTitle: eventTitle,
+        authorName: isAdmin ? "Администратор" : "Александр",
+        authorRole: isAdmin ? "admin" : "user",
+        content: replyText,
+        parentId,
+      }, eventTitle, "event");
 
-    setReplyText("");
-    setReplyingTo(null);
-    toast.success("Ответ отправлен!");
+      setReplyText("");
+      setReplyingTo(null);
+      toast.success("Ответ отправлен!");
+    } catch (error) {
+      toast.error("Не удалось отправить ответ");
+    }
   };
 
   const formatDate = (dateString: string) => {

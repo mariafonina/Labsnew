@@ -71,26 +71,30 @@ export function AdminQuestions() {
     return comments.filter((c) => c.parentId === questionId);
   };
 
-  const handleSubmitReply = (question: any) => {
+  const handleSubmitReply = async (question: any) => {
     if (!replyText.trim()) return;
 
-    addComment(
-      {
-        eventId: question.eventId,
-        eventType: question.eventType,
-        eventTitle: question.eventTitle,
-        authorName: auth.email || "Администратор",
-        authorRole: "admin",
-        content: replyText,
-        parentId: question.id,
-      },
-      question.eventTitle,
-      question.eventType
-    );
+    try {
+      await addComment(
+        {
+          eventId: question.eventId,
+          eventType: question.eventType,
+          eventTitle: question.eventTitle,
+          authorName: auth.email || "Администратор",
+          authorRole: "admin",
+          content: replyText,
+          parentId: question.id,
+        },
+        question.eventTitle,
+        question.eventType
+      );
 
-    setReplyText("");
-    setReplyingTo(null);
-    toast.success("Ответ отправлен!");
+      setReplyText("");
+      setReplyingTo(null);
+      toast.success("Ответ отправлен!");
+    } catch (error) {
+      toast.error("Не удалось отправить ответ");
+    }
   };
 
   const formatDate = (dateString: string) => {

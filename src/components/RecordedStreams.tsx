@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -11,6 +11,23 @@ import { RecordingDetail } from "./RecordingDetail";
 export function RecordedStreams() {
   const { recordings, addToFavorites, removeFromFavorites, isFavorite } = useApp();
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
+
+  // Проверяем sessionStorage при загрузке компонента
+  useEffect(() => {
+    const selectedId = sessionStorage.getItem('selectedItemId');
+    const selectedType = sessionStorage.getItem('selectedItemType');
+
+    if (selectedId && selectedType === 'recording') {
+      // Ищем запись по ID
+      const recording = recordings.find(r => String(r.id) === selectedId);
+      if (recording) {
+        setSelectedRecording(recording);
+      }
+      // Очищаем sessionStorage после использования
+      sessionStorage.removeItem('selectedItemId');
+      sessionStorage.removeItem('selectedItemType');
+    }
+  }, [recordings]);
 
   const handleToggleFavorite = (recording: Recording, e: React.MouseEvent) => {
     e.stopPropagation();

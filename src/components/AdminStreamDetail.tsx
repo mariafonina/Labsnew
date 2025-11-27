@@ -52,6 +52,7 @@ interface NewsPost {
   content: string;
   date: string;
   author?: string;
+  category?: string;
   image?: string;
 }
 
@@ -71,8 +72,11 @@ interface Recording {
   loom_embed_url?: string;
   duration?: string;
   date: string;
-  instructor?: string;
+  instructor: string;
+  thumbnail?: string;
+  views: number;
   description?: string;
+  created_at: string;
 }
 
 interface CohortMember {
@@ -141,7 +145,9 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
   // News states
   const [editingNews, setEditingNews] = useState<NewsPost | null>(null);
   const [isAddingNews, setIsAddingNews] = useState(false);
-  const [newsForm, setNewsForm] = useState({ title: "", content: "" });
+  const [newsForm, setNewsForm] = useState({ title: "", content: "", category: "", image: "" });
+  const [newsImageFile, setNewsImageFile] = useState<File | null>(null);
+  const [newsImagePreview, setNewsImagePreview] = useState<string>("");
 
   // Event states
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -151,7 +157,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
   // Recording states
   const [editingRecording, setEditingRecording] = useState<Recording | null>(null);
   const [isAddingRecording, setIsAddingRecording] = useState(false);
-  const [recordingForm, setRecordingForm] = useState({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", description: "" });
+  const [recordingForm, setRecordingForm] = useState({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
 
   // Members states
   const [members, setMembers] = useState<CohortMember[]>([]);
@@ -230,15 +236,32 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
 
   // News handlers
   const handleAddNews = async () => {
-    if (!newsForm.title || !newsForm.content) {
-      toast.error("Заполните название и содержание");
+    if (!newsForm.title || !newsForm.content || !newsForm.category) {
+      toast.error("Заполните название, содержание и категорию");
       return;
     }
 
     try {
-      await apiClient.post(`/admin/cohort-materials/${cohortId}/news`, newsForm);
+      const formData = new FormData();
+      formData.append("title", newsForm.title);
+      formData.append("content", newsForm.content);
+      formData.append("category", newsForm.category);
+      if (newsImageFile) {
+        formData.append("image", newsImageFile);
+      }
+
+      await fetch(`/api/admin/cohort-materials/${cohortId}/news`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: formData
+      });
+
       await loadMaterials();
-      setNewsForm({ title: "", content: "" });
+      setNewsForm({ title: "", content: "", category: "", image: "" });
+      setNewsImageFile(null);
+      setNewsImagePreview("");
       setIsAddingNews(false);
       toast.success("Новость добавлена");
     } catch (error: any) {
@@ -247,16 +270,33 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
   };
 
   const handleUpdateNews = async () => {
-    if (!editingNews || !newsForm.title || !newsForm.content) {
-      toast.error("Заполните название и содержание");
+    if (!editingNews || !newsForm.title || !newsForm.content || !newsForm.category) {
+      toast.error("Заполните название, содержание и категорию");
       return;
     }
 
     try {
-      await apiClient.put(`/admin/cohort-materials/${cohortId}/news/${editingNews.id}`, newsForm);
+      const formData = new FormData();
+      formData.append("title", newsForm.title);
+      formData.append("content", newsForm.content);
+      formData.append("category", newsForm.category);
+      if (newsImageFile) {
+        formData.append("image", newsImageFile);
+      }
+
+      await fetch(`/api/admin/cohort-materials/${cohortId}/news/${editingNews.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: formData
+      });
+
       await loadMaterials();
       setEditingNews(null);
-      setNewsForm({ title: "", content: "" });
+      setNewsForm({ title: "", content: "", category: "", image: "" });
+      setNewsImageFile(null);
+      setNewsImagePreview("");
       toast.success("Новость обновлена");
     } catch (error: any) {
       toast.error(error.message || "Не удалось обновить новость");
@@ -330,7 +370,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
     try {
       await apiClient.post(`/admin/cohort-materials/${cohortId}/recordings`, recordingForm);
       await loadMaterials();
-      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", description: "" });
+      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
       setIsAddingRecording(false);
       toast.success("Запись добавлена");
     } catch (error: any) {
@@ -348,7 +388,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       await apiClient.put(`/admin/cohort-materials/${cohortId}/recordings/${editingRecording.id}`, recordingForm);
       await loadMaterials();
       setEditingRecording(null);
-      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", description: "" });
+      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
       toast.success("Запись обновлена");
     } catch (error: any) {
       toast.error(error.message || "Не удалось обновить запись");
@@ -373,7 +413,14 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
 
   const startEditNews = (post: NewsPost) => {
     setEditingNews(post);
-    setNewsForm({ title: post.title, content: post.content });
+    setNewsForm({
+      title: post.title,
+      content: post.content,
+      category: post.category || "",
+      image: post.image || ""
+    });
+    setNewsImageFile(null);
+    setNewsImagePreview(post.image || "");
   };
 
   const startEditEvent = (event: Event) => {
@@ -588,7 +635,9 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               onCancel={() => {
                 setIsAddingNews(false);
                 setEditingNews(null);
-                setNewsForm({ title: "", content: "" });
+                setNewsForm({ title: "", content: "", category: "", image: "" });
+                setNewsImageFile(null);
+                setNewsImagePreview("");
               }}
               submitText={editingNews ? "Сохранить" : "Опубликовать"}
             >
@@ -610,6 +659,45 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
                     rows={6}
                   />
                 </AdminFormField>
+
+                <AdminFormField label="Категория" required emoji="🏷️">
+                  <Input
+                    value={newsForm.category}
+                    onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
+                    placeholder="Новости / Достижения / Обновления"
+                    className="h-12"
+                  />
+                </AdminFormField>
+
+                <AdminFormField label="Изображение" emoji="🖼️">
+                  <div className="space-y-4">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setNewsImageFile(file);
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setNewsImagePreview(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="h-12"
+                    />
+                    {newsImagePreview && (
+                      <div className="relative">
+                        <img
+                          src={newsImagePreview}
+                          alt="Preview"
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </AdminFormField>
               </div>
             </AdminFormWrapper>
           )}
@@ -621,36 +709,56 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               <p className="text-gray-500 mb-4">Добавьте первую новость</p>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               {materials.news.map((post) => (
-                <Card key={post.id} className="p-5 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between gap-4 mb-3">
-                    <div className="flex-1">
-                      <h4 className="font-bold text-lg text-gray-900">{post.title}</h4>
-                      <p className="text-sm text-gray-500">{post.date}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => startEditNews(post)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setDeletingId(post.id);
-                          setDeletingType("news");
-                        }}
-                        className="hover:bg-red-50 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                <Card key={post.id} className="overflow-hidden hover:shadow-xl transition-all border-gray-200/60 bg-white/60 backdrop-blur-sm">
+                  <div className="p-6">
+                    {/* Текст — главное */}
+                    <p className="text-gray-900 leading-relaxed mb-6 text-lg">{post.content}</p>
+
+                    {/* Фото */}
+                    {post.image && (
+                      <div className="relative aspect-video overflow-hidden rounded-xl mb-4">
+                        <img
+                          src={post.image}
+                          alt={post.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {/* Метаинформация */}
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200/60">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">{post.date}</span>
+                        {post.category && (
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-700 hover:bg-gray-200">
+                            {post.category}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => startEditNews(post)}
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setDeletingId(post.id);
+                            setDeletingType("news");
+                          }}
+                          className="hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
-                  <p className="text-gray-600 line-clamp-3">{post.content}</p>
                 </Card>
               ))}
             </div>
@@ -806,7 +914,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               onCancel={() => {
                 setIsAddingRecording(false);
                 setEditingRecording(null);
-                setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", description: "" });
+                setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
               }}
               submitText={editingRecording ? "Сохранить" : "Опубликовать"}
             >
@@ -843,6 +951,15 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
                     value={recordingForm.duration}
                     onChange={(e) => setRecordingForm({ ...recordingForm, duration: e.target.value })}
                     placeholder="1ч 30мин"
+                    className="h-12"
+                  />
+                </AdminFormField>
+
+                <AdminFormField label="Обложка (URL)" emoji="🖼️">
+                  <Input
+                    value={recordingForm.thumbnail}
+                    onChange={(e) => setRecordingForm({ ...recordingForm, thumbnail: e.target.value })}
+                    placeholder="https://example.com/image.jpg"
                     className="h-12"
                   />
                 </AdminFormField>

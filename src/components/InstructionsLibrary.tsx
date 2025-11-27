@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Bookmark, Eye } from "lucide-react";
@@ -72,12 +72,47 @@ export function InstructionsLibrary() {
     new Set(JSON.parse(localStorage.getItem("completedInstructions") || "[]"))
   );
 
+  // Проверяем sessionStorage при загрузке компонента
+  useEffect(() => {
+    console.log('[InstructionsLibrary useEffect] Checking sessionStorage');
+    const selectedId = sessionStorage.getItem('selectedItemId');
+    const selectedType = sessionStorage.getItem('selectedItemType');
+    console.log('[InstructionsLibrary useEffect] selectedId:', selectedId, 'selectedType:', selectedType);
+    console.log('[InstructionsLibrary useEffect] instructions.length:', instructions.length);
+
+    if (selectedId && selectedType === 'instruction') {
+      console.log('[InstructionsLibrary useEffect] Looking for instruction with id:', selectedId);
+      // Ищем инструкцию по ID
+      const instruction = instructions.find(i => {
+        console.log('[InstructionsLibrary useEffect] Comparing:', String(i.id), '===', selectedId, '?', String(i.id) === selectedId);
+        return String(i.id) === selectedId;
+      });
+      console.log('[InstructionsLibrary useEffect] Found instruction:', instruction);
+      if (instruction) {
+        console.log('[InstructionsLibrary useEffect] Setting selected instruction:', instruction.title);
+        setSelectedInstruction(instruction);
+      } else {
+        console.log('[InstructionsLibrary useEffect] Instruction not found!');
+      }
+      // Очищаем sessionStorage после использования
+      sessionStorage.removeItem('selectedItemId');
+      sessionStorage.removeItem('selectedItemType');
+    } else {
+      console.log('[InstructionsLibrary useEffect] No instruction to auto-select');
+    }
+  }, [instructions]);
+
   // Если выбрана инструкция, показываем детальную страницу
+  console.log('[InstructionsLibrary] selectedInstruction:', selectedInstruction);
   if (selectedInstruction) {
+    console.log('[InstructionsLibrary] Rendering InstructionDetail for:', selectedInstruction.id, selectedInstruction.title);
     return (
       <InstructionDetail
         instruction={selectedInstruction}
-        onBack={() => setSelectedInstruction(null)}
+        onBack={() => {
+          console.log('[InstructionsLibrary] Going back from InstructionDetail');
+          setSelectedInstruction(null);
+        }}
       />
     );
   }
@@ -95,6 +130,9 @@ export function InstructionsLibrary() {
 
   // Проверка доступа: не выбран поток
   if (!selectedCohortId) {
+    console.log('[InstructionsLibrary] No cohort selected!');
+    console.log('[InstructionsLibrary] selectedCohortId:', selectedCohortId);
+    console.log('[InstructionsLibrary] userCohorts:', userCohorts);
     return (
       <Card className="p-12 text-center">
         <p className="text-gray-500 text-lg">
@@ -134,9 +172,12 @@ export function InstructionsLibrary() {
   };
 
   // Фильтруем инструкции по выбранному потоку
-  const cohortInstructions = instructions.filter(i =>
-    i.cohort_id === selectedCohortId || i.cohortId === selectedCohortId
-  );
+  const cohortInstructions = instructions.filter(i => {
+    const match = i.cohort_id === selectedCohortId || i.cohortId === selectedCohortId;
+    return match;
+  });
+
+  console.log('[InstructionsLibrary] Filtered instructions:', cohortInstructions.length, 'of', instructions.length, 'for cohortId:', selectedCohortId);
 
   // Сортируем категории по order
   const sortedCategories = [...cohortKnowledgeCategories].sort((a, b) => a.order - b.order);
@@ -198,7 +239,10 @@ export function InstructionsLibrary() {
                   return (
                     <Card
                       key={instruction.id}
-                      onClick={() => setSelectedInstruction(instruction)}
+                      onClick={() => {
+                        console.log('[InstructionsLibrary] Clicked instruction:', instruction.id, instruction.title);
+                        setSelectedInstruction(instruction);
+                      }}
                       className="border-gray-200/60 bg-white/60 backdrop-blur-sm rounded-xl px-6 py-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
                     >
                       <div className="flex items-center gap-4">
@@ -270,7 +314,10 @@ export function InstructionsLibrary() {
                   return (
                     <Card
                       key={instruction.id}
-                      onClick={() => setSelectedInstruction(instruction)}
+                      onClick={() => {
+                        console.log('[InstructionsLibrary] Clicked instruction:', instruction.id, instruction.title);
+                        setSelectedInstruction(instruction);
+                      }}
                       className="border-gray-200/60 bg-white/60 backdrop-blur-sm rounded-xl px-6 py-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
                     >
                       <div className="flex items-center gap-4">

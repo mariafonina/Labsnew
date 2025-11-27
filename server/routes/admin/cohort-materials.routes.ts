@@ -4,6 +4,7 @@ import { query } from '../../db';
 import { createLimiter } from '../../utils/rate-limit';
 import { asyncHandler } from '../../utils/async-handler';
 import { sanitizeText } from '../../utils/sanitize';
+import { uploadNewsImage } from '../../utils/multer-config';
 
 const router = Router();
 
@@ -139,17 +140,17 @@ router.delete('/:cohortId/instructions/:id', verifyToken, requireAdmin, asyncHan
 // Create recording for cohort
 router.post('/:cohortId/recordings', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohortId } = req.params;
-  const { title, video_url, loom_embed_url, duration, date, instructor, description } = req.body;
+  const { title, video_url, loom_embed_url, duration, date, instructor, thumbnail, description } = req.body;
 
   if (!title || !date || !instructor) {
     return res.status(400).json({ error: 'Title, date, and instructor are required' });
   }
 
   const result = await query(`
-    INSERT INTO labs.recordings (cohort_id, title, video_url, loom_embed_url, duration, date, instructor, description)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    INSERT INTO labs.recordings (cohort_id, title, video_url, loom_embed_url, duration, date, instructor, thumbnail, description)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     RETURNING *
-  `, [cohortId, sanitizeText(title), video_url, loom_embed_url, duration, date, sanitizeText(instructor), description ? sanitizeText(description) : null]);
+  `, [cohortId, sanitizeText(title), video_url, loom_embed_url, duration, date, sanitizeText(instructor), thumbnail, description ? sanitizeText(description) : null]);
 
   res.status(201).json(result.rows[0]);
 }));
@@ -157,14 +158,14 @@ router.post('/:cohortId/recordings', verifyToken, requireAdmin, createLimiter, a
 // Update recording
 router.put('/:cohortId/recordings/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohortId, id } = req.params;
-  const { title, video_url, loom_embed_url, duration, date, instructor, description } = req.body;
+  const { title, video_url, loom_embed_url, duration, date, instructor, thumbnail, description } = req.body;
 
   const result = await query(`
     UPDATE labs.recordings
-    SET title = $1, video_url = $2, loom_embed_url = $3, duration = $4, date = $5, instructor = $6, description = $7, updated_at = CURRENT_TIMESTAMP
-    WHERE id = $8 AND cohort_id = $9
+    SET title = $1, video_url = $2, loom_embed_url = $3, duration = $4, date = $5, instructor = $6, thumbnail = $7, description = $8, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $9 AND cohort_id = $10
     RETURNING *
-  `, [sanitizeText(title), video_url, loom_embed_url, duration, date, sanitizeText(instructor), description ? sanitizeText(description) : null, id, cohortId]);
+  `, [sanitizeText(title), video_url, loom_embed_url, duration, date, sanitizeText(instructor), thumbnail, description ? sanitizeText(description) : null, id, cohortId]);
 
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'Recording not found' });
@@ -187,34 +188,49 @@ router.delete('/:cohortId/recordings/:id', verifyToken, requireAdmin, asyncHandl
 }));
 
 // Create news for cohort
-router.post('/:cohortId/news', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
+router.post('/:cohortId/news', verifyToken, requireAdmin, createLimiter, uploadNewsImage.single('image'), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohortId } = req.params;
-  const { title, content, author, category, image } = req.body;
+  const { title, content, category } = req.body;
 
-  if (!title || !content) {
-    return res.status(400).json({ error: 'Title and content are required' });
+  if (!title || !content || !category) {
+    return res.status(400).json({ error: 'Title, content, and category are required' });
   }
 
+  const userResult = await query('SELECT username FROM labs.users WHERE id = $1', [req.userId]);
+  const author = userResult.rows[0]?.username || 'Admin';
+  const date = new Date().toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+  const is_new = true;
+  const image = req.file ? `/uploads/news/${req.file.filename}` : null;
+
   const result = await query(`
-    INSERT INTO labs.news (cohort_id, title, content, author, category, image, date)
-    VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO labs.news (cohort_id, title, content, author, category, image, date, is_new)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
     RETURNING *
-  `, [cohortId, sanitizeText(title), sanitizeText(content), author || 'Admin', category || 'Новости', image, new Date().toISOString().split('T')[0]]);
+  `, [cohortId, sanitizeText(title), sanitizeText(content), author, sanitizeText(category), image, date, is_new]);
 
   res.status(201).json(result.rows[0]);
 }));
 
 // Update news
-router.put('/:cohortId/news/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
+router.put('/:cohortId/news/:id', verifyToken, requireAdmin, createLimiter, uploadNewsImage.single('image'), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohortId, id } = req.params;
-  const { title, content, author, category, image } = req.body;
+  const { title, content, category } = req.body;
+
+  const sanitizedTitle = title ? sanitizeText(title) : undefined;
+  const sanitizedContent = content ? sanitizeText(content) : undefined;
+  const sanitizedCategory = category ? sanitizeText(category) : undefined;
+  const image = req.file ? `/uploads/news/${req.file.filename}` : undefined;
 
   const result = await query(`
     UPDATE labs.news
-    SET title = $1, content = $2, author = $3, category = $4, image = $5, updated_at = CURRENT_TIMESTAMP
-    WHERE id = $6 AND cohort_id = $7
+    SET title = COALESCE($1, title), content = COALESCE($2, content), category = COALESCE($3, category), image = COALESCE($4, image), updated_at = CURRENT_TIMESTAMP
+    WHERE id = $5 AND cohort_id = $6
     RETURNING *
-  `, [sanitizeText(title), sanitizeText(content), author || 'Admin', category || 'Новости', image, id, cohortId]);
+  `, [sanitizedTitle, sanitizedContent, sanitizedCategory, image, id, cohortId]);
 
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'News not found' });
