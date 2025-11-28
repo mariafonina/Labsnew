@@ -589,13 +589,13 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       </div>
 
       {/* Material Sections Navigation */}
-      <div className="flex flex-wrap gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {materialSections.map((section) => {
           const Icon = section.icon;
           return (
             <Card
               key={section.id}
-              className={`px-3 py-2 cursor-pointer transition-all hover:shadow-md flex items-center gap-2 ${
+              className={`px-3 py-2.5 cursor-pointer transition-all hover:shadow-md flex items-center gap-2.5 ${
                 activeSection === section.id ? "ring-2 ring-purple-400 shadow-lg" : ""
               }`}
               onClick={() => {
@@ -610,7 +610,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               <div className={`h-8 w-8 rounded-lg bg-gradient-to-br ${section.color} flex items-center justify-center flex-shrink-0`}>
                 <Icon className="h-4 w-4 text-white" />
               </div>
-              <span className="font-semibold text-gray-900 text-sm whitespace-nowrap">{section.label} <span className="text-gray-500 font-normal">({section.count})</span></span>
+              <span className="font-semibold text-gray-900 text-sm">{section.label} <span className="text-gray-500 font-normal">({section.count})</span></span>
             </Card>
           );
         })}
