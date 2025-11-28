@@ -685,6 +685,21 @@ class ApiClient {
   async getCatalogProduct(id: number) {
     return this.get<any>(`/catalog/products/${id}`);
   }
+
+  // Object Storage (image uploads)
+  async getObjectUploadUrl(folder: string = 'instructions') {
+    return this.request<{ uploadURL: string; objectPath: string; method: string }>('/admin/objects/upload-url', {
+      method: 'POST',
+      body: JSON.stringify({ folder }),
+    });
+  }
+
+  async confirmObjectUpload(uploadURL: string, objectPath: string) {
+    return this.request<{ objectPath: string; success: boolean }>('/admin/objects/confirm-upload', {
+      method: 'POST',
+      body: JSON.stringify({ uploadURL, objectPath }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient();

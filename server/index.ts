@@ -34,6 +34,8 @@ import catalogRoutes from './routes/catalog.routes';
 import passwordResetRoutes from './routes/password-reset.routes';
 import setupPasswordRoutes from './routes/setup-password.routes';
 import webhooksRoutes from './routes/webhooks.routes';
+import adminObjectsRoutes from './routes/admin/objects.routes';
+import objectsRoutes from './routes/objects.routes';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -101,6 +103,10 @@ app.use('/api/admin/cohort-materials', adminCohortMaterialsRoutes);
 app.use('/api/admin/enrollments', adminEnrollmentsRoutes);
 app.use('/api/admin/resources', adminResourcesRoutes);
 app.use('/api/admin', adminInitialPasswordsRoutes);
+app.use('/api/admin/objects', adminObjectsRoutes);
+
+// Object storage routes (for serving uploaded files)
+app.use('/objects', objectsRoutes);
 
 // Webhooks (no auth required, external services)
 app.use('/api/webhooks', webhooksRoutes);

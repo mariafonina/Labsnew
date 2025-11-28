@@ -20,7 +20,10 @@ import {
   Eye,
   Edit3,
   Search,
+  Upload,
+  Loader2,
 } from "lucide-react";
+import { apiClient } from "../api/client";
 import {
   Dialog,
   DialogContent,
@@ -53,8 +56,12 @@ export function RichTextEditor({
   const [unsplashQuery, setUnsplashQuery] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
-  const [imageTab, setImageTab] = useState<"url" | "unsplash">("url");
+  const [imageTab, setImageTab] = useState<"url" | "upload" | "unsplash">("url");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const insertText = (before: string, after: string = "", placeholder: string = "") => {
     const textarea = textareaRef.current;
@@ -140,6 +147,75 @@ export function RichTextEditor({
       action: () => insertText("`", "`", "код"),
     },
   ];
+
+  const handleFileSelect = (file: File) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Разрешены только изображения (JPEG, PNG, GIF, WebP)");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("Файл слишком большой. Максимум 5MB");
+      return;
+    }
+
+    setSelectedFile(file);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setUploadPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadImage = async () => {
+    if (!selectedFile) {
+      toast.error("Выберите файл для загрузки");
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const uploadData = await apiClient.getObjectUploadUrl("instructions");
+      
+      const uploadResponse = await fetch(uploadData.uploadURL, {
+        method: "PUT",
+        body: selectedFile,
+        headers: {
+          "Content-Type": selectedFile.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Failed to upload file");
+      }
+
+      const confirmResult = await apiClient.confirmObjectUpload(
+        uploadData.uploadURL,
+        uploadData.objectPath
+      );
+
+      const imageUrlFromStorage = confirmResult.objectPath;
+      const markdown = `![${imageAlt || "Изображение"}](${imageUrlFromStorage})`;
+      insertAtCursor(markdown);
+      
+      toast.success("Изображение загружено и добавлено");
+      
+      setSelectedFile(null);
+      setUploadPreview(null);
+      setImageAlt("");
+      setImageTab("url");
+      setShowImageDialog(false);
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Не удалось загрузить изображение");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleInsertImage = () => {
     if (!imageUrl.trim()) {
@@ -343,11 +419,74 @@ export function RichTextEditor({
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs value={imageTab} onValueChange={(v: string) => setImageTab(v as "url" | "unsplash")} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="url">URL изображения</TabsTrigger>
-              <TabsTrigger value="unsplash">Поиск Unsplash</TabsTrigger>
+          <Tabs value={imageTab} onValueChange={(v: string) => setImageTab(v as "url" | "upload" | "unsplash")} className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-4">
+              <TabsTrigger value="upload">Загрузить</TabsTrigger>
+              <TabsTrigger value="url">URL</TabsTrigger>
+              <TabsTrigger value="unsplash">Unsplash</TabsTrigger>
             </TabsList>
+
+            <TabsContent value="upload" className="space-y-4">
+              <div
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors cursor-pointer ${
+                  selectedFile ? "border-green-300 bg-green-50" : "border-gray-300 hover:border-pink-300"
+                }`}
+                onClick={() => fileInputRef.current?.click()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files[0];
+                  if (file) handleFileSelect(file);
+                }}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                {uploadPreview ? (
+                  <div className="space-y-3">
+                    <img
+                      src={uploadPreview}
+                      alt="Превью"
+                      className="max-h-40 mx-auto rounded shadow-sm"
+                    />
+                    <p className="text-sm text-gray-600">{selectedFile?.name}</p>
+                    <p className="text-xs text-gray-400">
+                      {selectedFile && (selectedFile.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="h-10 w-10 mx-auto text-gray-400 mb-3" />
+                    <p className="text-sm text-gray-600 mb-1">
+                      Перетащите изображение сюда или нажмите для выбора
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      JPEG, PNG, GIF, WebP. Макс. 5MB
+                    </p>
+                  </>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleFileSelect(file);
+                  }}
+                  className="hidden"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="upload-alt" className="text-base mb-2 block">
+                  Описание (alt text)
+                </Label>
+                <Input
+                  id="upload-alt"
+                  value={imageAlt}
+                  onChange={(e) => setImageAlt(e.target.value)}
+                  placeholder="Описание изображения"
+                  className="text-base"
+                />
+              </div>
+            </TabsContent>
 
             <TabsContent value="url" className="space-y-4">
               <div>
@@ -448,18 +587,41 @@ export function RichTextEditor({
                 setImageUrl("");
                 setImageAlt("");
                 setUnsplashQuery("");
-                setImageTab("url");
+                setSelectedFile(null);
+                setUploadPreview(null);
+                setImageTab("upload");
               }}
+              disabled={isUploading}
             >
               Отмена
             </Button>
-            <Button
-              onClick={handleInsertImage}
-              className="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500"
-              disabled={!imageUrl.trim()}
-            >
-              Вставить
-            </Button>
+            {imageTab === "upload" ? (
+              <Button
+                onClick={handleUploadImage}
+                className="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500"
+                disabled={!selectedFile || isUploading}
+              >
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Загрузка...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Загрузить
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleInsertImage}
+                className="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500"
+                disabled={!imageUrl.trim()}
+              >
+                Вставить
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
