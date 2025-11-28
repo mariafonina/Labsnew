@@ -116,6 +116,7 @@ interface StreamMaterials {
   news: NewsPost[];
   schedule: Event[];
   recordings: Recording[];
+  instructions: any[];
 }
 
 interface AdminStreamDetailProps {
@@ -132,6 +133,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
     news: [],
     schedule: [],
     recordings: [],
+    instructions: [],
   });
 
   const [loading, setLoading] = useState(true);
@@ -443,6 +445,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       duration: recording.duration || "",
       date: recording.date,
       instructor: recording.instructor || "",
+      thumbnail: recording.thumbnail || "",
       description: recording.description || ""
     });
   };
@@ -463,7 +466,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
 
   const loadTiers = async () => {
     try {
-      const data = await apiClient.get<PricingTier[]>(`/admin/products/${productId}/cohorts/${cohortId}/tiers`);
+      const data = await apiClient.get<PricingTier[]>(`/admin/cohorts/${cohortId}/tiers`);
       setTiers(data);
     } catch (error: any) {
       console.error("Failed to load tiers:", error);
@@ -476,6 +479,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       setAllUsers(response.data || []);
     } catch (error: any) {
       console.error("Failed to load users:", error);
+      toast.error("Не удалось загрузить пользователей");
     }
   };
 

@@ -10,9 +10,10 @@ interface AdminFormWrapperProps {
   onSubmit: () => void;
   onCancel: () => void;
   submitText?: string;
+  submitDisabled?: boolean;
 }
 
-export function AdminFormWrapper({ title, description, children, onSubmit, onCancel, submitText = "Опубликовать" }: AdminFormWrapperProps) {
+export function AdminFormWrapper({ title, description, children, onSubmit, onCancel, submitText = "Опубликовать", submitDisabled = false }: AdminFormWrapperProps) {
   return (
     <Card className="p-8 shadow-lg border-2">
       <div className="mb-8 pb-6 border-b border-gray-200">
@@ -28,6 +29,7 @@ export function AdminFormWrapper({ title, description, children, onSubmit, onCan
         <div className="flex gap-3 pt-4">
           <Button
             onClick={onSubmit}
+            disabled={submitDisabled}
             className="flex-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 h-12"
           >
             <Save className="h-4 w-4 mr-2" />

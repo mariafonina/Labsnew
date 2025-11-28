@@ -30,6 +30,18 @@ router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest,
   res.json(result.rows);
 }));
 
+router.get('/:id/tiers', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  console.log(`[TIERS] Fetching tiers for cohort ${id}`);
+  const result = await query(`
+    SELECT * FROM labs.pricing_tiers
+    WHERE cohort_id = $1
+    ORDER BY tier_level
+  `, [id]);
+  console.log(`[TIERS] Found ${result.rows.length} tiers`);
+  res.json(result.rows);
+}));
+
 router.get('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const result = await query(`
@@ -38,11 +50,11 @@ router.get('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthReque
     LEFT JOIN labs.products p ON c.product_id = p.id
     WHERE c.id = $1
   `, [id]);
-  
+
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'Cohort not found' });
   }
-  
+
   res.json(result.rows[0]);
 }));
 

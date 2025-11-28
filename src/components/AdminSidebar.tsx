@@ -45,14 +45,8 @@ export function AdminSidebar({
   const menuItems = [
     { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
     { id: "products", label: "Продукты", icon: Package },
-    { id: "news", label: "Новости", icon: Newspaper },
-    { id: "events", label: "События", icon: Calendar },
-    { id: "instructions", label: "Инструкции", icon: BookOpen },
-    { id: "recordings", label: "Записи", icon: Video },
-    { id: "faq", label: "FAQ", icon: HelpCircle },
-    { id: "emails", label: "Email-рассылки", icon: Mail },
-    { id: "initial-passwords", label: "Первичные пароли", icon: KeyRound },
     { id: "questions", label: "Вопросы", icon: MessageCircle, badge: userQuestionsCount },
+    { id: "emails", label: "Email-рассылки", icon: Mail },
     { id: "users", label: "Пользователи", icon: Users },
   ];
 

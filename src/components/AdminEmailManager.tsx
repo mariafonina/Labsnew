@@ -19,10 +19,12 @@ import {
   Search,
   Trash2,
   RefreshCw,
+  Key,
 } from "lucide-react";
 import { AdminFormField } from "./AdminFormField";
 import { AdminEmptyState } from "./AdminEmptyState";
 import { AdminEmailCompose } from "./AdminEmailCompose";
+import { AdminEmailSendPasswords } from "./AdminEmailSendPasswords";
 import { apiClient } from "../api/client";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -75,6 +77,7 @@ export function AdminEmailManager() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewingCampaignStats, setViewingCampaignStats] = useState<CampaignStats | null>(null);
+  const [showingSendPasswords, setShowingSendPasswords] = useState(false);
   const [showingCompose, setShowingCompose] = useState(false);
 
   const [campaignForm, setCampaignForm] = useState({
@@ -246,6 +249,11 @@ export function AdminEmailManager() {
       setShowingCompose(false);
       loadCampaigns();
     }} />;
+  }
+
+  // If showing send passwords view
+  if (showingSendPasswords) {
+    return <AdminEmailSendPasswords onBack={() => setShowingSendPasswords(false)} />;
   }
 
   // If viewing detailed stats
@@ -423,14 +431,25 @@ export function AdminEmailManager() {
             {campaigns.length === 1 ? "рассылка" : "рассылок"}
           </p>
         </div>
-        <Button
-          onClick={() => setShowingCompose(true)}
-          size="lg"
-          className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 shadow-lg hover:shadow-xl transition-all"
-        >
-          <Plus className="h-5 w-5 mr-2" />
-          Создать рассылку
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            onClick={() => setShowingSendPasswords(true)}
+            size="lg"
+            variant="outline"
+            className="border-2 hover:bg-amber-50 hover:border-amber-400 transition-all"
+          >
+            <Key className="h-5 w-5 mr-2" />
+            Отправить пароли
+          </Button>
+          <Button
+            onClick={() => setShowingCompose(true)}
+            size="lg"
+            className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 shadow-lg hover:shadow-xl transition-all"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Создать рассылку
+          </Button>
+        </div>
       </div>
 
       {/* Overall Stats - Only show if there are sent campaigns */}

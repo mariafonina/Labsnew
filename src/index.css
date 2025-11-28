@@ -5267,3 +5267,276 @@ html {
     height: 0;
   }
 }
+
+/* Purple utility classes */
+.border-purple-200 {
+  border-color: var(--color-purple-200);
+}
+
+.border-purple-300 {
+  border-color: var(--color-purple-300);
+}
+
+.border-purple-400 {
+  border-color: var(--color-purple-400);
+}
+
+.bg-purple-50 {
+  background-color: var(--color-purple-50);
+}
+
+.bg-purple-100 {
+  background-color: var(--color-purple-100);
+}
+
+.bg-purple-400 {
+  background-color: var(--color-purple-400);
+}
+
+.bg-purple-500 {
+  background-color: var(--color-purple-500);
+}
+
+.bg-purple-600 {
+  background-color: var(--color-purple-600);
+}
+
+.from-purple-50 {
+  --tw-gradient-from: var(--color-purple-50);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.from-purple-400 {
+  --tw-gradient-from: var(--color-purple-400);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.from-purple-500 {
+  --tw-gradient-from: var(--color-purple-500);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.to-purple-50 {
+  --tw-gradient-to: var(--color-purple-50);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.to-purple-500 {
+  --tw-gradient-to: var(--color-purple-500);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.text-purple-300 {
+  color: var(--color-purple-300);
+}
+
+.text-purple-600 {
+  color: var(--color-purple-600);
+}
+
+.text-purple-700 {
+  color: var(--color-purple-700);
+}
+
+.text-purple-900 {
+  color: var(--color-purple-900);
+}
+
+.hover\:bg-purple-50:hover {
+  background-color: var(--color-purple-50);
+}
+
+.hover\:border-purple-300:hover {
+  border-color: var(--color-purple-300);
+}
+
+.hover\:from-purple-500:hover {
+  --tw-gradient-from: var(--color-purple-500);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+/* Green utility classes */
+.border-green-200 {
+  border-color: var(--color-green-200);
+}
+
+.border-green-400 {
+  border-color: var(--color-green-400);
+}
+
+.bg-green-50 {
+  background-color: var(--color-green-50);
+}
+
+.bg-green-100 {
+  background-color: var(--color-green-100);
+}
+
+.bg-green-400 {
+  background-color: var(--color-green-400);
+}
+
+.bg-green-500 {
+  background-color: var(--color-green-500);
+}
+
+.bg-green-600 {
+  background-color: var(--color-green-600);
+}
+
+.text-green-600 {
+  color: var(--color-green-600);
+}
+
+.text-green-700 {
+  color: var(--color-green-700);
+}
+
+.hover\:bg-green-50:hover {
+  background-color: var(--color-green-50);
+}
+
+.hover\:border-green-200:hover {
+  border-color: var(--color-green-200);
+}
+
+/* Blue utility classes */
+.border-blue-200 {
+  border-color: var(--color-blue-200);
+}
+
+.border-blue-400 {
+  border-color: var(--color-blue-400);
+}
+
+.bg-blue-50 {
+  background-color: var(--color-blue-50);
+}
+
+.bg-blue-100 {
+  background-color: var(--color-blue-100);
+}
+
+.bg-blue-500 {
+  background-color: var(--color-blue-500);
+}
+
+.from-blue-50 {
+  --tw-gradient-from: var(--color-blue-50);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.from-blue-400 {
+  --tw-gradient-from: var(--color-blue-400);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.to-blue-50 {
+  --tw-gradient-to: var(--color-blue-50);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.text-blue-600 {
+  color: var(--color-blue-600);
+}
+
+.text-blue-700 {
+  color: var(--color-blue-700);
+}
+
+.hover\:bg-blue-50:hover {
+  background-color: var(--color-blue-50);
+}
+
+.hover\:border-blue-200:hover {
+  border-color: var(--color-blue-200);
+}
+
+.hover\:border-blue-300:hover {
+  border-color: var(--color-blue-300);
+}
+
+/* Amber and Orange utility classes */
+.border-amber-200 {
+  border-color: var(--color-amber-200);
+}
+
+.border-amber-400 {
+  border-color: var(--color-amber-400);
+}
+
+.bg-amber-50 {
+  background-color: var(--color-amber-50);
+}
+
+.bg-amber-100 {
+  background-color: var(--color-amber-100);
+}
+
+.bg-orange-50 {
+  background-color: var(--color-orange-50);
+}
+
+.bg-orange-500 {
+  background-color: var(--color-orange-500);
+}
+
+.from-amber-400 {
+  --tw-gradient-from: var(--color-amber-400);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.to-orange-400 {
+  --tw-gradient-to: var(--color-orange-400);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.text-amber-600 {
+  color: var(--color-amber-600);
+}
+
+.text-amber-700 {
+  color: var(--color-amber-700);
+}
+
+.text-amber-800 {
+  color: var(--color-amber-800);
+}
+
+.text-amber-900 {
+  color: var(--color-amber-900);
+}
+
+.hover\:bg-amber-50:hover {
+  background-color: var(--color-amber-50);
+}
+
+.hover\:border-amber-400:hover {
+  border-color: var(--color-amber-400);
+}
+
+/* Additional purple and indigo gradient classes */
+.from-purple-600 {
+  --tw-gradient-from: var(--color-purple-600);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.to-indigo-500 {
+  --tw-gradient-to: var(--color-indigo-500);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.to-indigo-600 {
+  --tw-gradient-to: var(--color-indigo-600);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.hover\:from-purple-600:hover {
+  --tw-gradient-from: var(--color-purple-600);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}
+
+.hover\:to-indigo-600:hover {
+  --tw-gradient-to: var(--color-indigo-600);
+  --tw-gradient-stops: var(--tw-gradient-via-stops, var(--tw-gradient-position), var(--tw-gradient-from) var(--tw-gradient-from-position), var(--tw-gradient-to) var(--tw-gradient-to-position));
+}

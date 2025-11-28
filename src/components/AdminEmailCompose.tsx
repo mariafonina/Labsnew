@@ -79,13 +79,32 @@ export function AdminEmailCompose({ onBack }: AdminEmailComposeProps) {
   };
 
   const updateRecipientCount = async () => {
+    // Validate segment configuration before making request
+    if (segment === 'product' && !selectedProduct) {
+      setRecipientCount(0);
+      setLoading(false);
+      return;
+    }
+    if (segment === 'cohort' && !selectedCohort) {
+      setRecipientCount(0);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const data = await apiClient.previewEmailSegment({
+      const payload: any = {
         segment_type: segment,
-        segment_product_id: segment === 'product' && selectedProduct !== null ? selectedProduct : undefined,
-        segment_cohort_id: segment === 'cohort' && selectedCohort !== null ? selectedCohort : undefined,
-      });
+      };
+
+      if (segment === 'product' && selectedProduct !== null) {
+        payload.segment_product_id = selectedProduct;
+      }
+      if (segment === 'cohort' && selectedCohort !== null) {
+        payload.segment_cohort_id = selectedCohort;
+      }
+
+      const data = await apiClient.previewEmailSegment(payload);
       setRecipientCount(data.recipient_count);
     } catch (error: any) {
       console.error("Failed to preview segment:", error);
@@ -331,7 +350,7 @@ export function AdminEmailCompose({ onBack }: AdminEmailComposeProps) {
           )}
 
           {/* Recipients Count */}
-          {!loading && (
+          {!loading && recipientCount > 0 && (
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-5 border-2 border-purple-200">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
