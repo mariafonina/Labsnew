@@ -227,7 +227,7 @@ export function InstructionsLibrary() {
         <>
           {/* Инструкции без категории */}
           {uncategorizedInstructions.length > 0 && (
-            <div className="space-y-5">
+            <div className="space-y-5 pb-8">
               <div className="mb-2">
                 <h2 className="font-black text-2xl text-gray-900">Инструкции</h2>
               </div>
@@ -299,7 +299,7 @@ export function InstructionsLibrary() {
             if (categoryInstructions.length === 0) return null;
 
             return (
-              <div key={category.id} className="space-y-5">
+              <div key={category.id} className="space-y-5 pb-8">
                 <div className="mb-2">
                   <h2 className="font-black text-2xl text-gray-900">{category.name}</h2>
                   {category.description && (
