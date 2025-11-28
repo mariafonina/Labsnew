@@ -5,9 +5,18 @@ import path from "path";
 
 const AWS_ENDPOINT_URL = process.env.AWS_ENDPOINT_URL || "https://storage.yandexcloud.net";
 const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || "";
-const AWS_SECRET_ACCESS_KEY = process.env.YANDEX_S3_SECRET || "";
+const AWS_SECRET_ACCESS_KEY = (process.env.YANDEX_S3_SECRET || "").trim();
 const AWS_BUCKET = process.env.AWS_BUCKET || "labs-data";
 const AWS_REGION = "ru-central1";
+
+console.log("[YandexS3] Initializing S3 client:", {
+  endpoint: AWS_ENDPOINT_URL,
+  bucket: AWS_BUCKET,
+  region: AWS_REGION,
+  hasAccessKey: !!AWS_ACCESS_KEY_ID,
+  hasSecretKey: !!AWS_SECRET_ACCESS_KEY,
+  secretKeyLength: AWS_SECRET_ACCESS_KEY.length,
+});
 
 const s3Client = new S3Client({
   endpoint: AWS_ENDPOINT_URL,
@@ -17,6 +26,8 @@ const s3Client = new S3Client({
     secretAccessKey: AWS_SECRET_ACCESS_KEY,
   },
   forcePathStyle: true,
+  requestChecksumCalculation: "WHEN_REQUIRED",
+  responseChecksumValidation: "WHEN_REQUIRED",
 });
 
 export interface UploadResult {
