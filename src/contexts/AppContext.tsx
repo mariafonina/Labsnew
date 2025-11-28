@@ -849,28 +849,46 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [auth.isAuthenticated, isAuthInitialized]);
 
   const addToFavorites = async (item: FavoriteItem) => {
+    // Проверка на дубликат
+    if (favorites.some((fav) => fav.id === item.id && fav.type === item.type)) {
+      return;
+    }
+
     // Оптимистичное обновление UI
     const newItem = { ...item, addedAt: new Date().toISOString() };
-    setFavorites((prev) => {
-      if (prev.some((fav) => fav.id === item.id)) {
-        return prev;
-      }
-      return [...prev, newItem];
-    });
+    setFavorites((prev) => [...prev, newItem]);
 
     // Сохранение в БД в фоне
     try {
-      await apiClient.addToFavorites({
+      const result = await apiClient.addToFavorites({
         item_type: item.type,
         item_id: item.id,
         title: item.title,
         description: item.description,
         date: item.date
       });
-    } catch (error) {
+
+      // Обновляем с актуальными данными из БД
+      setFavorites((prev) =>
+        prev.map((fav) =>
+          fav.id === item.id && fav.type === item.type
+            ? {
+                id: result.item_id,
+                title: result.title || fav.title,
+                type: result.item_type,
+                description: result.description || fav.description,
+                date: result.date || fav.date,
+                addedAt: result.created_at
+              }
+            : fav
+        )
+      );
+    } catch (error: any) {
       console.error('Failed to add to favorites:', error);
-      // Откат при ошибке
-      setFavorites((prev) => prev.filter((fav) => fav.id !== item.id));
+      // Откат при ошибке (если это не дубликат)
+      if (!error.message?.includes('Already in favorites')) {
+        setFavorites((prev) => prev.filter((fav) => !(fav.id === item.id && fav.type === item.type)));
+      }
     }
   };
 
