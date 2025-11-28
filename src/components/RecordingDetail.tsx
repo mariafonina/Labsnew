@@ -159,17 +159,19 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
       const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
 
       if (diffInHours < 1) {
-        return "«только что»";
+        return "только что";
       } else if (diffInHours < 24) {
         const hours = Math.floor(diffInHours);
         return `${hours} ${hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'} назад`;
       } else if (diffInHours < 48) {
-        return "«вчера»";
+        return "вчера";
       } else {
-        return date.toLocaleDateString("ru-RU", {
-          day: "numeric",
-          month: "long"
-        });
+        const day = date.getDate();
+        const month = date.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
+        const year = date.getFullYear();
+        const hours = date.getHours().toString().padStart(2, "0");
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        return `${day} ${month}., ${year}, ${hours}:${minutes}`;
       }
     } catch {
       return dateStr;

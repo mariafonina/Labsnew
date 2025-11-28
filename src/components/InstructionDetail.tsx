@@ -144,10 +144,12 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
       } else if (diffInHours < 48) {
         return "вчера";
       } else {
-        return date.toLocaleDateString("ru-RU", {
-          day: "numeric",
-          month: "long"
-        });
+        const day = date.getDate();
+        const month = date.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
+        const year = date.getFullYear();
+        const hours = date.getHours().toString().padStart(2, "0");
+        const minutes = date.getMinutes().toString().padStart(2, "0");
+        return `${day} ${month}., ${year}, ${hours}:${minutes}`;
       }
     } catch {
       return dateStr;

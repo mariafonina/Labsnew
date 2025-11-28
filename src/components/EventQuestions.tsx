@@ -92,8 +92,14 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
     if (diffMins < 1) return "только что";
     if (diffMins < 60) return `${diffMins} мин назад`;
     if (diffHours < 24) return `${diffHours} ч назад`;
-    if (diffDays < 7) return `${diffDays} д назад`;
-    return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+    if (diffDays < 2) return "вчера";
+    
+    const day = date.getDate();
+    const month = date.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
+    const year = date.getFullYear();
+    const hours = date.getHours().toString().padStart(2, "0");
+    const minutes = date.getMinutes().toString().padStart(2, "0");
+    return `${day} ${month}., ${year}, ${hours}:${minutes}`;
   };
 
   return (
