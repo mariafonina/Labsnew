@@ -1,23 +1,37 @@
 import { Router, Response } from 'express';
+import multer from 'multer';
 import { verifyToken, requireAdmin, AuthRequest } from '../../auth';
 import { query } from '../../db';
 import { createLimiter } from '../../utils/rate-limit';
 import { asyncHandler } from '../../utils/async-handler';
 import { sanitizeText } from '../../utils/sanitize';
 import { validateAndNormalizeLoomUrl } from '../../utils/loom-validator';
-import { uploadRecordingImage } from '../../utils/multer-config';
+import { uploadImageToYandexS3, isYandexS3Configured } from '../../yandexS3';
 
 const router = Router();
 
-// Get all recordings
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, GIF, and WebP images are allowed'));
+    }
+  },
+});
+
 router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
   const result = await query('SELECT * FROM labs.recordings ORDER BY created_at DESC');
   res.json(result.rows);
 }));
 
-// Create recording with image upload
-router.post('/', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.single('thumbnail'), asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { title, date, duration, instructor, description, video_url, loom_embed_url } = req.body;
+router.post('/', verifyToken, requireAdmin, createLimiter, upload.single('thumbnail'), asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { title, date, duration, instructor, description, video_url, loom_embed_url, cohort_id } = req.body;
 
   if (!title || !date || !instructor) {
     return res.status(400).json({ error: 'Title, date, and instructor are required' });
@@ -27,26 +41,49 @@ router.post('/', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.
   const sanitizedInstructor = sanitizeText(instructor);
   const sanitizedDescription = description ? sanitizeText(description) : null;
   const validatedLoomUrl = validateAndNormalizeLoomUrl(loom_embed_url);
-  const thumbnail = req.file ? `/uploads/recordings/${req.file.filename}` : null;
+
+  let thumbnail: string | null = null;
+  if (req.file && isYandexS3Configured()) {
+    const uploadResult = await uploadImageToYandexS3(
+      req.file.buffer,
+      req.file.originalname,
+      'recordings'
+    );
+    if (uploadResult.success && uploadResult.url) {
+      thumbnail = uploadResult.url;
+    }
+  }
+
+  const parsedCohortId = cohort_id ? parseInt(cohort_id, 10) : null;
 
   const result = await query(
-    'INSERT INTO labs.recordings (title, date, duration, instructor, thumbnail, views, description, video_url, loom_embed_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
-    [sanitizedTitle, date, duration, sanitizedInstructor, thumbnail, 0, sanitizedDescription, video_url, validatedLoomUrl]
+    'INSERT INTO labs.recordings (title, date, duration, instructor, thumbnail, views, description, video_url, loom_embed_url, cohort_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *',
+    [sanitizedTitle, date, duration, sanitizedInstructor, thumbnail, 0, sanitizedDescription, video_url, validatedLoomUrl, parsedCohortId]
   );
 
   res.status(201).json(result.rows[0]);
 }));
 
-// Update recording with optional image upload
-router.put('/:id', verifyToken, requireAdmin, createLimiter, uploadRecordingImage.single('thumbnail'), asyncHandler(async (req: AuthRequest, res: Response) => {
+router.put('/:id', verifyToken, requireAdmin, createLimiter, upload.single('thumbnail'), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { title, date, duration, instructor, description, video_url, loom_embed_url } = req.body;
+  const { title, date, duration, instructor, description, video_url, loom_embed_url, cohort_id } = req.body;
 
   const sanitizedTitle = title ? sanitizeText(title) : undefined;
   const sanitizedInstructor = instructor ? sanitizeText(instructor) : undefined;
   const sanitizedDescription = description ? sanitizeText(description) : undefined;
   const validatedLoomUrl = loom_embed_url !== undefined ? validateAndNormalizeLoomUrl(loom_embed_url) : undefined;
-  const thumbnail = req.file ? `/uploads/recordings/${req.file.filename}` : undefined;
+
+  let thumbnail: string | undefined = undefined;
+  if (req.file && isYandexS3Configured()) {
+    const uploadResult = await uploadImageToYandexS3(
+      req.file.buffer,
+      req.file.originalname,
+      'recordings'
+    );
+    if (uploadResult.success && uploadResult.url) {
+      thumbnail = uploadResult.url;
+    }
+  }
 
   const updateParts = [];
   const values = [];
@@ -84,6 +121,10 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, uploadRecordingImag
     updateParts.push(`loom_embed_url = $${paramIndex++}`);
     values.push(validatedLoomUrl);
   }
+  if (cohort_id !== undefined) {
+    updateParts.push(`cohort_id = $${paramIndex++}`);
+    values.push(cohort_id ? parseInt(cohort_id, 10) : null);
+  }
 
   if (updateParts.length === 0) {
     return res.status(400).json({ error: 'No fields to update' });
@@ -104,7 +145,6 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, uploadRecordingImag
   res.json(result.rows[0]);
 }));
 
-// Delete recording
 router.delete('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   
