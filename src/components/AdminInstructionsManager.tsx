@@ -71,8 +71,18 @@ function CategoryCard({
   onMoveInstruction,
   index,
 }: CategoryCardProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const storageKey = `labs_category_expanded_${category.id}`;
+  const [isExpanded, setIsExpanded] = useState(() => {
+    const saved = localStorage.getItem(storageKey);
+    return saved !== null ? saved === "true" : true;
+  });
   const [isEditingName, setIsEditingName] = useState(false);
+
+  const handleToggleExpanded = () => {
+    const newValue = !isExpanded;
+    setIsExpanded(newValue);
+    localStorage.setItem(storageKey, String(newValue));
+  };
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedName, setEditedName] = useState(category.name);
   const [editedDescription, setEditedDescription] = useState(category.description || "");
@@ -119,7 +129,7 @@ function CategoryCard({
             </div>
             
             <button
-              onClick={() => setIsExpanded(!isExpanded)}
+              onClick={handleToggleExpanded}
               className="p-1 hover:bg-gray-200 rounded transition-colors"
             >
               {isExpanded ? (
