@@ -214,11 +214,18 @@ export async function initializeDatabase() {
         views INTEGER DEFAULT 0,
         description TEXT,
         video_url VARCHAR(500),
+        loom_embed_url VARCHAR(500),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('Table "labs.recordings" created');
+
+    // Add loom_embed_url column if it doesn't exist (migration)
+    await query(`
+      ALTER TABLE labs.recordings
+      ADD COLUMN IF NOT EXISTS loom_embed_url VARCHAR(500)
+    `);
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.recording_views (

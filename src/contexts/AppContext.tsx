@@ -1499,6 +1499,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           date: item.date,
           duration: item.duration,
           loomUrl: item.loom_url,
+          videoUrl: item.video_url,
+          loom_embed_url: item.loom_embed_url,
           instructor: item.instructor,
           views: item.views || 0,
           thumbnail: item.thumbnail,

@@ -176,14 +176,29 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
     }
   };
 
-  const normalizedLoomUrl = recording.loom_embed_url 
-    ? validateAndNormalizeLoomUrl(recording.loom_embed_url)
-    : recording.videoUrl 
-      ? validateAndNormalizeLoomUrl(recording.videoUrl)
-      : null;
+  // Проверка YouTube ссылки
+  const isYouTubeUrl = (url: string | undefined) => {
+    if (!url) return false;
+    return url.includes('youtube.com') || url.includes('youtu.be');
+  };
 
-  const hasLoomVideo = !!normalizedLoomUrl;
-  const hasRegularVideo = recording.videoUrl && !normalizedLoomUrl;
+  // Проверяем loom_embed_url на валидность Loom ссылки
+  const normalizedLoomUrl = recording.loom_embed_url
+    ? validateAndNormalizeLoomUrl(recording.loom_embed_url)
+    : null;
+
+  // Проверяем videoUrl - может быть Loom или YouTube
+  const videoUrlAsLoom = recording.videoUrl && !normalizedLoomUrl
+    ? validateAndNormalizeLoomUrl(recording.videoUrl)
+    : null;
+
+  const videoUrlAsYouTube = recording.videoUrl && !normalizedLoomUrl && !videoUrlAsLoom && isYouTubeUrl(recording.videoUrl)
+    ? recording.videoUrl
+    : null;
+
+  const hasLoomVideo = !!(normalizedLoomUrl || videoUrlAsLoom);
+  const hasYouTubeVideo = !!videoUrlAsYouTube;
+  const finalLoomUrl = normalizedLoomUrl || videoUrlAsLoom;
 
   return (
     <div className="min-h-screen">
@@ -230,19 +245,19 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
       </div>
 
       {/* Loom Video Embed */}
-      {hasLoomVideo && normalizedLoomUrl && (
+      {hasLoomVideo && finalLoomUrl && (
         <div className="mb-10">
-          <LoomEmbed url={normalizedLoomUrl} />
+          <LoomEmbed url={finalLoomUrl} />
         </div>
       )}
 
-      {/* Regular Video */}
-      {hasRegularVideo && (
+      {/* YouTube Video */}
+      {hasYouTubeVideo && videoUrlAsYouTube && (
         <div className="mb-10">
           <div className="rounded-2xl overflow-hidden shadow-2xl border-4 border-gray-100">
             <div className="relative w-full bg-black" style={{ paddingBottom: "56.25%" }}>
               <iframe
-                src={recording.videoUrl}
+                src={videoUrlAsYouTube}
                 frameBorder="0"
                 allowFullScreen
                 className="absolute top-0 left-0 w-full h-full"
