@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApp } from "../contexts/AppContext";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
@@ -421,6 +421,21 @@ export function AdminInstructionsManager() {
     updatedAt: new Date().toISOString().split("T")[0],
   });
 
+  const categoryFormRef = useRef<HTMLDivElement>(null);
+  const instructionFormRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isAddingCategory && categoryFormRef.current) {
+      categoryFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [isAddingCategory]);
+
+  useEffect(() => {
+    if ((isAddingInstruction || editingInstruction) && instructionFormRef.current) {
+      instructionFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [isAddingInstruction, editingInstruction]);
+
   // Sort categories and instructions by order
   const sortedCategories = [...instructionCategories].sort((a, b) => a.order - b.order);
 
@@ -541,7 +556,7 @@ export function AdminInstructionsManager() {
 
         {/* Add Category Form */}
         {isAddingCategory && (
-          <Card className="p-4 lg:p-8 shadow-lg border-2">
+          <Card ref={categoryFormRef} className="p-4 lg:p-8 shadow-lg border-2">
             <div className="mb-4 lg:mb-6 pb-4 lg:pb-6 border-b border-gray-200">
               <h3 className="font-black text-2xl lg:text-3xl">
                 Новая категория
@@ -600,7 +615,7 @@ export function AdminInstructionsManager() {
 
         {/* Add/Edit Instruction Form */}
         {(isAddingInstruction || editingInstruction) && (
-          <Card className="p-4 lg:p-8 shadow-lg border-2">
+          <Card ref={instructionFormRef} className="p-4 lg:p-8 shadow-lg border-2">
             <div className="mb-4 lg:mb-6 pb-4 lg:pb-6 border-b border-gray-200">
               <h3 className="font-black text-2xl lg:text-3xl">
                 {editingInstruction ? "Редактировать инструкцию" : "Новая инструкция"}
