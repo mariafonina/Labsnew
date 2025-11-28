@@ -64,13 +64,12 @@ export function InstructionsLibrary() {
     setSelectedCohort,
     addToFavorites,
     removeFromFavorites,
-    isFavorite
+    isFavorite,
+    toggleInstructionComplete,
+    isInstructionComplete
   } = useApp();
 
   const [selectedInstruction, setSelectedInstruction] = useState<Instruction | null>(null);
-  const [completedInstructions, setCompletedInstructions] = useState<Set<string>>(
-    new Set(JSON.parse(localStorage.getItem("completedInstructions") || "[]"))
-  );
 
   // Проверяем sessionStorage при загрузке компонента
   useEffect(() => {
@@ -143,12 +142,13 @@ export function InstructionsLibrary() {
   }
 
   const handleToggleFavorite = (instruction: any) => {
-    if (isFavorite(instruction.id)) {
-      removeFromFavorites(instruction.id);
+    const instructionId = String(instruction.id);
+    if (isFavorite(instructionId)) {
+      removeFromFavorites(instructionId);
       toast.success("Удалено из избранного");
     } else {
       addToFavorites({
-        id: instruction.id,
+        id: instructionId,
         type: "instruction",
         title: instruction.title,
         description: instruction.description,
@@ -159,16 +159,9 @@ export function InstructionsLibrary() {
   };
 
   const handleToggleCompleted = (instructionId: string) => {
-    const newCompleted = new Set(completedInstructions);
-    if (newCompleted.has(instructionId)) {
-      newCompleted.delete(instructionId);
-      toast.success("Отмечено как не изучено");
-    } else {
-      newCompleted.add(instructionId);
-      toast.success("Отмечено как изучено");
-    }
-    setCompletedInstructions(newCompleted);
-    localStorage.setItem("completedInstructions", JSON.stringify(Array.from(newCompleted)));
+    const isCompleted = isInstructionComplete(instructionId);
+    toggleInstructionComplete(instructionId);
+    toast.success(isCompleted ? "Отмечено как не изучено" : "Отмечено как изучено");
   };
 
   // Фильтруем инструкции по выбранному потоку
@@ -234,7 +227,7 @@ export function InstructionsLibrary() {
 
               <div className="space-y-3">
                 {uncategorizedInstructions.map((instruction) => {
-                  const isCompleted = completedInstructions.has(instruction.id);
+                  const isCompleted = isInstructionComplete(String(instruction.id));
 
                   return (
                     <Card
@@ -249,9 +242,9 @@ export function InstructionsLibrary() {
                         <Checkbox
                           checked={isCompleted}
                           onCheckedChange={() => {
-                            handleToggleCompleted(instruction.id);
+                            handleToggleCompleted(String(instruction.id));
                           }}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
                           className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-pink-400 data-[state=checked]:to-rose-400 data-[state=checked]:border-pink-400 shrink-0"
                         />
 
@@ -267,10 +260,10 @@ export function InstructionsLibrary() {
                               e.stopPropagation();
                               handleToggleFavorite(instruction);
                             }}
-                            className={`p-2.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors ${isFavorite(instruction.id) ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
-                            title={isFavorite(instruction.id) ? "Удалить из избранного" : "Добавить в избранное"}
+                            className={`p-2.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors ${isFavorite(String(instruction.id)) ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
+                            title={isFavorite(String(instruction.id)) ? "Удалить из избранного" : "Добавить в избранное"}
                           >
-                            <Bookmark className={`h-5 w-5 ${isFavorite(instruction.id) ? 'fill-pink-500' : ''}`} />
+                            <Bookmark className={`h-5 w-5 ${isFavorite(String(instruction.id)) ? 'fill-pink-500' : ''}`} />
                           </button>
                           <button
                             onClick={(e) => {
@@ -309,7 +302,7 @@ export function InstructionsLibrary() {
               
               <div className="space-y-3">
                 {categoryInstructions.map((instruction) => {
-                  const isCompleted = completedInstructions.has(instruction.id);
+                  const isCompleted = isInstructionComplete(String(instruction.id));
                   
                   return (
                     <Card
@@ -324,9 +317,9 @@ export function InstructionsLibrary() {
                         <Checkbox
                           checked={isCompleted}
                           onCheckedChange={() => {
-                            handleToggleCompleted(instruction.id);
+                            handleToggleCompleted(String(instruction.id));
                           }}
-                          onClick={(e) => e.stopPropagation()}
+                          onClick={(e: React.MouseEvent) => e.stopPropagation()}
                           className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-pink-400 data-[state=checked]:to-rose-400 data-[state=checked]:border-pink-400 shrink-0"
                         />
                         
@@ -342,10 +335,10 @@ export function InstructionsLibrary() {
                               e.stopPropagation();
                               handleToggleFavorite(instruction);
                             }}
-                            className={`p-2.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors ${isFavorite(instruction.id) ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
-                            title={isFavorite(instruction.id) ? "Удалить из избранного" : "Добавить в избранное"}
+                            className={`p-2.5 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors ${isFavorite(String(instruction.id)) ? 'text-pink-500' : 'text-gray-400 hover:text-gray-600'}`}
+                            title={isFavorite(String(instruction.id)) ? "Удалить из избранного" : "Добавить в избранное"}
                           >
-                            <Bookmark className={`h-5 w-5 ${isFavorite(instruction.id) ? 'fill-pink-500' : ''}`} />
+                            <Bookmark className={`h-5 w-5 ${isFavorite(String(instruction.id)) ? 'fill-pink-500' : ''}`} />
                           </button>
                           <button
                             onClick={(e) => {

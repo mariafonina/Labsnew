@@ -995,14 +995,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
     toggleLike(commentId);
   };
 
-  const toggleInstructionComplete = (id: string) => {
+  const toggleInstructionComplete = async (id: string) => {
+    const isCompleted = completedInstructions.includes(id);
+    const newCompleted = !isCompleted;
+
+    // Оптимистичное обновление UI
     setCompletedInstructions((prev) => {
-      if (prev.includes(id)) {
+      if (isCompleted) {
         return prev.filter((instructionId) => instructionId !== id);
       } else {
         return [...prev, id];
       }
     });
+
+    // Сохранение в БД в фоне
+    try {
+      await apiClient.updateProgress(Number(id), newCompleted);
+    } catch (error) {
+      console.error('Failed to update progress:', error);
+      // Откат при ошибке
+      setCompletedInstructions((prev) => {
+        if (newCompleted) {
+          return prev.filter((instructionId) => instructionId !== id);
+        } else {
+          return [...prev, id];
+        }
+      });
+    }
   };
 
   const isInstructionComplete = (id: string) => {
