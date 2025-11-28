@@ -598,22 +598,25 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
   };
 
   const handleMoveCategory = async (categoryId: number, newOrder: number) => {
-    // Implement category reordering logic
     const reordered = [...categories];
     const fromIndex = reordered.findIndex((c) => c.id === categoryId);
     const toIndex = reordered.findIndex((c) => c.display_order === newOrder);
 
-    if (fromIndex === -1 || toIndex === -1) return;
+    if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) return;
 
     const [moved] = reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, moved);
 
     const updates = reordered.map((cat, idx) => ({ id: cat.id, order: idx }));
+    const newCategories = reordered.map((cat, idx) => ({ ...cat, display_order: idx }));
+
+    const previousCategories = categories;
+    setCategories(newCategories);
 
     try {
       await apiClient.post(`/cohorts/${cohortId}/knowledge-categories/reorder`, { categories: updates });
-      await loadData();
     } catch (error: any) {
+      setCategories(previousCategories);
       toast.error(error.message || "Ошибка при изменении порядка");
     }
   };
@@ -626,6 +629,7 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
     const isMovingWithinSameCategory = sourceCategoryId === targetCategoryId;
 
     let updates: Array<{ id: number; order: number; cohort_category_id: number }> = [];
+    let newInstructions: typeof instructions = [];
 
     if (isMovingWithinSameCategory) {
       const categoryInstructions = instructions
@@ -645,6 +649,15 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
         order: idx,
         cohort_category_id: targetCategoryId,
       }));
+
+      const updatedMap = new Map(updates.map(u => [u.id, u]));
+      newInstructions = instructions.map(instr => {
+        const update = updatedMap.get(instr.id);
+        if (update) {
+          return { ...instr, display_order: update.order, cohort_category_id: update.cohort_category_id };
+        }
+        return instr;
+      });
     } else {
       const sourceInstructions = instructions
         .filter((i) => i.cohort_category_id === sourceCategoryId && i.id !== instructionId)
@@ -672,12 +685,24 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
       }));
 
       updates = [...sourceUpdates, ...targetUpdates];
+
+      const updatedMap = new Map(updates.map(u => [u.id, u]));
+      newInstructions = instructions.map(instr => {
+        const update = updatedMap.get(instr.id);
+        if (update) {
+          return { ...instr, display_order: update.order, cohort_category_id: update.cohort_category_id };
+        }
+        return instr;
+      });
     }
+
+    const previousInstructions = instructions;
+    setInstructions(newInstructions);
 
     try {
       await apiClient.post(`/admin/cohort-materials/${cohortId}/instructions/reorder`, { instructions: updates });
-      await loadData();
     } catch (error: any) {
+      setInstructions(previousInstructions);
       toast.error(error.message || "Ошибка при изменении порядка");
     }
   };
