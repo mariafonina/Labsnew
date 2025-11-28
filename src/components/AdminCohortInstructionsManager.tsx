@@ -618,29 +618,61 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
     }
   };
 
-  const handleMoveInstruction = async (instructionId: number, targetCategoryId: number, newOrder: number) => {
-    // Implement instruction reordering logic
-    const allInstructions = [...instructions];
-    const movedInstruction = allInstructions.find((i) => i.id === instructionId);
-
+  const handleMoveInstruction = async (instructionId: number, targetCategoryId: number, targetDisplayOrder: number) => {
+    const movedInstruction = instructions.find((i) => i.id === instructionId);
     if (!movedInstruction) return;
 
-    const targetCategoryInstructions = allInstructions
-      .filter((i) => i.cohort_category_id === targetCategoryId)
-      .sort((a, b) => a.display_order - b.display_order);
+    const sourceCategoryId = movedInstruction.cohort_category_id;
+    const isMovingWithinSameCategory = sourceCategoryId === targetCategoryId;
 
-    const targetIndex = targetCategoryInstructions.findIndex((i) => i.display_order === newOrder);
+    let updates: Array<{ id: number; order: number; cohort_category_id: number }> = [];
 
-    targetCategoryInstructions.splice(targetIndex, 0, {
-      ...movedInstruction,
-      cohort_category_id: targetCategoryId,
-    });
+    if (isMovingWithinSameCategory) {
+      const categoryInstructions = instructions
+        .filter((i) => i.cohort_category_id === targetCategoryId)
+        .sort((a, b) => a.display_order - b.display_order);
 
-    const updates = targetCategoryInstructions.map((instr, idx) => ({
-      id: instr.id,
-      order: idx,
-      cohort_category_id: targetCategoryId,
-    }));
+      const movedIndex = categoryInstructions.findIndex((i) => i.id === instructionId);
+      const targetIndex = categoryInstructions.findIndex((i) => i.display_order === targetDisplayOrder);
+
+      if (movedIndex === -1 || targetIndex === -1 || movedIndex === targetIndex) return;
+
+      const reordered = categoryInstructions.filter(i => i.id !== instructionId);
+      reordered.splice(targetIndex, 0, movedInstruction);
+
+      updates = reordered.map((instr, idx) => ({
+        id: instr.id,
+        order: idx,
+        cohort_category_id: targetCategoryId,
+      }));
+    } else {
+      const sourceInstructions = instructions
+        .filter((i) => i.cohort_category_id === sourceCategoryId && i.id !== instructionId)
+        .sort((a, b) => a.display_order - b.display_order);
+
+      const sourceUpdates = sourceInstructions.map((instr, idx) => ({
+        id: instr.id,
+        order: idx,
+        cohort_category_id: sourceCategoryId!,
+      }));
+
+      const targetInstructions = instructions
+        .filter((i) => i.cohort_category_id === targetCategoryId)
+        .sort((a, b) => a.display_order - b.display_order);
+
+      const targetIndex = targetInstructions.findIndex((i) => i.display_order === targetDisplayOrder);
+      const insertAt = targetIndex !== -1 ? targetIndex : targetInstructions.length;
+
+      targetInstructions.splice(insertAt, 0, { ...movedInstruction, cohort_category_id: targetCategoryId });
+
+      const targetUpdates = targetInstructions.map((instr, idx) => ({
+        id: instr.id,
+        order: idx,
+        cohort_category_id: targetCategoryId,
+      }));
+
+      updates = [...sourceUpdates, ...targetUpdates];
+    }
 
     try {
       await apiClient.post(`/admin/cohort-materials/${cohortId}/instructions/reorder`, { instructions: updates });
