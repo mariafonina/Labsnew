@@ -638,6 +638,7 @@ export function AdminInstructionsManager() {
                     }
                     placeholder="Название инструкции"
                     className="text-base h-12"
+                    autoComplete="off"
                   />
                 </div>
 

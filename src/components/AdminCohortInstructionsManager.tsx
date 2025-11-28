@@ -776,6 +776,7 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
                       }
                       placeholder="Название инструкции"
                       className="text-base h-12"
+                      autoComplete="off"
                     />
                   </div>
 
