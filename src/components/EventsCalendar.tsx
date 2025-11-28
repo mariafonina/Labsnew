@@ -24,9 +24,15 @@ export function EventsCalendar() {
   const { events, getCommentsByEvent, addToFavorites, removeFromFavorites, isFavorite, auth } = useApp();
 
   // Get user gender for colors
-  const gender = auth.isAuthenticated 
+  const gender = auth.isAuthenticated
     ? (localStorage.getItem("userGender") as "male" | "female" | null)
     : null;
+
+  // Check if location is a URL
+  const isUrl = (str: string | undefined) => {
+    if (!str) return false;
+    return str.startsWith('http://') || str.startsWith('https://');
+  };
 
   const handleToggleFavorite = (event: any) => {
     if (isFavorite(event.id)) {
@@ -118,18 +124,18 @@ export function EventsCalendar() {
                       {event.title}
                     </h3>
                     
-                    {/* Location */}
+                    {/* Location - показываем "Онлайн" если это ссылка, иначе адрес */}
                     {event.location && (
                       <p className="text-gray-600 text-sm">
-                        📍 {event.location}
+                        📍 {isUrl(event.location) ? 'Онлайн' : event.location}
                       </p>
                     )}
-                    
-                    {/* Кнопка подключиться */}
+
+                    {/* Кнопка подключиться - показываем если location это ссылка */}
                     <div className="flex gap-3">
-                      {event.link && (
+                      {isUrl(event.location) && (
                         <Button
-                          onClick={() => window.open(event.link, "_blank")}
+                          onClick={() => window.open(event.location, "_blank")}
                           className={`flex-1 ${gender === "male" ? "bg-gradient-to-r from-lime-400 to-green-400 hover:from-lime-500 hover:to-green-500 hover:shadow-[0_0_30px_rgba(132,204,22,0.7)]" : "bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 hover:shadow-[0_0_30px_rgba(251,113,133,0.7)]"} text-white border-0 font-extrabold h-12 px-6 shadow-lg transition-all duration-200`}
                         >
                           <Video className="h-5 w-5 mr-2" />
