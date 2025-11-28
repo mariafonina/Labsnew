@@ -94,7 +94,17 @@ export function AdminProducts() {
     cohortName: string;
     productName: string;
     productId: number;
-  } | null>(null);
+  } | null>(() => {
+    const saved = localStorage.getItem("labs_admin_viewingCohortDetail");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
   const [copyingCohort, setCopyingCohort] = useState<{ cohortId: number; productId: number } | null>(
     null
   );
@@ -126,6 +136,14 @@ export function AdminProducts() {
   useEffect(() => {
     loadProducts();
   }, []);
+
+  useEffect(() => {
+    if (viewingCohortDetail) {
+      localStorage.setItem("labs_admin_viewingCohortDetail", JSON.stringify(viewingCohortDetail));
+    } else {
+      localStorage.removeItem("labs_admin_viewingCohortDetail");
+    }
+  }, [viewingCohortDetail]);
 
   const loadProducts = async () => {
     try {

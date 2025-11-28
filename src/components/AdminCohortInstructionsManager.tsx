@@ -38,6 +38,7 @@ import {
   TooltipTrigger,
 } from "./ui/tooltip";
 import { apiClient } from "../api/client";
+import { formatDateShortRu } from "../utils/formatDate";
 
 interface CohortInstruction {
   id: number;
@@ -388,7 +389,7 @@ function InstructionItem({
               </p>
             )}
             <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-              {instruction.updated_at && <span className="font-semibold">📅 {instruction.updated_at}</span>}
+              {instruction.updated_at && <span className="font-semibold">📅 {formatDateShortRu(instruction.updated_at)}</span>}
               {instruction.views !== undefined && (
                 <>
                   <span>•</span>
@@ -460,13 +461,17 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
 
   useEffect(() => {
     if (isAddingCategory && categoryFormRef.current) {
-      categoryFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      requestAnimationFrame(() => {
+        categoryFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
   }, [isAddingCategory]);
 
   useEffect(() => {
     if ((isAddingInstruction || editingInstruction) && instructionFormRef.current) {
-      instructionFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      requestAnimationFrame(() => {
+        instructionFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
   }, [isAddingInstruction, editingInstruction]);
 

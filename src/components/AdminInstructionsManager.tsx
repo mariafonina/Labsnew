@@ -38,6 +38,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
+import { formatDateShortRu } from "../utils/formatDate";
 
 interface DragItem {
   id: string;
@@ -366,7 +367,7 @@ function InstructionItem({
               </p>
             )}
             <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-              <span className="font-semibold">📅 {instruction.updatedAt}</span>
+              <span className="font-semibold">📅 {formatDateShortRu(instruction.updatedAt)}</span>
               <span>•</span>
               <span>👁️ {instruction.views} просмотров</span>
             </div>
@@ -436,13 +437,17 @@ export function AdminInstructionsManager() {
 
   useEffect(() => {
     if (isAddingCategory && categoryFormRef.current) {
-      categoryFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      requestAnimationFrame(() => {
+        categoryFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
   }, [isAddingCategory]);
 
   useEffect(() => {
     if ((isAddingInstruction || editingInstruction) && instructionFormRef.current) {
-      instructionFormRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+      requestAnimationFrame(() => {
+        instructionFormRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
   }, [isAddingInstruction, editingInstruction]);
 
