@@ -70,3 +70,10 @@ externalPort = 4200
 deploymentTarget = "autoscale"
 run = ["bash", "-c", "NODE_ENV=production PORT=5000 node --import tsx server/index.ts"]
 build = ["npm", "run", "build"]
+
+[userenv]
+
+[userenv.shared]
+AWS_ENDPOINT_URL = "https://storage.yandexcloud.net"
+AWS_ACCESS_KEY_ID = "YCAJESUhjQ7-tGj7Z40L0GyUL"
+AWS_BUCKET = "labs-data"
