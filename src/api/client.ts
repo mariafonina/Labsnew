@@ -686,19 +686,42 @@ class ApiClient {
     return this.get<any>(`/catalog/products/${id}`);
   }
 
-  // Object Storage (image uploads)
-  async getObjectUploadUrl(folder: string = 'instructions') {
-    return this.request<{ uploadURL: string; objectPath: string; method: string }>('/admin/objects/upload-url', {
+  // Object Storage (image uploads to Yandex S3)
+  async getObjectUploadUrl(folder: string = 'instructions', fileName: string = 'image.jpg') {
+    return this.request<{ uploadURL: string; publicUrl: string; method: string }>('/admin/objects/upload-url', {
       method: 'POST',
-      body: JSON.stringify({ folder }),
+      body: JSON.stringify({ folder, fileName }),
     });
   }
 
-  async confirmObjectUpload(uploadURL: string, objectPath: string) {
+  async confirmObjectUpload(publicUrl: string) {
     return this.request<{ objectPath: string; success: boolean }>('/admin/objects/confirm-upload', {
       method: 'POST',
-      body: JSON.stringify({ uploadURL, objectPath }),
+      body: JSON.stringify({ publicUrl }),
     });
+  }
+
+  async uploadImageDirect(file: File, folder: string = 'instructions') {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('folder', folder);
+    
+    const headers: Record<string, string> = {};
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/admin/objects/upload`, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+    
+    return response.json() as Promise<{ success: boolean; url: string; objectPath: string }>;
   }
 }
 

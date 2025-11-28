@@ -66,6 +66,10 @@ externalPort = 3003
 localPort = 39799
 externalPort = 4200
 
+[[ports]]
+localPort = 40637
+externalPort = 6800
+
 [deployment]
 deploymentTarget = "autoscale"
 run = ["bash", "-c", "NODE_ENV=production PORT=5000 node --import tsx server/index.ts"]

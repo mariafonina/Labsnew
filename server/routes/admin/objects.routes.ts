@@ -1,55 +1,83 @@
-// Object Storage Routes for Admin
-// Based on Replit Object Storage integration (blueprint:javascript_object_storage)
-
 import { Router, Response } from 'express';
 import { verifyToken, requireAdmin, AuthRequest } from '../../auth';
-import { ObjectStorageService, ObjectNotFoundError } from '../../objectStorage';
 import { asyncHandler } from '../../utils/async-handler';
+import { getPresignedUploadUrl, isYandexS3Configured } from '../../yandexS3';
+import multer from 'multer';
+import { uploadImageToYandexS3 } from '../../yandexS3';
 
 const router = Router();
 
-// Get presigned upload URL for images
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024,
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, GIF, and WebP images are allowed'));
+    }
+  },
+});
+
 router.post('/upload-url', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { folder = 'instructions' } = req.body;
+  const { folder = 'instructions', fileName = 'image.jpg' } = req.body;
   
-  const objectStorageService = new ObjectStorageService();
-  const { uploadURL, objectPath } = await objectStorageService.getObjectEntityUploadURL(folder);
+  if (!isYandexS3Configured()) {
+    return res.status(500).json({ error: 'Yandex S3 not configured' });
+  }
+
+  const result = await getPresignedUploadUrl(fileName, folder);
+  
+  if (!result) {
+    return res.status(500).json({ error: 'Failed to generate upload URL' });
+  }
   
   res.json({ 
-    uploadURL, 
-    objectPath,
+    uploadURL: result.uploadUrl, 
+    publicUrl: result.publicUrl,
     method: 'PUT'
   });
 }));
 
-// Confirm upload and set ACL policy
 router.post('/confirm-upload', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { uploadURL, objectPath } = req.body;
+  const { publicUrl } = req.body;
   
-  if (!uploadURL && !objectPath) {
-    return res.status(400).json({ error: 'uploadURL or objectPath is required' });
+  if (!publicUrl) {
+    return res.status(400).json({ error: 'publicUrl is required' });
   }
 
-  const userId = String(req.userId);
-  const objectStorageService = new ObjectStorageService();
-  
-  try {
-    const normalizedPath = await objectStorageService.trySetObjectEntityAclPolicy(
-      uploadURL || objectPath,
-      {
-        owner: userId,
-        visibility: 'public', // Images in articles should be publicly readable
-      }
-    );
+  res.json({ 
+    objectPath: publicUrl,
+    success: true
+  });
+}));
 
-    res.json({ 
-      objectPath: normalizedPath,
-      success: true
-    });
-  } catch (error) {
-    console.error('Error confirming upload:', error);
-    res.status(500).json({ error: 'Failed to confirm upload' });
+router.post('/upload', verifyToken, requireAdmin, upload.single('image'), asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No image file provided' });
   }
+
+  const folder = (req.body.folder as string) || 'instructions';
+  const originalName = req.file.originalname || 'image.jpg';
+
+  const result = await uploadImageToYandexS3(
+    req.file.buffer,
+    originalName,
+    folder
+  );
+
+  if (!result.success) {
+    return res.status(500).json({ error: result.error || 'Failed to upload image' });
+  }
+
+  res.json({
+    success: true,
+    url: result.url,
+    objectPath: result.url,
+  });
 }));
 
 export default router;

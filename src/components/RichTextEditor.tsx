@@ -179,26 +179,13 @@ export function RichTextEditor({
     setIsUploading(true);
 
     try {
-      const uploadData = await apiClient.getObjectUploadUrl("instructions");
-      
-      const uploadResponse = await fetch(uploadData.uploadURL, {
-        method: "PUT",
-        body: selectedFile,
-        headers: {
-          "Content-Type": selectedFile.type,
-        },
-      });
+      const result = await apiClient.uploadImageDirect(selectedFile, "instructions");
 
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload file");
+      if (!result.success) {
+        throw new Error("Upload failed");
       }
 
-      const confirmResult = await apiClient.confirmObjectUpload(
-        uploadData.uploadURL,
-        uploadData.objectPath
-      );
-
-      const imageUrlFromStorage = confirmResult.objectPath;
+      const imageUrlFromStorage = result.url;
       const markdown = `![${imageAlt || "Изображение"}](${imageUrlFromStorage})`;
       insertAtCursor(markdown);
       
