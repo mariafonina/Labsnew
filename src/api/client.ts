@@ -195,15 +195,15 @@ class ApiClient {
     return this.request<any[]>('/favorites');
   }
 
-  async addToFavorites(instructionId: number) {
+  async addToFavorites(item: { item_type: string; item_id: string; title?: string; description?: string; date?: string }) {
     return this.request<any>('/favorites', {
       method: 'POST',
-      body: JSON.stringify({ instruction_id: instructionId }),
+      body: JSON.stringify(item),
     });
   }
 
-  async removeFromFavorites(instructionId: number) {
-    return this.request<any>(`/favorites/${instructionId}`, {
+  async removeFromFavorites(itemType: string, itemId: string) {
+    return this.request<any>(`/favorites/${itemType}/${itemId}`, {
       method: 'DELETE',
     });
   }
@@ -212,19 +212,26 @@ class ApiClient {
     return this.request<any[]>('/notes');
   }
 
-  async getNote(instructionId: number) {
-    return this.request<any>(`/notes/${instructionId}`);
+  async getNote(id: number) {
+    return this.request<any>(`/notes/${id}`);
   }
 
-  async saveNote(instructionId: number, content: string) {
+  async saveNote(data: { title?: string; content: string; linked_item?: any }) {
     return this.request<any>('/notes', {
       method: 'POST',
-      body: JSON.stringify({ instruction_id: instructionId, content }),
+      body: JSON.stringify(data),
     });
   }
 
-  async deleteNote(instructionId: number) {
-    return this.request<any>(`/notes/${instructionId}`, {
+  async updateNote(id: number, data: { title?: string; content?: string; linked_item?: any }) {
+    return this.request<any>(`/notes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteNote(id: number) {
+    return this.request<any>(`/notes/${id}`, {
       method: 'DELETE',
     });
   }

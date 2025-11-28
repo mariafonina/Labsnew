@@ -848,17 +848,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [auth.isAuthenticated, isAuthInitialized]);
 
-  const addToFavorites = (item: FavoriteItem) => {
+  const addToFavorites = async (item: FavoriteItem) => {
+    // Оптимистичное обновление UI
+    const newItem = { ...item, addedAt: new Date().toISOString() };
     setFavorites((prev) => {
       if (prev.some((fav) => fav.id === item.id)) {
         return prev;
       }
-      return [...prev, { ...item, addedAt: new Date().toISOString() }];
+      return [...prev, newItem];
     });
+
+    // Сохранение в БД в фоне
+    try {
+      await apiClient.addToFavorites({
+        item_type: item.type,
+        item_id: item.id,
+        title: item.title,
+        description: item.description,
+        date: item.date
+      });
+    } catch (error) {
+      console.error('Failed to add to favorites:', error);
+      // Откат при ошибке
+      setFavorites((prev) => prev.filter((fav) => fav.id !== item.id));
+    }
   };
 
-  const removeFromFavorites = (id: string) => {
-    setFavorites((prev) => prev.filter((item) => item.id !== id));
+  const removeFromFavorites = async (id: string) => {
+    // Найдем тип элемента перед удалением
+    const item = favorites.find((fav) => fav.id === id);
+    if (!item) return;
+
+    // Оптимистичное обновление UI
+    setFavorites((prev) => prev.filter((fav) => fav.id !== id));
+
+    // Удаление из БД в фоне
+    try {
+      await apiClient.removeFromFavorites(item.type, id);
+    } catch (error) {
+      console.error('Failed to remove from favorites:', error);
+      // Откат при ошибке
+      setFavorites((prev) => [...prev, item]);
+    }
   };
 
   const isFavorite = (id: string) => {
@@ -882,7 +913,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addNote = async (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => {
     try {
       // Send to API
-      const result = await apiClient.post('/notes', {
+      const result = await apiClient.saveNote({
         title: note.title,
         content: note.content,
         linked_item: note.linkedItem
@@ -904,7 +935,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateNote = (id: string, updates: Partial<Note>) => {
+  const updateNote = async (id: string, updates: Partial<Note>) => {
+    // Найдем заметку для отката
+    const originalNote = notes.find((note) => note.id === id);
+    if (!originalNote) return;
+
+    // Оптимистичное обновление UI
     setNotes((prev) =>
       prev.map((note) =>
         note.id === id
@@ -912,10 +948,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
           : note
       )
     );
+
+    // Сохранение в БД в фоне
+    try {
+      await apiClient.updateNote(Number(id), {
+        title: updates.title,
+        content: updates.content,
+        linked_item: updates.linkedItem
+      });
+    } catch (error) {
+      console.error('Failed to update note:', error);
+      // Откат при ошибке
+      setNotes((prev) =>
+        prev.map((note) => (note.id === id ? originalNote : note))
+      );
+    }
   };
 
-  const deleteNote = (id: string) => {
+  const deleteNote = async (id: string) => {
+    // Найдем заметку для отката
+    const deletedNote = notes.find((note) => note.id === id);
+    if (!deletedNote) return;
+
+    // Оптимистичное обновление UI
     setNotes((prev) => prev.filter((note) => note.id !== id));
+
+    // Удаление из БД в фоне
+    try {
+      await apiClient.deleteNote(Number(id));
+    } catch (error) {
+      console.error('Failed to delete note:', error);
+      // Откат при ошибке
+      setNotes((prev) => [...prev, deletedNote]);
+    }
   };
 
   const addComment = async (
