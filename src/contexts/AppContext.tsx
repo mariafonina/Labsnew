@@ -240,6 +240,8 @@ interface AppContextType {
   deleteUser: (id: string) => void;
   importUsersFromCSV: (users: Omit<User, "id" | "registeredAt">[]) => void;
   exportUsersToCSV: () => string;
+  setAuth: (auth: AuthData) => void;
+  fetchContent: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -252,12 +254,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [comments, setComments] = useState<Comment[]>([]);
   const [completedInstructions, setCompletedInstructions] = useState<string[]>([]);
 
+  const [isAuthInitialized, setIsAuthInitialized] = useState(false);
+  
   const [auth, setAuth] = useState<AuthData>(() => {
+    const token = localStorage.getItem('auth_token');
+    const savedUser = localStorage.getItem('user');
     const saved = localStorage.getItem("auth");
+    
+    if (token && savedUser) {
+      try {
+        const user = JSON.parse(savedUser);
+        apiClient.setToken(token);
+        console.log('[AppContext] Auth restored from auth_token/user:', user.email);
+        return {
+          email: user.email || "",
+          password: "",
+          isAuthenticated: true,
+          rememberMe: true,
+          isAdmin: user.role === 'admin',
+        };
+      } catch (e) {
+        console.error('[AppContext] Failed to parse user from localStorage', e);
+      }
+    }
+    
     if (saved) {
       try {
         const authData = JSON.parse(saved);
-        // Всегда возвращаем данные авторизации если они есть
         if (authData.isAuthenticated) {
           console.log('[AppContext] Auth restored from localStorage:', authData.email);
           return authData;
@@ -267,7 +290,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     }
     console.log('[AppContext] No auth in localStorage, user not authenticated');
-    // По умолчанию - не авторизован
     return {
       email: "",
       password: "",
@@ -794,44 +816,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [auth.isAuthenticated]);
 
-  // Sync with AuthContext - check if user is logged in via real API
+  // Mark auth as initialized after first render and ensure token is set
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
-    const savedUser = localStorage.getItem('user');
-
-    if (token && savedUser) {
-      try {
-        const user = JSON.parse(savedUser);
-        console.log('[AppContext] Found auth token and user, syncing auth state');
-        setAuth({
-          email: user.email,
-          password: '',
-          isAuthenticated: true,
-          rememberMe: true,
-          isAdmin: user.role === 'admin',
-        });
-      } catch (e) {
-        console.error('[AppContext] Failed to sync auth from localStorage', e);
-      }
+    if (token && auth.isAuthenticated) {
+      apiClient.setToken(token);
+      console.log('[AppContext] Token set in apiClient during initialization');
     }
-  }, []); // Run once on mount
+    setIsAuthInitialized(true);
+    console.log('[AppContext] Auth initialized, isAuthenticated:', auth.isAuthenticated);
+  }, []);
 
-  // Load content when auth state changes
+  // Load content when auth state changes (but only after initialization)
   useEffect(() => {
+    if (!isAuthInitialized) {
+      console.log('[AppContext] Waiting for auth initialization...');
+      return;
+    }
+    
     console.log('[AppContext] Auth changed, isAuthenticated:', auth.isAuthenticated);
     if (auth.isAuthenticated) {
       console.log('[AppContext] User is authenticated, calling fetchContent');
       fetchContent();
     } else {
       console.log('[AppContext] User is not authenticated, clearing content');
-      // Clear content when not authenticated
       setNewsItems([]);
       setEvents([]);
       setInstructions([]);
       setRecordings([]);
       setFaqItems([]);
     }
-  }, [auth.isAuthenticated]);
+  }, [auth.isAuthenticated, isAuthInitialized]);
 
   const addToFavorites = (item: FavoriteItem) => {
     setFavorites((prev) => {
@@ -1748,6 +1763,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteUser,
         importUsersFromCSV,
         exportUsersToCSV,
+        setAuth,
+        fetchContent,
       }}
     >
       {children}

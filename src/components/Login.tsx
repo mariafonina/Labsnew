@@ -6,12 +6,14 @@ import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { Alert, AlertDescription } from "./ui/alert";
 import { useAuth } from "../contexts/AuthContext";
+import { useApp } from "../contexts/AppContext";
 import { Logo } from "./Logo";
 import { ForgotPasswordDialog } from "./ForgotPasswordDialog";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
 export function Login() {
   const { login } = useAuth();
+  const { setAuth, fetchContent } = useApp();
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,6 +29,20 @@ export function Login() {
 
     try {
       await login(loginUsername, loginPassword);
+      
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        const user = JSON.parse(savedUser);
+        setAuth({
+          email: user.email || loginUsername,
+          password: '',
+          isAuthenticated: true,
+          rememberMe: rememberMe,
+          isAdmin: user.role === 'admin',
+        });
+        console.log('[Login] Auth updated in AppContext, fetching content...');
+        fetchContent();
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       const errorMessage = err?.message || err?.error || "Ошибка входа. Проверьте учетные данные";
