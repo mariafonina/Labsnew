@@ -14,6 +14,15 @@ import {
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
+// Get default bucket name from REPL_ID if not configured
+function getDefaultBucketName(): string {
+  const replId = process.env.REPL_ID;
+  if (!replId) {
+    throw new Error("REPL_ID not found - are you running on Replit?");
+  }
+  return replId;
+}
+
 // The object storage client is used to interact with the object storage service.
 export const objectStorageClient = new Storage({
   credentials: {
@@ -57,10 +66,9 @@ export class ObjectStorageService {
       )
     );
     if (paths.length === 0) {
-      throw new Error(
-        "PUBLIC_OBJECT_SEARCH_PATHS not set. Create a bucket in 'Object Storage' " +
-          "tool and set PUBLIC_OBJECT_SEARCH_PATHS env var (comma-separated paths)."
-      );
+      // Use default bucket based on REPL_ID
+      const defaultBucket = getDefaultBucketName();
+      return [`/${defaultBucket}/public`];
     }
     return paths;
   }
@@ -69,10 +77,9 @@ export class ObjectStorageService {
   getPrivateObjectDir(): string {
     const dir = process.env.PRIVATE_OBJECT_DIR || "";
     if (!dir) {
-      throw new Error(
-        "PRIVATE_OBJECT_DIR not set. Create a bucket in 'Object Storage' " +
-          "tool and set PRIVATE_OBJECT_DIR env var."
-      );
+      // Use default bucket based on REPL_ID
+      const defaultBucket = getDefaultBucketName();
+      return `/${defaultBucket}`;
     }
     return dir;
   }
