@@ -48,6 +48,11 @@ interface User {
   email: string;
   first_name?: string;
   last_name?: string;
+  phone?: string;
+  gender?: 'male' | 'female' | 'unspecified';
+  country?: string;
+  city?: string;
+  status?: 'active' | 'inactive';
   role: 'admin' | 'user';
   created_at: string;
 }
@@ -74,7 +79,9 @@ export function AdminUsers() {
     page: 1,
     search: "",
     cohortId: "",
-    productId: ""
+    productId: "",
+    country: "",
+    city: ""
   });
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -85,6 +92,11 @@ export function AdminUsers() {
     first_name: "",
     last_name: "",
     password: "",
+    phone: "",
+    gender: "unspecified" as "male" | "female" | "unspecified",
+    country: "",
+    city: "",
+    status: "active" as "active" | "inactive",
     role: "user" as "admin" | "user",
   });
 
@@ -139,6 +151,8 @@ export function AdminUsers() {
       if (query.cohortId) params.cohort_id = parseInt(query.cohortId);
       if (query.productId) params.product_id = parseInt(query.productId);
       if (query.search.trim()) params.search = query.search.trim();
+      if (query.country) params.country = query.country;
+      if (query.city) params.city = query.city;
 
       const response = await apiClient.getUsers(params);
 
@@ -166,6 +180,11 @@ export function AdminUsers() {
       first_name: "",
       last_name: "",
       password: "",
+      phone: "",
+      gender: "unspecified",
+      country: "",
+      city: "",
+      status: "active",
       role: "user",
     });
     setIsAdding(false);
@@ -196,6 +215,11 @@ export function AdminUsers() {
         password: userForm.password,
         first_name: userForm.first_name || undefined,
         last_name: userForm.last_name || undefined,
+        phone: userForm.phone || undefined,
+        gender: userForm.gender,
+        country: userForm.country || undefined,
+        city: userForm.city || undefined,
+        status: userForm.status,
         role: userForm.role,
       });
 
@@ -232,6 +256,11 @@ export function AdminUsers() {
         email: userForm.email,
         first_name: userForm.first_name || undefined,
         last_name: userForm.last_name || undefined,
+        phone: userForm.phone || undefined,
+        gender: userForm.gender,
+        country: userForm.country || undefined,
+        city: userForm.city || undefined,
+        status: userForm.status,
         password: userForm.password || undefined,
         role: userForm.role,
       });
@@ -252,6 +281,11 @@ export function AdminUsers() {
       first_name: user.first_name || "",
       last_name: user.last_name || "",
       password: "",
+      phone: (user as any).phone || "",
+      gender: (user as any).gender || "unspecified",
+      country: (user as any).country || "",
+      city: (user as any).city || "",
+      status: (user as any).status || "active",
       role: user.role,
     });
     setIsAdding(false);
@@ -526,6 +560,73 @@ export function AdminUsers() {
                 </p>
               </div>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <Label className="text-base mb-2 block">Телефон</Label>
+                <Input
+                  type="tel"
+                  value={userForm.phone}
+                  onChange={(e) => setUserForm({ ...userForm, phone: e.target.value })}
+                  placeholder="+7 (999) 123-45-67"
+                  className="h-12 text-base"
+                />
+              </div>
+              <div>
+                <Label className="text-base mb-2 block">Пол</Label>
+                <Select
+                  value={userForm.gender}
+                  onValueChange={(value: "male" | "female" | "unspecified") =>
+                    setUserForm({ ...userForm, gender: value })
+                  }
+                >
+                  <SelectTrigger className="h-12 text-base">
+                    <SelectValue placeholder="Выберите пол" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unspecified">Не указан</SelectItem>
+                    <SelectItem value="male">Мужской</SelectItem>
+                    <SelectItem value="female">Женский</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-base mb-2 block">Статус</Label>
+                <Select
+                  value={userForm.status}
+                  onValueChange={(value: "active" | "inactive") =>
+                    setUserForm({ ...userForm, status: value })
+                  }
+                >
+                  <SelectTrigger className="h-12 text-base">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Активен</SelectItem>
+                    <SelectItem value="inactive">Неактивен</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-base mb-2 block">Страна</Label>
+                <Input
+                  value={userForm.country}
+                  onChange={(e) => setUserForm({ ...userForm, country: e.target.value })}
+                  placeholder="Россия"
+                  className="h-12 text-base"
+                />
+              </div>
+              <div>
+                <Label className="text-base mb-2 block">Город</Label>
+                <Input
+                  value={userForm.city}
+                  onChange={(e) => setUserForm({ ...userForm, city: e.target.value })}
+                  placeholder="Москва"
+                  className="h-12 text-base"
+                />
+              </div>
+            </div>
             <div className="flex gap-3 pt-4">
               <Button
                 onClick={editingUser ? handleUpdateUser : handleAddUser}
@@ -545,7 +646,7 @@ export function AdminUsers() {
       )}
 
       {/* Search */}
-      {!isAdding && !editingUser && users.length > 0 && (
+      {!isAdding && !editingUser && (
         <div className="relative">
           <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input
@@ -558,7 +659,7 @@ export function AdminUsers() {
       )}
 
       {/* Filters and Email Button */}
-      {!isAdding && !editingUser && users.length > 0 && (
+      {!isAdding && !editingUser && (
         <Card className="p-8 border-2 bg-gray-50">
           <div className="space-y-6">
             {/* Header */}
@@ -581,13 +682,13 @@ export function AdminUsers() {
             </div>
 
             {/* Filters Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Product Filter */}
               <div className="space-y-2">
                 <Label className="text-sm font-semibold text-gray-700">Продукт</Label>
                 <Select
                   value={query.productId || "all"}
-                  onValueChange={(value) => setQuery(prev => ({
+                  onValueChange={(value: string) => setQuery(prev => ({
                     ...prev,
                     page: 1,
                     productId: value === "all" ? "" : value,
@@ -608,38 +709,85 @@ export function AdminUsers() {
                 </Select>
               </div>
 
-              {/* Cohort Filter - Only shows when product is selected */}
-              {query.productId && (
-                <div className="space-y-2 animate-in fade-in slide-in-from-left-2 duration-300">
-                  <Label className="text-sm font-semibold text-gray-700">Поток</Label>
-                  <Select
-                    value={query.cohortId || "all"}
-                    onValueChange={(value) => setQuery(prev => ({
-                      ...prev,
-                      page: 1,
-                      cohortId: value === "all" ? "" : value
-                    }))}
-                  >
-                    <SelectTrigger className="h-12 bg-white border-2 hover:border-pink-300 transition-colors">
-                      <SelectValue placeholder="Все потоки" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Все потоки</SelectItem>
-                      {cohorts
-                        .filter((c: any) => c.product_id?.toString() === query.productId)
-                        .map((cohort: any) => (
-                          <SelectItem key={cohort.id} value={cohort.id.toString()}>
-                            {cohort.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+              {/* Cohort Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">Поток</Label>
+                <Select
+                  value={query.cohortId || "all"}
+                  disabled={!query.productId}
+                  onValueChange={(value: string) => setQuery(prev => ({
+                    ...prev,
+                    page: 1,
+                    cohortId: value === "all" ? "" : value
+                  }))}
+                >
+                  <SelectTrigger className="h-12 bg-white border-2 hover:border-pink-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <SelectValue placeholder={query.productId ? "Все потоки" : "Сначала выберите продукт"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все потоки</SelectItem>
+                    {cohorts
+                      .filter((c: any) => c.product_id?.toString() === query.productId)
+                      .map((cohort: any) => (
+                        <SelectItem key={cohort.id} value={cohort.id.toString()}>
+                          {cohort.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Country Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">Страна</Label>
+                <Select
+                  value={query.country || "all"}
+                  onValueChange={(value: string) => setQuery(prev => ({
+                    ...prev,
+                    page: 1,
+                    country: value === "all" ? "" : value
+                  }))}
+                >
+                  <SelectTrigger className="h-12 bg-white border-2 hover:border-green-300 transition-colors">
+                    <SelectValue placeholder="Все страны" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все страны</SelectItem>
+                    <SelectItem value="Россия">Россия</SelectItem>
+                    <SelectItem value="Украина">Украина</SelectItem>
+                    <SelectItem value="Беларусь">Беларусь</SelectItem>
+                    <SelectItem value="Казахстан">Казахстан</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* City Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-semibold text-gray-700">Город</Label>
+                <Select
+                  value={query.city || "all"}
+                  onValueChange={(value: string) => setQuery(prev => ({
+                    ...prev,
+                    page: 1,
+                    city: value === "all" ? "" : value
+                  }))}
+                >
+                  <SelectTrigger className="h-12 bg-white border-2 hover:border-amber-300 transition-colors">
+                    <SelectValue placeholder="Все города" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все города</SelectItem>
+                    <SelectItem value="Москва">Москва</SelectItem>
+                    <SelectItem value="Санкт-Петербург">Санкт-Петербург</SelectItem>
+                    <SelectItem value="Екатеринбург">Екатеринбург</SelectItem>
+                    <SelectItem value="Новосибирск">Новосибирск</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Active Filters Display */}
-            {(query.productId || query.cohortId) && (
+            {(query.productId || query.cohortId || query.country || query.city) && (
               <div className="pt-6 border-t-2 border-gray-200">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -668,12 +816,34 @@ export function AdminUsers() {
                         </button>
                       </Badge>
                     )}
+                    {query.country && (
+                      <Badge className="bg-green-500 hover:bg-green-600 text-white pl-3 pr-2 py-1.5 transition-colors">
+                        {query.country}
+                        <button
+                          onClick={() => setQuery(prev => ({ ...prev, page: 1, country: "" }))}
+                          className="ml-2 hover:bg-green-700 rounded-full w-5 h-5 flex items-center justify-center transition-colors"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    )}
+                    {query.city && (
+                      <Badge className="bg-amber-500 hover:bg-amber-600 text-white pl-3 pr-2 py-1.5 transition-colors">
+                        {query.city}
+                        <button
+                          onClick={() => setQuery(prev => ({ ...prev, page: 1, city: "" }))}
+                          className="ml-2 hover:bg-amber-700 rounded-full w-5 h-5 flex items-center justify-center transition-colors"
+                        >
+                          ×
+                        </button>
+                      </Badge>
+                    )}
                   </div>
 
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setQuery(prev => ({ ...prev, page: 1, productId: "", cohortId: "" }))}
+                    onClick={() => setQuery(prev => ({ ...prev, page: 1, productId: "", cohortId: "", country: "", city: "" }))}
                     className="border-2 hover:bg-gray-100"
                   >
                     <X className="h-4 w-4 mr-2" />

@@ -22,11 +22,17 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.users" created');
 
-    // Migrate existing users table to add name fields
+    // Migrate existing users table to add name fields and additional user info
     try {
       await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS first_name VARCHAR(100)`);
       await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS last_name VARCHAR(100)`);
-      console.log('Added first_name and last_name columns to labs.users');
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`);
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS gender VARCHAR(20)`);
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS country VARCHAR(100)`);
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS city VARCHAR(100)`);
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active'`);
+      await query(`ALTER TABLE labs.users ADD COLUMN IF NOT EXISTS avatar_url TEXT`);
+      console.log('Added additional columns to labs.users');
     } catch (err) {
       // Columns already exist, that's fine
     }

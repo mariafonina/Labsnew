@@ -362,14 +362,38 @@ class ApiClient {
     }>(url, { signal: params?.signal });
   }
 
-  async createUser(data: { username: string; email: string; password?: string; first_name?: string; last_name?: string; role?: 'user' | 'admin' }) {
+  async createUser(data: {
+    username: string;
+    email: string;
+    password?: string;
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    gender?: 'male' | 'female' | 'unspecified';
+    country?: string;
+    city?: string;
+    status?: 'active' | 'inactive';
+    role?: 'user' | 'admin'
+  }) {
     return this.request<any>('/admin/users', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateUser(id: number, data: { username?: string; email?: string; password?: string; first_name?: string; last_name?: string; role?: 'user' | 'admin' }) {
+  async updateUser(id: number, data: {
+    username?: string;
+    email?: string;
+    password?: string;
+    first_name?: string;
+    last_name?: string;
+    phone?: string;
+    gender?: 'male' | 'female' | 'unspecified';
+    country?: string;
+    city?: string;
+    status?: 'active' | 'inactive';
+    role?: 'user' | 'admin'
+  }) {
     return this.request<any>(`/admin/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

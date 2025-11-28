@@ -14,7 +14,7 @@ router.get(
   verifyToken,
   requireAdmin,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { cohort_id, product_id, search, page, limit } = req.query;
+    const { cohort_id, product_id, search, country, city, page, limit } = req.query;
 
     // Pagination parameters
     const pageNum = parseInt(page as string) || 1;
@@ -22,11 +22,12 @@ router.get(
     const offset = (pageNum - 1) * limitNum;
 
     let queryText = `
-    SELECT DISTINCT u.id, u.username, u.email, u.first_name, u.last_name, u.role, u.created_at, u.updated_at
+    SELECT DISTINCT u.id, u.username, u.email, u.first_name, u.last_name, u.phone, u.gender, u.country, u.city, u.status, u.role, u.created_at, u.updated_at
     FROM labs.users u
   `;
     const params: any[] = [];
     let paramIndex = 1;
+    const conditions: string[] = [];
 
     // Фильтрация по потоку
     if (cohort_id) {
@@ -45,14 +46,33 @@ router.get(
     // Поиск по username, email, first_name, last_name
     if (search && typeof search === 'string' && search.trim()) {
       const searchPattern = `%${search.trim().toLowerCase()}%`;
-      queryText += ` WHERE (
+      conditions.push(`(
         LOWER(u.username) LIKE $${paramIndex} OR
         LOWER(u.email) LIKE $${paramIndex} OR
         LOWER(u.first_name) LIKE $${paramIndex} OR
         LOWER(u.last_name) LIKE $${paramIndex}
-      )`;
+      )`);
       params.push(searchPattern);
       paramIndex++;
+    }
+
+    // Фильтрация по стране
+    if (country && typeof country === 'string' && country.trim()) {
+      conditions.push(`u.country = $${paramIndex}`);
+      params.push(country.trim());
+      paramIndex++;
+    }
+
+    // Фильтрация по городу
+    if (city && typeof city === 'string' && city.trim()) {
+      conditions.push(`u.city = $${paramIndex}`);
+      params.push(city.trim());
+      paramIndex++;
+    }
+
+    // Добавляем условия WHERE если они есть
+    if (conditions.length > 0) {
+      queryText += ` WHERE ${conditions.join(' AND ')}`;
     }
 
     // Сортировка
@@ -88,7 +108,7 @@ router.post(
   requireAdmin,
   createLimiter,
   asyncHandler(async (req: AuthRequest, res: Response) => {
-    const { username, email, password, first_name, last_name, role } = req.body;
+    const { username, email, password, first_name, last_name, phone, gender, country, city, status, role } = req.body;
 
     if (!username || !email || !password) {
       return res
@@ -133,15 +153,26 @@ router.post(
       first_name && first_name.trim() ? sanitizeText(first_name.trim()) : null;
     const sanitizedLastName =
       last_name && last_name.trim() ? sanitizeText(last_name.trim()) : null;
+    const sanitizedPhone =
+      phone && phone.trim() ? sanitizeText(phone.trim()) : null;
+    const sanitizedCountry =
+      country && country.trim() ? sanitizeText(country.trim()) : null;
+    const sanitizedCity =
+      city && city.trim() ? sanitizeText(city.trim()) : null;
 
     const result = await query(
-      "INSERT INTO labs.users (username, email, password_hash, first_name, last_name, role) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, username, email, first_name, last_name, role, created_at",
+      "INSERT INTO labs.users (username, email, password_hash, first_name, last_name, phone, gender, country, city, status, role) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, username, email, first_name, last_name, phone, gender, country, city, status, role, created_at",
       [
         trimmedUsername,
         trimmedEmail,
         passwordHash,
         sanitizedFirstName,
         sanitizedLastName,
+        sanitizedPhone,
+        gender || "unspecified",
+        sanitizedCountry,
+        sanitizedCity,
+        status || "active",
         role || "user",
       ],
     );
@@ -158,7 +189,7 @@ router.put(
   createLimiter,
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
-    const { username, email, first_name, last_name, role, password } = req.body;
+    const { username, email, first_name, last_name, phone, gender, country, city, status, role, password } = req.body;
 
     if (role && !["user", "admin"].includes(role)) {
       return res
@@ -224,6 +255,24 @@ router.put(
           ? sanitizeText(last_name.trim())
           : null
         : undefined;
+    const sanitizedPhone =
+      phone !== undefined
+        ? phone.trim()
+          ? sanitizeText(phone.trim())
+          : null
+        : undefined;
+    const sanitizedCountry =
+      country !== undefined
+        ? country.trim()
+          ? sanitizeText(country.trim())
+          : null
+        : undefined;
+    const sanitizedCity =
+      city !== undefined
+        ? city.trim()
+          ? sanitizeText(city.trim())
+          : null
+        : undefined;
 
     let updateQuery = "UPDATE labs.users SET updated_at = CURRENT_TIMESTAMP";
     const params: any[] = [];
@@ -245,6 +294,26 @@ router.put(
       params.push(sanitizedLastName);
       updateQuery += `, last_name = $${paramIndex++}`;
     }
+    if (sanitizedPhone !== undefined) {
+      params.push(sanitizedPhone);
+      updateQuery += `, phone = $${paramIndex++}`;
+    }
+    if (gender !== undefined) {
+      params.push(gender);
+      updateQuery += `, gender = $${paramIndex++}`;
+    }
+    if (sanitizedCountry !== undefined) {
+      params.push(sanitizedCountry);
+      updateQuery += `, country = $${paramIndex++}`;
+    }
+    if (sanitizedCity !== undefined) {
+      params.push(sanitizedCity);
+      updateQuery += `, city = $${paramIndex++}`;
+    }
+    if (status !== undefined) {
+      params.push(status);
+      updateQuery += `, status = $${paramIndex++}`;
+    }
     if (role !== undefined) {
       params.push(role);
       updateQuery += `, role = $${paramIndex++}`;
@@ -261,7 +330,7 @@ router.put(
     }
 
     params.push(id);
-    updateQuery += ` WHERE id = $${paramIndex} RETURNING id, username, email, first_name, last_name, role, created_at, updated_at`;
+    updateQuery += ` WHERE id = $${paramIndex} RETURNING id, username, email, first_name, last_name, phone, gender, country, city, status, role, created_at, updated_at`;
 
     const result = await query(updateQuery, params);
 

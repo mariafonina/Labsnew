@@ -589,7 +589,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       </div>
 
       {/* Material Sections Navigation */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
         {materialSections.map((section) => {
           const Icon = section.icon;
           return (
