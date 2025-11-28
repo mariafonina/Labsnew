@@ -924,56 +924,57 @@ export async function initializeDatabase() {
       console.error('Error syncing cohort members with enrollments:', err);
     }
 
-    const defaultProduct = await query(`
-      SELECT id FROM labs.products WHERE name = 'Общая программа' LIMIT 1
-    `);
+    // Default product creation disabled - create products manually via admin panel
+    // const defaultProduct = await query(`
+    //   SELECT id FROM labs.products WHERE name = 'Общая программа' LIMIT 1
+    // `);
 
-    if (defaultProduct.rows.length === 0) {
-      const product = await query(`
-        INSERT INTO labs.products (name, description, type, is_active)
-        VALUES ('Общая программа', 'Универсальная образовательная программа для всех пользователей', 'general', TRUE)
-        RETURNING id
-      `);
-      console.log('Default product "Общая программа" created');
+    // if (defaultProduct.rows.length === 0) {
+    //   const product = await query(`
+    //     INSERT INTO labs.products (name, description, type, is_active)
+    //     VALUES ('Общая программа', 'Универсальная образовательная программа для всех пользователей', 'general', TRUE)
+    //     RETURNING id
+    //   `);
+    //   console.log('Default product "Общая программа" created');
 
-      const productId = product.rows[0].id;
+    //   const productId = product.rows[0].id;
 
-      const cohort = await query(`
-        INSERT INTO labs.cohorts (product_id, name, description, start_date, end_date, is_active)
-        VALUES ($1, 'Основной поток', 'Основной поток для всех пользователей', '2024-01-01', '2099-12-31', TRUE)
-        RETURNING id
-      `, [productId]);
-      console.log('Default cohort created');
+    //   const cohort = await query(`
+    //     INSERT INTO labs.cohorts (product_id, name, description, start_date, end_date, is_active)
+    //     VALUES ($1, 'Основной поток', 'Основной поток для всех пользователей', '2024-01-01', '2099-12-31', TRUE)
+    //     RETURNING id
+    //   `, [productId]);
+    //   console.log('Default cohort created');
 
-      const cohortId = cohort.rows[0].id;
+    //   const cohortId = cohort.rows[0].id;
 
-      const tier = await query(`
-        INSERT INTO labs.pricing_tiers (cohort_id, name, description, price, tier_level, is_active)
-        VALUES ($1, 'Стандартный', 'Полный доступ ко всем материалам', 0.00, 1, TRUE)
-        RETURNING id
-      `, [cohortId]);
-      console.log('Default pricing tier created');
+    //   const tier = await query(`
+    //     INSERT INTO labs.pricing_tiers (cohort_id, name, description, price, tier_level, is_active)
+    //     VALUES ($1, 'Стандартный', 'Полный доступ ко всем материалам', 0.00, 1, TRUE)
+    //     RETURNING id
+    //   `, [cohortId]);
+    //   console.log('Default pricing tier created');
 
-      const tierId = tier.rows[0].id;
+    //   const tierId = tier.rows[0].id;
 
-      const users = await query('SELECT id FROM labs.users');
-      
-      for (const user of users.rows) {
-        await query(`
-          INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status)
-          VALUES ($1, $2, $3, $4, 'active')
-          ON CONFLICT (user_id, product_id, cohort_id) DO NOTHING
-        `, [user.id, productId, tierId, cohortId]);
+    //   const users = await query('SELECT id FROM labs.users');
 
-        await query(`
-          INSERT INTO labs.cohort_members (cohort_id, user_id)
-          VALUES ($1, $2)
-          ON CONFLICT (cohort_id, user_id) DO NOTHING
-        `, [cohortId, user.id]);
-      }
-      
-      console.log(`Enrolled ${users.rows.length} existing users into default product`);
-    }
+    //   for (const user of users.rows) {
+    //     await query(`
+    //       INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status)
+    //       VALUES ($1, $2, $3, $4, 'active')
+    //       ON CONFLICT (user_id, product_id, cohort_id) DO NOTHING
+    //     `, [user.id, productId, tierId, cohortId]);
+
+    //     await query(`
+    //       INSERT INTO labs.cohort_members (cohort_id, user_id)
+    //       VALUES ($1, $2)
+    //       ON CONFLICT (cohort_id, user_id) DO NOTHING
+    //     `, [cohortId, user.id]);
+    //   }
+
+    //   console.log(`Enrolled ${users.rows.length} existing users into default product`);
+    // }
 
     console.log('Database initialization completed successfully!');
   } catch (error) {
