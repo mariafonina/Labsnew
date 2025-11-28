@@ -196,7 +196,7 @@ export function InstructionsLibrary() {
   const uncategorizedInstructions = getInstructionsByCohortCategory(null);
 
   return (
-    <div className="space-y-24">
+    <div className="space-y-32">
       {/* Селектор потока (если потоков больше 1) */}
       {userCohorts.length > 1 && (
         <Card className="p-4 mb-6">
