@@ -25,8 +25,20 @@ function AppContent() {
   const { isAuthenticated, user } = useAuth();
   const { getUnreadNotificationsCount } = useApp();
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [activeTab, setActiveTab] = useState("news");
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("labs_activeTab") || "news";
+  });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("labs_sidebarCollapsed") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("labs_activeTab", activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    localStorage.setItem("labs_sidebarCollapsed", String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   useEffect(() => {
     // Set page language and charset for proper Russian text rendering

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { Card } from "./ui/card";
 import { AdminSidebar } from "./AdminSidebar";
@@ -17,8 +17,20 @@ import { AdminEnrollments } from "./AdminEnrollments";
 
 export function AdminPanel() {
   const { user, logout } = useAuth();
-  const [activeSection, setActiveSection] = useState("dashboard");
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [activeSection, setActiveSection] = useState(() => {
+    return localStorage.getItem("labs_adminActiveSection") || "dashboard";
+  });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("labs_adminSidebarCollapsed") === "true";
+  });
+
+  useEffect(() => {
+    localStorage.setItem("labs_adminActiveSection", activeSection);
+  }, [activeSection]);
+
+  useEffect(() => {
+    localStorage.setItem("labs_adminSidebarCollapsed", String(isSidebarCollapsed));
+  }, [isSidebarCollapsed]);
 
   if (!user || user.role !== 'admin') {
     return (
