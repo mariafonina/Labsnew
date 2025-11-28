@@ -227,18 +227,12 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
       
       {/* Meta Info */}
       <div className="flex flex-wrap gap-4 text-gray-600 mb-8">
-        {recording.date && (
-          <span className="text-lg">{new Date(recording.date).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}</span>
-        )}
         {recording.duration && (
-          <>
-            <span>•</span>
-            <span className="text-lg">{recording.duration}</span>
-          </>
+          <span className="text-lg">{recording.duration}</span>
         )}
         {recording.instructor && (
           <>
-            <span>•</span>
+            {recording.duration && <span>•</span>}
             <span className="text-lg font-semibold">{recording.instructor}</span>
           </>
         )}

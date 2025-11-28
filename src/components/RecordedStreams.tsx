@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Play, Clock, Calendar, Bookmark, Eye } from "lucide-react";
+import { Play, Clock, Bookmark, Eye } from "lucide-react";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { useApp, type Recording } from "../contexts/AppContext";
 import { toast } from "sonner";
@@ -44,19 +44,6 @@ export function RecordedStreams() {
         addedAt: new Date().toISOString(),
       });
       toast.success("Добавлено в избранное");
-    }
-  };
-
-  const formatDate = (dateStr: string) => {
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("ru-RU", {
-        day: "numeric",
-        month: "long",
-        year: "numeric"
-      });
-    } catch {
-      return dateStr;
     }
   };
 
@@ -137,22 +124,15 @@ export function RecordedStreams() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 text-sm text-gray-500 mb-4">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    <span>{formatDate(recording.date)}</span>
-                  </div>
                   {recording.duration && (
-                    <>
-                      <span>•</span>
-                      <div className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        <span>{recording.duration}</span>
-                      </div>
-                    </>
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{recording.duration}</span>
+                    </div>
                   )}
                   {recording.views !== undefined && (
                     <>
-                      <span>•</span>
+                      {recording.duration && <span>•</span>}
                       <div className="flex items-center gap-1">
                         <Eye className="h-4 w-4" />
                         <span>{recording.views} просмотров</span>
