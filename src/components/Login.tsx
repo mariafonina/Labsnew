@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -14,6 +15,8 @@ import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 export function Login() {
   const { login } = useAuth();
   const { setAuth, fetchContent } = useApp();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [error, setError] = useState("");
@@ -29,7 +32,7 @@ export function Login() {
 
     try {
       await login(loginUsername, loginPassword);
-      
+
       const savedUser = localStorage.getItem('user');
       if (savedUser) {
         const user = JSON.parse(savedUser);
@@ -42,6 +45,14 @@ export function Login() {
         });
         console.log('[Login] Auth updated in AppContext, fetching content...');
         fetchContent();
+
+        // Redirect admin to /admin, regular users to intended page or /news
+        if (user.role === 'admin') {
+          navigate('/admin', { replace: true });
+        } else {
+          const from = location.state?.from?.pathname || '/news';
+          navigate(from, { replace: true });
+        }
       }
     } catch (err: any) {
       console.error('Login error:', err);

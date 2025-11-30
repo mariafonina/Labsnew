@@ -17,20 +17,19 @@ import { motion, AnimatePresence } from "motion/react";
 import { Logo } from "./Logo";
 import { useState, useEffect } from "react";
 import { apiClient } from "../api/client";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface UserSidebarProps {
-  activeTab: string;
-  onTabChange: (tab: string) => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 }
 
-export function UserSidebar({ 
-  activeTab, 
-  onTabChange, 
-  isCollapsed, 
-  onToggleCollapse 
+export function UserSidebar({
+  isCollapsed,
+  onToggleCollapse
 }: UserSidebarProps) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { getUnreadNotificationsCount, auth } = useApp();
   const { user } = useAuth();
   const unreadCount = getUnreadNotificationsCount();
@@ -60,20 +59,23 @@ export function UserSidebar({
   const accentColor = gender === "male" ? "text-lime-500" : "text-pink-500";
   const logoVariant = gender === "male" ? "male" : gender === "female" ? "female" : "default";
 
+  // Derive activeTab from URL
+  const activeTab = location.pathname.split("/")[1] || "news";
+
   const mainMenuItems = [
-    { id: "news", label: "Новости", icon: Newspaper, badge: unreadCount },
-    { id: "calendar", label: "Расписание", icon: Calendar },
-    { id: "library", label: "База знаний", icon: BookOpen, hasArrow: true },
-    { id: "recordings", label: "Записи", icon: Video, hasArrow: true },
+    { id: "news", label: "Новости", icon: Newspaper, path: "/news", badge: unreadCount },
+    { id: "calendar", label: "Расписание", icon: Calendar, path: "/calendar" },
+    { id: "library", label: "База знаний", icon: BookOpen, path: "/library", hasArrow: true },
+    { id: "recordings", label: "Записи", icon: Video, path: "/recordings", hasArrow: true },
   ];
 
   const quickAccessItems = [
-    { id: "favorites", label: "Избранное", icon: Bookmark },
-    { id: "notes", label: "Заметки", icon: FileText },
-    { id: "faq", label: "FAQ", icon: HelpCircle },
+    { id: "favorites", label: "Избранное", icon: Bookmark, path: "/favorites" },
+    { id: "notes", label: "Заметки", icon: FileText, path: "/notes" },
+    { id: "faq", label: "FAQ", icon: HelpCircle, path: "/faq" },
   ];
 
-  const profileItem = { id: "profile", label: "Профиль", icon: User };
+  const profileItem = { id: "profile", label: "Профиль", icon: User, path: "/profile" };
 
   if (isCollapsed) {
     return (
@@ -85,7 +87,7 @@ export function UserSidebar({
       >
         <div className="p-3 border-b border-gray-200/60">
           <div className="flex justify-center">
-            <Logo size="sm" onClick={() => onTabChange("news")} />
+            <Logo size="sm" onClick={() => navigate("/news")} />
           </div>
         </div>
 
@@ -97,7 +99,7 @@ export function UserSidebar({
             return (
               <button
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => navigate(item.path)}
                 title={item.label}
                 className={`w-full h-12 flex items-center justify-center rounded-lg transition-colors relative ${
                   isActive ? accentColor : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -146,9 +148,9 @@ export function UserSidebar({
     >
       {/* Header */}
       <div className="px-6 py-5 border-b border-gray-200/60 space-y-3">
-        <Logo size="lg" onClick={() => onTabChange("news")} />
+        <Logo size="lg" onClick={() => navigate("/news")} />
         <button
-          onClick={() => onTabChange("profile")}
+          onClick={() => navigate("/profile")}
           className="text-sm text-gray-500 hover:text-gray-900 transition-colors text-left w-full"
         >
           Добро пожаловать, <span className="underline hover:text-pink-400 hover:shadow-[0_0_15px_rgba(251,113,133,0.7)] transition-all duration-300 cursor-pointer">{userName || "Пользователь"}</span>
@@ -165,9 +167,9 @@ export function UserSidebar({
             return (
               <motion.button
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => navigate(item.path)}
                 title={item.label}
-                whileHover={{ 
+                whileHover={{
                   scale: 1.05,
                   rotate: [0, -2, 2, -2, 2, 0],
                   transition: {
@@ -181,8 +183,8 @@ export function UserSidebar({
                 }}
                 whileTap={{ scale: 0.95 }}
                 className={`flex items-center justify-center w-12 h-12 rounded-lg transition-all ${
-                  isActive 
-                    ? `${gender === "male" ? "bg-gradient-to-br from-lime-400 to-green-400 shadow-[0_0_20px_rgba(132,204,22,0.6)]" : "bg-gradient-to-br from-pink-400 to-rose-400 shadow-[0_0_20px_rgba(251,113,133,0.6)]"}` 
+                  isActive
+                    ? `${gender === "male" ? "bg-gradient-to-br from-lime-400 to-green-400 shadow-[0_0_20px_rgba(132,204,22,0.6)]" : "bg-gradient-to-br from-pink-400 to-rose-400 shadow-[0_0_20px_rgba(251,113,133,0.6)]"}`
                     : `${gender === "male" ? "bg-gradient-to-br from-lime-300 to-green-300 hover:from-lime-400 hover:to-green-400 hover:shadow-[0_0_20px_rgba(132,204,22,0.6)]" : "bg-gradient-to-br from-pink-300 to-rose-300 hover:from-pink-400 hover:to-rose-400 hover:shadow-[0_0_20px_rgba(251,113,133,0.6)]"}`
                 }`}
               >
@@ -202,7 +204,7 @@ export function UserSidebar({
           return (
             <motion.button
               key={item.id}
-              onClick={() => onTabChange(item.id)}
+              onClick={() => navigate(item.path)}
               whileHover={{ x: 4 }}
               whileTap={{ scale: 0.98 }}
               transition={{ duration: 0.2 }}

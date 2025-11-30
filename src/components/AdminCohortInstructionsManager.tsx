@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
@@ -80,6 +81,8 @@ interface CategoryCardProps {
   onMoveCategory: (categoryId: number, newOrder: number) => void;
   onMoveInstruction: (instructionId: number, targetCategoryId: number, newOrder: number) => void;
   index: number;
+  productId: number;
+  cohortId: number;
 }
 
 function CategoryCard({
@@ -93,7 +96,10 @@ function CategoryCard({
   onMoveCategory,
   onMoveInstruction,
   index,
+  productId,
+  cohortId,
 }: CategoryCardProps) {
+  const navigate = useNavigate();
   const storageKey = `labs_cohort_category_expanded_${category.cohort_id}_${category.id}`;
   const [isExpanded, setIsExpanded] = useState(() => {
     const saved = localStorage.getItem(storageKey);
@@ -254,7 +260,7 @@ function CategoryCard({
                   <Button
                     size="sm"
                     variant="default"
-                    onClick={() => onAddInstruction(category.id)}
+                    onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/instructions/category/${category.id}/new`)}
                     className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500"
                   >
                     <Plus className="h-4 w-4" />
@@ -289,7 +295,7 @@ function CategoryCard({
                     Нет инструкций в этой категории
                   </p>
                   <Button
-                    onClick={() => onAddInstruction(category.id)}
+                    onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/instructions/category/${category.id}/new`)}
                     size="default"
                     className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500"
                   >
@@ -308,6 +314,8 @@ function CategoryCard({
                   onDelete={onDeleteInstruction}
                   onMove={onMoveInstruction}
                   index={idx}
+                  productId={productId}
+                  cohortId={cohortId}
                 />
               ))
             )}
@@ -325,6 +333,8 @@ interface InstructionItemProps {
   onDelete: (id: number) => void;
   onMove: (instructionId: number, targetCategoryId: number, newOrder: number) => void;
   index: number;
+  productId: number;
+  cohortId: number;
 }
 
 function InstructionItem({
@@ -334,7 +344,10 @@ function InstructionItem({
   onDelete,
   onMove,
   index,
+  productId,
+  cohortId,
 }: InstructionItemProps) {
+  const navigate = useNavigate();
   const [{ isDragging }, dragRef, previewRef] = useDrag<
     DragItem,
     void,
@@ -403,7 +416,7 @@ function InstructionItem({
             <Button
               size="sm"
               variant="outline"
-              onClick={() => onEdit(instruction)}
+              onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/instructions/instruction/${instruction.id}/edit`)}
               className="hover:bg-gray-100 flex-1 lg:flex-none"
             >
               <Edit2 className="h-3 w-3 lg:mr-1" />
@@ -426,9 +439,18 @@ function InstructionItem({
 
 interface AdminCohortInstructionsManagerProps {
   cohortId: number;
+  productId: number;
+  action?: string;
+  itemId?: string;
 }
 
-export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstructionsManagerProps) {
+export function AdminCohortInstructionsManager({
+  cohortId,
+  productId,
+  action,
+  itemId
+}: AdminCohortInstructionsManagerProps) {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<CohortKnowledgeCategory[]>([]);
   const [instructions, setInstructions] = useState<CohortInstruction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -458,6 +480,36 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
   useEffect(() => {
     loadData();
   }, [cohortId]);
+
+  // Handle URL-based action
+  useEffect(() => {
+    if (action === "new-category") {
+      setIsAddingCategory(true);
+    } else if (action === "new" && itemId) {
+      // New instruction for specific category
+      const categoryId = Number(itemId);
+      setIsAddingInstruction(true);
+      setInstructionForm({
+        ...instructionForm,
+        cohort_category_id: categoryId,
+      });
+    } else if (action === "edit" && itemId) {
+      // Edit instruction
+      const instructionId = Number(itemId);
+      const instruction = instructions.find(i => i.id === instructionId);
+      if (instruction) {
+        setEditingInstruction(instruction);
+        setInstructionForm({
+          title: instruction.title,
+          cohort_category_id: instruction.cohort_category_id || 0,
+          description: instruction.description || "",
+          content: instruction.content || "",
+          loom_embed_url: instruction.loom_embed_url || "",
+          image_url: instruction.image_url || "",
+        });
+      }
+    }
+  }, [action, itemId, instructions]);
 
   useEffect(() => {
     if (isAddingCategory && categoryFormRef.current) {
@@ -510,6 +562,7 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
       await loadData();
       setCategoryForm({ name: "", description: "" });
       setIsAddingCategory(false);
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/instructions`);
       toast.success("Категория добавлена");
     } catch (error: any) {
       toast.error(error.message || "Ошибка при добавлении категории");
@@ -556,6 +609,7 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
         image_url: "",
       });
       setIsAddingInstruction(false);
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/instructions`);
       toast.success("Инструкция добавлена");
     } catch (error: any) {
       toast.error(error.message || "Ошибка при добавлении инструкции");
@@ -580,6 +634,7 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
         image_url: "",
       });
       setEditingInstruction(null);
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/instructions`);
       toast.success("Инструкция обновлена");
     } catch (error: any) {
       toast.error(error.message || "Ошибка при обновлении инструкции");
@@ -718,6 +773,7 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
   };
 
   const cancelEdit = () => {
+    navigate(`/admin/products/${productId}/cohorts/${cohortId}/instructions`);
     setIsAddingCategory(false);
     setIsAddingInstruction(false);
     setEditingInstruction(null);
@@ -754,7 +810,7 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
             </div>
             {!isAddingCategory && !isAddingInstruction && !editingInstruction && (
               <Button
-                onClick={() => setIsAddingCategory(true)}
+                onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/instructions/new-category`)}
                 size="lg"
                 className="hidden lg:flex bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500 shadow-lg hover:shadow-xl transition-all"
               >
@@ -766,7 +822,8 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
 
           {/* Add Category Form */}
           {isAddingCategory && (
-            <Card ref={categoryFormRef} className="p-4 lg:p-8 shadow-lg border-2">
+            <div ref={categoryFormRef}>
+              <Card className="p-4 lg:p-8 shadow-lg border-2">
               <div className="mb-4 lg:mb-6 pb-4 lg:pb-6 border-b border-gray-200">
                 <h3 className="font-black text-2xl lg:text-3xl">
                   Новая категория
@@ -820,12 +877,14 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
                   </Button>
                 </div>
               </div>
-            </Card>
+              </Card>
+            </div>
           )}
 
           {/* Add/Edit Instruction Form */}
           {(isAddingInstruction || editingInstruction) && (
-            <Card ref={instructionFormRef} className="p-4 lg:p-8 shadow-lg border-2">
+            <div ref={instructionFormRef}>
+              <Card className="p-4 lg:p-8 shadow-lg border-2">
               <div className="mb-4 lg:mb-6 pb-4 lg:pb-6 border-b border-gray-200">
                 <h3 className="font-black text-2xl lg:text-3xl">
                   {editingInstruction ? "Редактировать инструкцию" : "Новая инструкция"}
@@ -987,7 +1046,8 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
                   </Button>
                 </div>
               </div>
-            </Card>
+              </Card>
+            </div>
           )}
 
           {/* Categories List */}
@@ -1003,7 +1063,7 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
                     Создайте первую категорию для организации инструкций
                   </p>
                   <Button
-                    onClick={() => setIsAddingCategory(true)}
+                    onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/instructions/new-category`)}
                     size="lg"
                     className="bg-gradient-to-r from-purple-400 to-indigo-400 hover:from-purple-500 hover:to-indigo-500"
                   >
@@ -1042,6 +1102,8 @@ export function AdminCohortInstructionsManager({ cohortId }: AdminCohortInstruct
                   onMoveCategory={handleMoveCategory}
                   onMoveInstruction={handleMoveInstruction}
                   index={index}
+                  productId={productId}
+                  cohortId={cohortId}
                 />
               ))
             )}

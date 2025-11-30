@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -8,26 +9,27 @@ import { useApp, type Recording } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { RecordingDetail } from "./RecordingDetail";
 
-export function RecordedStreams() {
+interface RecordedStreamsProps {
+  selectedItemId?: string | null;
+}
+
+export function RecordedStreams({ selectedItemId }: RecordedStreamsProps) {
+  const navigate = useNavigate();
   const { recordings, addToFavorites, removeFromFavorites, isFavorite } = useApp();
   const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
 
-  // Проверяем sessionStorage при загрузке компонента
+  // Auto-select recording from URL parameter
   useEffect(() => {
-    const selectedId = sessionStorage.getItem('selectedItemId');
-    const selectedType = sessionStorage.getItem('selectedItemType');
-
-    if (selectedId && selectedType === 'recording') {
-      // Ищем запись по ID
-      const recording = recordings.find(r => String(r.id) === selectedId);
+    if (selectedItemId) {
+      const recording = recordings.find(r => String(r.id) === selectedItemId);
       if (recording) {
         setSelectedRecording(recording);
       }
-      // Очищаем sessionStorage после использования
-      sessionStorage.removeItem('selectedItemId');
-      sessionStorage.removeItem('selectedItemType');
+    } else {
+      // Clear selection when no ID in URL
+      setSelectedRecording(null);
     }
-  }, [recordings]);
+  }, [selectedItemId, recordings]);
 
   const handleToggleFavorite = (recording: Recording, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -52,7 +54,7 @@ export function RecordedStreams() {
     return (
       <RecordingDetail
         recording={selectedRecording}
-        onBack={() => setSelectedRecording(null)}
+        onBack={() => navigate('/recordings')}
       />
     );
   }
@@ -72,7 +74,7 @@ export function RecordedStreams() {
             <Card
               key={recording.id}
               className="overflow-hidden border-gray-200/60 bg-white/60 backdrop-blur-sm hover:shadow-xl transition-all duration-300 cursor-pointer group"
-              onClick={() => setSelectedRecording(recording)}
+              onClick={() => navigate(`/recordings/${recording.id}`)}
             >
               {recording.thumbnail && (
                 <div className="relative aspect-video bg-gradient-to-br from-gray-100 to-gray-200 overflow-hidden">

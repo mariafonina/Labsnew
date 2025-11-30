@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -125,9 +126,22 @@ interface AdminStreamDetailProps {
   productName: string;
   productId: number;
   onBack: () => void;
+  section?: string;
+  action?: string;
+  itemId?: string;
 }
 
-export function AdminStreamDetail({ cohortId, cohortName, productName, productId, onBack }: AdminStreamDetailProps) {
+export function AdminStreamDetail({
+  cohortId,
+  cohortName,
+  productName,
+  productId,
+  onBack,
+  section = "news",
+  action,
+  itemId
+}: AdminStreamDetailProps) {
+  const navigate = useNavigate();
   const [materials, setMaterials] = useState<StreamMaterials>({
     faqs: [],
     news: [],
@@ -137,7 +151,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
   });
 
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<string>("news");
+  const activeSection = section;
 
   // FAQ states
   const [editingFAQ, setEditingFAQ] = useState<FAQ | null>(null);
@@ -177,6 +191,42 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
     loadMaterials();
   }, [cohortId]);
 
+  // Handle URL-based form state
+  useEffect(() => {
+    if (action === "new") {
+      if (activeSection === "news") setIsAddingNews(true);
+      else if (activeSection === "schedule") setIsAddingEvent(true);
+      else if (activeSection === "recordings") setIsAddingRecording(true);
+      else if (activeSection === "faqs") setIsAddingFAQ(true);
+      else if (activeSection === "members") {
+        setIsAddingMember(true);
+        if (allUsers.length === 0) loadAllUsers();
+        if (tiers.length === 0) loadTiers();
+      }
+    } else if (action === "edit" && itemId) {
+      const id = Number(itemId);
+      if (activeSection === "news") {
+        const item = materials.news.find(n => n.id === id);
+        if (item) startEditNews(item);
+      } else if (activeSection === "schedule") {
+        const item = materials.schedule.find(e => e.id === id);
+        if (item) startEditEvent(item);
+      } else if (activeSection === "recordings") {
+        const item = materials.recordings.find(r => r.id === id);
+        if (item) startEditRecording(item);
+      } else if (activeSection === "faqs") {
+        const item = materials.faqs.find(f => f.id === id);
+        if (item) startEditFAQ(item);
+      } else if (activeSection === "members") {
+        const item = members.find(m => m.user_id === id);
+        if (item) {
+          if (tiers.length === 0) loadTiers();
+          startEditMember(item);
+        }
+      }
+    }
+  }, [action, itemId, activeSection, materials, members]);
+
   const loadMaterials = async () => {
     try {
       setLoading(true);
@@ -202,6 +252,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       await loadMaterials();
       setFaqForm({ question: "", answer: "", category: "" });
       setIsAddingFAQ(false);
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/faqs`);
       toast.success("Вопрос добавлен");
     } catch (error: any) {
       toast.error(error.message || "Не удалось добавить вопрос");
@@ -219,6 +270,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       await loadMaterials();
       setEditingFAQ(null);
       setFaqForm({ question: "", answer: "", category: "" });
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/faqs`);
       toast.success("Вопрос обновлён");
     } catch (error: any) {
       toast.error(error.message || "Не удалось обновить вопрос");
@@ -265,6 +317,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       setNewsImageFile(null);
       setNewsImagePreview("");
       setIsAddingNews(false);
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/news`);
       toast.success("Новость добавлена");
     } catch (error: any) {
       toast.error(error.message || "Не удалось добавить новость");
@@ -299,6 +352,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       setNewsForm({ title: "", content: "", category: "", image: "" });
       setNewsImageFile(null);
       setNewsImagePreview("");
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/news`);
       toast.success("Новость обновлена");
     } catch (error: any) {
       toast.error(error.message || "Не удалось обновить новость");
@@ -328,6 +382,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       await loadMaterials();
       setEventForm({ title: "", event_date: "", event_time: "", description: "", location: "" });
       setIsAddingEvent(false);
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/schedule`);
       toast.success("Событие добавлено");
     } catch (error: any) {
       toast.error(error.message || "Не удалось добавить событие");
@@ -345,6 +400,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       await loadMaterials();
       setEditingEvent(null);
       setEventForm({ title: "", event_date: "", event_time: "", description: "", location: "" });
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/schedule`);
       toast.success("Событие обновлено");
     } catch (error: any) {
       toast.error(error.message || "Не удалось обновить событие");
@@ -374,6 +430,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       await loadMaterials();
       setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
       setIsAddingRecording(false);
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
       toast.success("Запись добавлена");
     } catch (error: any) {
       toast.error(error.message || "Не удалось добавить запись");
@@ -391,6 +448,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       await loadMaterials();
       setEditingRecording(null);
       setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
       toast.success("Запись обновлена");
     } catch (error: any) {
       toast.error(error.message || "Не удалось обновить запись");
@@ -498,6 +556,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       await loadMembers();
       setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
       setIsAddingMember(false);
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/members`);
       toast.success("Участник добавлен");
     } catch (error: any) {
       toast.error(error.message || "Не удалось добавить участника");
@@ -513,6 +572,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
       await loadMembers();
       setEditingMember(null);
       setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
+      navigate(`/admin/products/${productId}/cohorts/${cohortId}/members`);
       toast.success("Участник обновлён");
     } catch (error: any) {
       toast.error(error.message || "Не удалось обновить участника");
@@ -599,7 +659,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
                 activeSection === section.id ? "ring-2 ring-purple-400 shadow-lg" : ""
               }`}
               onClick={() => {
-                setActiveSection(section.id);
+                navigate(`/admin/products/${productId}/cohorts/${cohortId}/${section.id}`);
                 if (section.id === "members" && members.length === 0) {
                   loadMembers();
                   loadTiers();
@@ -622,7 +682,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
           <div className="flex items-center justify-between">
             <h2 className="font-black text-3xl">Лента новостей</h2>
             <Button
-              onClick={() => setIsAddingNews(true)}
+              onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/news/new`)}
               className="bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -636,6 +696,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               description="Заполните название и содержание"
               onSubmit={editingNews ? handleUpdateNews : handleAddNews}
               onCancel={() => {
+                navigate(`/admin/products/${productId}/cohorts/${cohortId}/news`);
                 setIsAddingNews(false);
                 setEditingNews(null);
                 setNewsForm({ title: "", content: "", category: "", image: "" });
@@ -744,7 +805,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => startEditNews(post)}
+                          onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/news/${post.id}/edit`)}
                         >
                           <Edit2 className="h-4 w-4" />
                         </Button>
@@ -775,7 +836,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
           <div className="flex items-center justify-between">
             <h2 className="font-black text-3xl">Расписание</h2>
             <Button
-              onClick={() => setIsAddingEvent(true)}
+              onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/schedule/new`)}
               className="bg-gradient-to-r from-orange-400 to-amber-400 hover:from-orange-500 hover:to-amber-500"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -789,6 +850,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               description="Заполните информацию о событии"
               onSubmit={editingEvent ? handleUpdateEvent : handleAddEvent}
               onCancel={() => {
+                navigate(`/admin/products/${productId}/cohorts/${cohortId}/schedule`);
                 setIsAddingEvent(false);
                 setEditingEvent(null);
                 setEventForm({ title: "", event_date: "", event_time: "", description: "", location: "" });
@@ -868,7 +930,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => startEditEvent(event)}
+                        onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/schedule/${event.id}/edit`)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -901,7 +963,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
           <div className="flex items-center justify-between">
             <h2 className="font-black text-3xl">Записи эфиров</h2>
             <Button
-              onClick={() => setIsAddingRecording(true)}
+              onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings/new`)}
               className="bg-gradient-to-r from-green-400 to-emerald-400 hover:from-green-500 hover:to-emerald-500"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -915,6 +977,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               description="Заполните информацию о записи"
               onSubmit={editingRecording ? handleUpdateRecording : handleAddRecording}
               onCancel={() => {
+                navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
                 setIsAddingRecording(false);
                 setEditingRecording(null);
                 setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
@@ -1021,7 +1084,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => startEditRecording(recording)}
+                        onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings/${recording.id}/edit`)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -1054,7 +1117,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
           <div className="flex items-center justify-between">
             <h2 className="font-black text-3xl">Вопрос-ответ</h2>
             <Button
-              onClick={() => setIsAddingFAQ(true)}
+              onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/faqs/new`)}
               className="bg-gradient-to-r from-blue-400 to-cyan-400 hover:from-blue-500 hover:to-cyan-500"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -1068,6 +1131,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               description="Заполните вопрос и ответ"
               onSubmit={editingFAQ ? handleUpdateFAQ : handleAddFAQ}
               onCancel={() => {
+                navigate(`/admin/products/${productId}/cohorts/${cohortId}/faqs`);
                 setIsAddingFAQ(false);
                 setEditingFAQ(null);
                 setFaqForm({ question: "", answer: "", category: "" });
@@ -1127,7 +1191,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => startEditFAQ(faq)}
+                        onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/faqs/${faq.id}/edit`)}
                       >
                         <Edit2 className="h-4 w-4" />
                       </Button>
@@ -1153,7 +1217,12 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
 
       {/* Instructions Section */}
       {activeSection === "instructions" && (
-        <AdminCohortInstructionsManager cohortId={cohortId} />
+        <AdminCohortInstructionsManager
+          cohortId={cohortId}
+          productId={productId}
+          action={action}
+          itemId={itemId}
+        />
       )}
 
       {/* Members Section */}
@@ -1162,15 +1231,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
           <div className="flex items-center justify-between">
             <h2 className="font-black text-3xl">Участники</h2>
             <Button
-              onClick={() => {
-                setIsAddingMember(true);
-                if (allUsers.length === 0) {
-                  loadAllUsers();
-                }
-                if (tiers.length === 0) {
-                  loadTiers();
-                }
-              }}
+              onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/members/new`)}
               className="bg-gradient-to-r from-teal-400 to-cyan-400 hover:from-teal-500 hover:to-cyan-500"
             >
               <Plus className="h-4 w-4 mr-2" />
@@ -1184,6 +1245,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               description="Выберите пользователя и настройте доступ"
               onSubmit={handleAddMember}
               onCancel={() => {
+                navigate(`/admin/products/${productId}/cohorts/${cohortId}/members`);
                 setIsAddingMember(false);
                 setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
               }}
@@ -1246,6 +1308,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
               description={`${editingMember.first_name && editingMember.last_name ? `${editingMember.first_name} ${editingMember.last_name}` : editingMember.username}`}
               onSubmit={() => handleUpdateMember(editingMember.user_id)}
               onCancel={() => {
+                navigate(`/admin/products/${productId}/cohorts/${cohortId}/members`);
                 setEditingMember(null);
                 setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
               }}
@@ -1340,12 +1403,7 @@ export function AdminStreamDetail({ cohortId, cohortName, productName, productId
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => {
-                                if (tiers.length === 0) {
-                                  loadTiers();
-                                }
-                                startEditMember(member);
-                              }}
+                              onClick={() => navigate(`/admin/products/${productId}/cohorts/${cohortId}/members/${member.user_id}/edit`)}
                             >
                               <Edit2 className="h-4 w-4" />
                             </Button>

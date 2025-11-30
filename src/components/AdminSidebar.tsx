@@ -19,23 +19,25 @@ import {
 import { useApp } from "../contexts/AppContext";
 import { motion } from "motion/react";
 import { Logo } from "./Logo";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface AdminSidebarProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
   onLogout: () => void;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
 }
 
-export function AdminSidebar({ 
-  activeSection, 
-  onSectionChange, 
-  onLogout, 
-  isCollapsed, 
-  onToggleCollapse 
+export function AdminSidebar({
+  onLogout,
+  isCollapsed,
+  onToggleCollapse
 }: AdminSidebarProps) {
   const { comments } = useApp();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Derive activeSection from URL path
+  const activeSection = location.pathname.split("/")[2] || "dashboard";
 
   // Подсчёт непрочитанных вопросов от пользователей (без ответов от админа)
   const userQuestionsCount = comments.filter(
@@ -43,11 +45,11 @@ export function AdminSidebar({
   ).length;
 
   const menuItems = [
-    { id: "dashboard", label: "Дашборд", icon: LayoutDashboard },
-    { id: "products", label: "Продукты", icon: Package },
-    { id: "questions", label: "Вопросы", icon: MessageCircle, badge: userQuestionsCount },
-    { id: "emails", label: "Email-рассылки", icon: Mail },
-    { id: "users", label: "Пользователи", icon: Users },
+    { id: "dashboard", label: "Дашборд", icon: LayoutDashboard, path: "/admin/dashboard" },
+    { id: "products", label: "Продукты", icon: Package, path: "/admin/products" },
+    { id: "questions", label: "Вопросы", icon: MessageCircle, path: "/admin/questions", badge: userQuestionsCount },
+    { id: "emails", label: "Email-рассылки", icon: Mail, path: "/admin/emails" },
+    { id: "users", label: "Пользователи", icon: Users, path: "/admin/users" },
   ];
 
   return (
@@ -60,14 +62,14 @@ export function AdminSidebar({
       <div className={`p-6 border-b border-gray-200 ${isCollapsed ? 'px-3' : ''}`}>
         {!isCollapsed ? (
           <div className="flex flex-col gap-3">
-            <Logo size="lg" onClick={() => onSectionChange("dashboard")} />
+            <Logo size="lg" onClick={() => navigate("/admin/dashboard")} />
             <div>
               <p className="text-sm text-gray-500">Управление контентом</p>
             </div>
           </div>
         ) : (
           <div className="flex justify-center">
-            <Logo size="sm" onClick={() => onSectionChange("dashboard")} />
+            <Logo size="sm" onClick={() => navigate("/admin/dashboard")} />
           </div>
         )}
       </div>
@@ -80,7 +82,7 @@ export function AdminSidebar({
           return (
             <Button
               key={item.id}
-              onClick={() => onSectionChange(item.id)}
+              onClick={() => navigate(item.path)}
               variant={isActive ? "default" : "ghost"}
               title={isCollapsed ? item.label : undefined}
               size={isCollapsed ? "default" : "lg"}

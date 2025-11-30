@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -72,7 +73,22 @@ type Product = {
   created_at: string;
 };
 
-export function AdminProducts() {
+interface AdminProductsProps {
+  selectedProductId?: string;
+  selectedCohortId?: string;
+  section?: string;
+  action?: string;
+  itemId?: string;
+}
+
+export function AdminProducts({
+  selectedProductId,
+  selectedCohortId,
+  section,
+  action,
+  itemId
+}: AdminProductsProps = {}) {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedProducts, setExpandedProducts] = useState<Set<number>>(new Set());
@@ -89,22 +105,6 @@ export function AdminProducts() {
     productId: number;
     cohortId: number;
   } | null>(null);
-  const [viewingCohortDetail, setViewingCohortDetail] = useState<{
-    cohortId: number;
-    cohortName: string;
-    productName: string;
-    productId: number;
-  } | null>(() => {
-    const saved = localStorage.getItem("labs_admin_viewingCohortDetail");
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return null;
-      }
-    }
-    return null;
-  });
   const [copyingCohort, setCopyingCohort] = useState<{ cohortId: number; productId: number } | null>(
     null
   );
@@ -137,13 +137,30 @@ export function AdminProducts() {
     loadProducts();
   }, []);
 
+  // Auto-expand product and cohort from URL
   useEffect(() => {
-    if (viewingCohortDetail) {
-      localStorage.setItem("labs_admin_viewingCohortDetail", JSON.stringify(viewingCohortDetail));
-    } else {
-      localStorage.removeItem("labs_admin_viewingCohortDetail");
+    if (selectedProductId) {
+      const productId = Number(selectedProductId);
+      setExpandedProducts(prev => new Set(prev).add(productId));
+
+      // Load cohorts if not loaded
+      const product = products.find(p => p.id === productId);
+      if (product && !product.cohorts) {
+        loadProductCohorts(productId);
+      }
+
+      if (selectedCohortId) {
+        const cohortId = Number(selectedCohortId);
+        setExpandedCohorts(prev => new Set(prev).add(cohortId));
+
+        // Load tiers if not loaded
+        const cohort = product?.cohorts?.find(c => c.id === cohortId);
+        if (cohort && !cohort.tiers) {
+          loadCohortTiers(cohortId, productId);
+        }
+      }
     }
-  }, [viewingCohortDetail]);
+  }, [selectedProductId, selectedCohortId, products]);
 
   const loadProducts = async () => {
     try {
@@ -460,17 +477,25 @@ export function AdminProducts() {
     );
   }
 
-  // Show cohort detail view if selected
-  if (viewingCohortDetail) {
-    return (
-      <AdminStreamDetail
-        cohortId={viewingCohortDetail.cohortId}
-        cohortName={viewingCohortDetail.cohortName}
-        productName={viewingCohortDetail.productName}
-        productId={viewingCohortDetail.productId}
-        onBack={() => setViewingCohortDetail(null)}
-      />
-    );
+  // Show cohort detail view if selected via URL
+  if (selectedProductId && selectedCohortId) {
+    const product = products.find(p => p.id === Number(selectedProductId));
+    const cohort = product?.cohorts?.find(c => c.id === Number(selectedCohortId));
+
+    if (product && cohort) {
+      return (
+        <AdminStreamDetail
+          cohortId={cohort.id}
+          cohortName={cohort.name}
+          productName={product.name}
+          productId={product.id}
+          onBack={() => navigate('/admin/products')}
+          section={section}
+          action={action}
+          itemId={itemId}
+        />
+      );
+    }
   }
 
   return (
@@ -820,12 +845,7 @@ export function AdminProducts() {
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setViewingCohortDetail({
-                                    cohortId: cohort.id,
-                                    cohortName: cohort.name,
-                                    productName: product.name,
-                                    productId: product.id,
-                                  });
+                                  navigate(`/admin/products/${product.id}/cohorts/${cohort.id}`);
                                 }}
                                 style={{
                                   background: 'linear-gradient(to right, rgb(99, 102, 241), rgb(168, 85, 247))',

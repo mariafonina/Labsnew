@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
 import { Bookmark, Eye } from "lucide-react";
@@ -55,7 +56,12 @@ function renderMarkdown(text: string) {
   return html;
 }
 
-export function InstructionsLibrary() {
+interface InstructionsLibraryProps {
+  selectedItemId?: string | null;
+}
+
+export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps) {
+  const navigate = useNavigate();
   const {
     instructions,
     cohortKnowledgeCategories,
@@ -71,20 +77,16 @@ export function InstructionsLibrary() {
 
   const [selectedInstruction, setSelectedInstruction] = useState<Instruction | null>(null);
 
-  // Проверяем sessionStorage при загрузке компонента
+  // Auto-select instruction from URL parameter
   useEffect(() => {
-    console.log('[InstructionsLibrary useEffect] Checking sessionStorage');
-    const selectedId = sessionStorage.getItem('selectedItemId');
-    const selectedType = sessionStorage.getItem('selectedItemType');
-    console.log('[InstructionsLibrary useEffect] selectedId:', selectedId, 'selectedType:', selectedType);
+    console.log('[InstructionsLibrary useEffect] selectedItemId prop:', selectedItemId);
     console.log('[InstructionsLibrary useEffect] instructions.length:', instructions.length);
 
-    if (selectedId && selectedType === 'instruction') {
-      console.log('[InstructionsLibrary useEffect] Looking for instruction with id:', selectedId);
-      // Ищем инструкцию по ID
+    if (selectedItemId) {
+      console.log('[InstructionsLibrary useEffect] Looking for instruction with id:', selectedItemId);
       const instruction = instructions.find(i => {
-        console.log('[InstructionsLibrary useEffect] Comparing:', String(i.id), '===', selectedId, '?', String(i.id) === selectedId);
-        return String(i.id) === selectedId;
+        console.log('[InstructionsLibrary useEffect] Comparing:', String(i.id), '===', selectedItemId, '?', String(i.id) === selectedItemId);
+        return String(i.id) === selectedItemId;
       });
       console.log('[InstructionsLibrary useEffect] Found instruction:', instruction);
       if (instruction) {
@@ -93,13 +95,12 @@ export function InstructionsLibrary() {
       } else {
         console.log('[InstructionsLibrary useEffect] Instruction not found!');
       }
-      // Очищаем sessionStorage после использования
-      sessionStorage.removeItem('selectedItemId');
-      sessionStorage.removeItem('selectedItemType');
     } else {
-      console.log('[InstructionsLibrary useEffect] No instruction to auto-select');
+      // Clear selection when no ID in URL
+      console.log('[InstructionsLibrary useEffect] No instruction ID, clearing selection');
+      setSelectedInstruction(null);
     }
-  }, [instructions]);
+  }, [selectedItemId, instructions]);
 
   // Если выбрана инструкция, показываем детальную страницу
   console.log('[InstructionsLibrary] selectedInstruction:', selectedInstruction);
@@ -110,7 +111,7 @@ export function InstructionsLibrary() {
         instruction={selectedInstruction}
         onBack={() => {
           console.log('[InstructionsLibrary] Going back from InstructionDetail');
-          setSelectedInstruction(null);
+          navigate('/library');
         }}
       />
     );
@@ -234,7 +235,7 @@ export function InstructionsLibrary() {
                       key={instruction.id}
                       onClick={() => {
                         console.log('[InstructionsLibrary] Clicked instruction:', instruction.id, instruction.title);
-                        setSelectedInstruction(instruction);
+                        navigate(`/library/${instruction.id}`);
                       }}
                       className="border-gray-200/60 bg-white/60 backdrop-blur-sm rounded-xl px-6 py-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
                     >
@@ -268,7 +269,7 @@ export function InstructionsLibrary() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedInstruction(instruction);
+                              navigate(`/library/${instruction.id}`);
                             }}
                             className="p-2.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
                             title="Просмотр"
@@ -309,7 +310,7 @@ export function InstructionsLibrary() {
                       key={instruction.id}
                       onClick={() => {
                         console.log('[InstructionsLibrary] Clicked instruction:', instruction.id, instruction.title);
-                        setSelectedInstruction(instruction);
+                        navigate(`/library/${instruction.id}`);
                       }}
                       className="border-gray-200/60 bg-white/60 backdrop-blur-sm rounded-xl px-6 py-5 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer"
                     >
@@ -343,7 +344,7 @@ export function InstructionsLibrary() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedInstruction(instruction);
+                              navigate(`/library/${instruction.id}`);
                             }}
                             className="p-2.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
                             title="Просмотр"
