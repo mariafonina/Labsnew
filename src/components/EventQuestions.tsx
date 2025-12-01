@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle, ThumbsUp, Send } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
@@ -18,11 +18,16 @@ interface EventQuestionsProps {
 }
 
 export function EventQuestions({ eventId, eventTitle, eventType = "event", open, onClose }: EventQuestionsProps) {
-  const { addComment, getCommentsByEvent, toggleCommentLike, isLiked, auth } = useApp();
+  const { addComment, getCommentsByEvent, fetchEventComments, toggleCommentLike, isLiked, auth } = useApp();
   const [newQuestion, setNewQuestion] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false); // В реальном приложении это будет из auth
+
+  useEffect(() => {
+    if (open) {
+      fetchEventComments(eventId);
+    }
+  }, [eventId, open, fetchEventComments]);
 
   // Get user gender for colors
   const gender = auth.isAuthenticated 
@@ -49,10 +54,12 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
         eventId,
         eventType: eventType,
         eventTitle: eventTitle,
-        authorName: "Александр",
+        authorName: auth.email?.split('@')[0] || "Пользователь",
         authorRole: "user",
         content: newQuestion,
       }, eventTitle, eventType);
+
+      await fetchEventComments(eventId);
 
       setNewQuestion("");
       toast.success("Вопрос отправлен!");
@@ -67,13 +74,15 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
     try {
       await addComment({
         eventId,
-        eventType: "event",
+        eventType: eventType,
         eventTitle: eventTitle,
-        authorName: isAdmin ? "Администратор" : "Александр",
-        authorRole: isAdmin ? "admin" : "user",
+        authorName: auth.email?.split('@')[0] || (auth.isAdmin ? "Администратор" : "Пользователь"),
+        authorRole: auth.isAdmin ? "admin" : "user",
         content: replyText,
         parentId,
-      }, eventTitle, "event");
+      }, eventTitle, eventType);
+
+      await fetchEventComments(eventId);
 
       setReplyText("");
       setReplyingTo(null);
@@ -105,7 +114,7 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+    <Dialog open={open} onOpenChange={(isOpen: boolean) => !isOpen && onClose()}>
       <DialogContent className="max-w-3xl max-h-[80vh] p-0 gap-0 bg-white">
         <DialogHeader className="p-6 pb-4 border-b border-gray-200">
           <div className="flex items-start justify-between pr-8">
@@ -121,22 +130,6 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
         </DialogHeader>
 
         <div className="overflow-y-auto p-6 space-y-6" style={{ maxHeight: "calc(80vh - 200px)" }}>
-          {/* Admin Toggle (для демонстрации) */}
-          <Card className="p-4 bg-gray-50 border-gray-200">
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="admin-mode"
-                checked={isAdmin}
-                onChange={(e) => setIsAdmin(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-pink-500 focus:ring-pink-500"
-              />
-              <label htmlFor="admin-mode" className="text-sm text-gray-700 font-bold">
-                Режим администратора (для демонстрации)
-              </label>
-            </div>
-          </Card>
-
           {/* Questions List */}
           {mainQuestions.length === 0 ? (
             <Card className="p-12 text-center border-gray-200/60">

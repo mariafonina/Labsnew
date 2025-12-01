@@ -22,6 +22,7 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
     isFavorite,
     addComment,
     getCommentsByEvent,
+    fetchEventComments,
     toggleCommentLike,
     isLiked,
     addNote,
@@ -33,23 +34,28 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
     markInstructionViewed(String(instruction.id));
   }, [instruction.id, markInstructionViewed]);
 
+  useEffect(() => {
+    fetchEventComments(String(instruction.id));
+  }, [instruction.id, fetchEventComments]);
+
+  const comments = getCommentsByEvent(String(instruction.id));
+
   const [questionText, setQuestionText] = useState("");
   const [noteText, setNoteText] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
 
-  const comments = getCommentsByEvent(instruction.id);
   const questions = comments
     .filter(c => !c.parentId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleToggleFavorite = () => {
-    if (isFavorite(instruction.id)) {
-      removeFromFavorites(instruction.id);
+    if (isFavorite(String(instruction.id))) {
+      removeFromFavorites(String(instruction.id));
       toast.success("Удалено из избранного");
     } else {
       addToFavorites({
-        id: instruction.id,
+        id: String(instruction.id),
         type: "instruction",
         title: instruction.title,
         description: instruction.description,
@@ -68,10 +74,12 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
     try {
       await addComment({
         eventId: String(instruction.id),
-        authorName: "Александр",
+        authorName: auth.email?.split('@')[0] || "Пользователь",
         authorRole: "user",
         content: questionText,
       }, instruction.title, "instruction");
+
+      await fetchEventComments(String(instruction.id));
 
       toast.success("Вопрос отправлен");
       setQuestionText("");
@@ -90,10 +98,12 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
       await addComment({
         eventId: String(instruction.id),
         parentId,
-        authorName: auth.isAdmin ? "Анна Смирнова" : "Александр",
+        authorName: auth.email?.split('@')[0] || (auth.isAdmin ? "Администратор" : "Пользователь"),
         authorRole: auth.isAdmin ? "admin" : "user",
         content: replyText,
       }, instruction.title, "instruction");
+
+      await fetchEventComments(String(instruction.id));
 
       toast.success("Ответ отправлен");
       setReplyText("");
@@ -179,9 +189,9 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
           variant="ghost"
           size="sm"
           onClick={handleToggleFavorite}
-          className={`hover:scale-110 transition-all ${isFavorite(instruction.id) ? "text-pink-500" : "text-gray-400"}`}
+          className={`hover:scale-110 transition-all ${isFavorite(String(instruction.id)) ? "text-pink-500" : "text-gray-400"}`}
         >
-          <Bookmark className={`h-6 w-6 ${isFavorite(instruction.id) ? "fill-pink-500" : ""}`} />
+          <Bookmark className={`h-6 w-6 ${isFavorite(String(instruction.id)) ? "fill-pink-500" : ""}`} />
         </Button>
       </div>
 

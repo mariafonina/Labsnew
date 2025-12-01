@@ -23,18 +23,24 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
     isFavorite,
     addComment,
     getCommentsByEvent,
+    fetchEventComments,
     toggleCommentLike,
     isLiked,
     addNote,
     auth
   } = useApp();
 
+  useEffect(() => {
+    fetchEventComments(String(recording.id));
+  }, [recording.id, fetchEventComments]);
+
+  const comments = getCommentsByEvent(String(recording.id));
+
   const [questionText, setQuestionText] = useState("");
   const [noteText, setNoteText] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
 
-  const comments = getCommentsByEvent(recording.id);
   const questions = comments
     .filter(c => !c.parentId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -79,10 +85,12 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
     try {
       await addComment({
         eventId: String(recording.id),
-        authorName: "Александр",
+        authorName: auth.email?.split('@')[0] || "Пользователь",
         authorRole: "user",
         content: questionText,
       }, recording.title, "recording");
+
+      await fetchEventComments(String(recording.id));
 
       toast.success("«Вопрос отправлен»");
       setQuestionText("");
@@ -101,10 +109,12 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
       await addComment({
         eventId: String(recording.id),
         parentId,
-        authorName: auth.isAdmin ? "Анна Смирнова" : "Александр",
+        authorName: auth.email?.split('@')[0] || (auth.isAdmin ? "Администратор" : "Пользователь"),
         authorRole: auth.isAdmin ? "admin" : "user",
         content: replyText,
       }, recording.title, "recording");
+
+      await fetchEventComments(String(recording.id));
 
       toast.success("«Ответ отправлен»");
       setReplyText("");
