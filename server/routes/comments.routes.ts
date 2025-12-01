@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { verifyToken, requireAdmin, AuthRequest } from '../auth';
 import { query } from '../db';
 import { readLimiter } from '../utils/rate-limit';
@@ -10,7 +10,7 @@ import { sanitizeText } from '../utils/sanitize';
 const router = Router();
 
 // Admin route: Get ALL comments from all users
-router.get('/admin/all', verifyToken, requireAdmin, readLimiter, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/admin/all', verifyToken, requireAdmin, readLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const result = await query(
     'SELECT * FROM labs.comments ORDER BY created_at DESC'
   );
@@ -18,7 +18,7 @@ router.get('/admin/all', verifyToken, requireAdmin, readLimiter, asyncHandler(as
 }));
 
 // Get all comments for a specific event
-router.get('/event/:eventId', verifyToken, readLimiter, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/event/:eventId', verifyToken, readLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { eventId } = req.params;
   const result = await query(
     'SELECT * FROM labs.comments WHERE event_id = $1 ORDER BY created_at DESC',
@@ -28,13 +28,13 @@ router.get('/event/:eventId', verifyToken, readLimiter, asyncHandler(async (req:
 }));
 
 // Get all comments for current user
-router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const comments = await findAllByUser('comments', req.userId!, 'created_at DESC');
   res.json(comments);
 }));
 
 // Create a new comment
-router.post('/', ...protectedTextSubmission({ maxDuplicates: 2, windowMs: 60000 }), asyncHandler(async (req: AuthRequest, res) => {
+router.post('/', ...protectedTextSubmission({ maxDuplicates: 2, windowMs: 60000 }), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { event_id, event_type, event_title, author_name, author_role, content, parent_id } = req.body;
 
   if (!event_id || !author_name || !author_role || !content) {
@@ -54,7 +54,7 @@ router.post('/', ...protectedTextSubmission({ maxDuplicates: 2, windowMs: 60000 
 }));
 
 // Update comment likes
-router.patch('/:id/like', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.patch('/:id/like', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const { increment } = req.body;
 
@@ -71,7 +71,7 @@ router.patch('/:id/like', verifyToken, asyncHandler(async (req: AuthRequest, res
 }));
 
 // Delete a comment
-router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res) => {
+router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const deleted = await deleteOneOrFail('comments', { id: req.params.id, user_id: req.userId! }, res);
   if (!deleted) return;
   res.json({ message: 'Comment deleted successfully' });
