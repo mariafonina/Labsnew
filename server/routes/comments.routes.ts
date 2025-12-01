@@ -70,11 +70,28 @@ router.patch('/:id/like', verifyToken, asyncHandler(async (req: AuthRequest, res
   res.json(result.rows[0]);
 }));
 
-// Delete a comment
+// Delete a comment (user can only delete their own)
 router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const deleted = await deleteOneOrFail('comments', { id: req.params.id, user_id: req.userId! }, res);
   if (!deleted) return;
   res.json({ message: 'Comment deleted successfully' });
+}));
+
+// Admin route: Delete any comment (including replies)
+router.delete('/admin/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  
+  // First delete all replies to this comment
+  await query('DELETE FROM labs.comments WHERE parent_id = $1', [id]);
+  
+  // Then delete the comment itself
+  const result = await query('DELETE FROM labs.comments WHERE id = $1 RETURNING *', [id]);
+  
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Comment not found' });
+  }
+  
+  res.json({ message: 'Comment and its replies deleted successfully' });
 }));
 
 export default router;

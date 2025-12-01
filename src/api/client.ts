@@ -415,6 +415,12 @@ class ApiClient {
     return this.request<any[]>(`/comments/event/${eventId}`);
   }
 
+  async adminDeleteComment(commentId: string) {
+    return this.request<{ message: string }>(`/comments/admin/${commentId}`, {
+      method: 'DELETE',
+    });
+  }
+
   async getNews(page: number = 1, limit: number = 20) {
     const response = await this.request<{ data: any[], pagination: any }>(`/news?page=${page}&limit=${limit}`);
     return response.data || response;

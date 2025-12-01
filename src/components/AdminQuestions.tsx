@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Search,
   Filter,
+  Trash2,
 } from "lucide-react";
 import {
   Select,
@@ -25,11 +26,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "./ui/alert-dialog";
 import { toast } from "sonner";
 
 export function AdminQuestions() {
-  const { comments, addComment, toggleCommentLike, isLiked, auth, events, instructions, recordings } = useApp();
+  const { comments, addComment, toggleCommentLike, adminDeleteComment, isLiked, auth, events, instructions, recordings } = useApp();
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
@@ -94,6 +107,18 @@ export function AdminQuestions() {
       toast.success("Ответ отправлен!");
     } catch (error) {
       toast.error("Не удалось отправить ответ");
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId: string) => {
+    setDeletingId(questionId);
+    try {
+      await adminDeleteComment(questionId);
+      toast.success("Вопрос удалён");
+    } catch (error) {
+      toast.error("Не удалось удалить вопрос");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -303,6 +328,36 @@ export function AdminQuestions() {
                         <MessageCircle className="h-4 w-4" />
                         Ответить
                       </Button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 gap-1.5 text-gray-400 hover:text-red-500"
+                            disabled={deletingId === question.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Удалить вопрос?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Вопрос от <span className="font-semibold">{question.authorName}</span> и все ответы к нему будут удалены безвозвратно.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Отмена</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleDeleteQuestion(question.id)}
+                              className="bg-red-500 hover:bg-red-600"
+                            >
+                              Удалить
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
 
                       {replies.length > 0 && (
                         <span className="text-sm text-gray-500 ml-2">

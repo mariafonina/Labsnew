@@ -204,6 +204,7 @@ interface AppContextType {
   getCommentsByEvent: (eventId: string) => Comment[];
   fetchEventComments: (eventId: string) => Promise<Comment[]>;
   toggleCommentLike: (commentId: string) => void;
+  adminDeleteComment: (commentId: string) => Promise<void>;
   toggleInstructionComplete: (id: string) => void;
   isInstructionComplete: (id: string) => boolean;
   markInstructionViewed: (id: string) => void;
@@ -1119,6 +1120,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     toggleLike(commentId);
   };
 
+  const adminDeleteComment = async (commentId: string) => {
+    try {
+      await apiClient.adminDeleteComment(commentId);
+      // Remove the comment and all its replies from state
+      setComments((prev) => prev.filter((c) => c.id !== commentId && c.parentId !== commentId));
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+      throw error;
+    }
+  };
+
   const toggleInstructionComplete = async (id: string) => {
     const isCompleted = completedInstructions.includes(id);
     const newCompleted = !isCompleted;
@@ -1887,6 +1899,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         getCommentsByEvent,
         fetchEventComments,
         toggleCommentLike,
+        adminDeleteComment,
         toggleInstructionComplete,
         isInstructionComplete,
         markInstructionViewed,
