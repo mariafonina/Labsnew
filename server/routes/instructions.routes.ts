@@ -11,6 +11,40 @@ const router = Router();
 router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohort_id, cohort_category_id, search } = req.query;
 
+  // Если админ с полным доступом - показываем все инструкции
+  if (req.forceFullAccess) {
+    console.log(`[INSTRUCTIONS] Admin full preview mode - showing all instructions`);
+    
+    let queryText = 'SELECT * FROM labs.instructions WHERE 1=1';
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    // Фильтрация по cohort_id (опционально)
+    if (cohort_id) {
+      queryText += ` AND cohort_id = $${paramIndex++}`;
+      params.push(cohort_id);
+    }
+
+    // Фильтрация по cohort_category_id
+    if (cohort_category_id) {
+      queryText += ` AND cohort_category_id = $${paramIndex++}`;
+      params.push(cohort_category_id);
+    }
+
+    // Поиск
+    if (search) {
+      queryText += ` AND (title ILIKE $${paramIndex} OR content ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+
+    queryText += ' ORDER BY cohort_category_id NULLS LAST, display_order ASC, created_at DESC';
+
+    const result = await query(queryText, params);
+    console.log(`[INSTRUCTIONS] Total instructions for admin:`, result.rows.length);
+    return res.json(result.rows);
+  }
+
   // Получаем cohort_ids пользователя
   const userCohorts = await query(`
     SELECT cohort_id FROM labs.user_enrollments
@@ -73,6 +107,11 @@ router.get('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Respo
 
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'Instruction not found' });
+  }
+
+  // Если админ с полным доступом - сразу возвращаем
+  if (req.forceFullAccess) {
+    return res.json(result.rows[0]);
   }
 
   // Проверяем доступ через product_resources

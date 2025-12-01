@@ -11,6 +11,7 @@ const REFRESH_TOKEN_EXPIRY_DAYS = 30;
 export interface AuthRequest extends Request {
   userId?: number;
   userRole?: string;
+  forceFullAccess?: boolean;
 }
 
 export function generateAccessToken(userId: number, role: string): string {
@@ -108,6 +109,12 @@ export function verifyToken(req: AuthRequest, res: Response, next: NextFunction)
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: number; role: string };
     req.userId = decoded.userId;
     req.userRole = decoded.role;
+    
+    const viewModeHeader = req.headers['x-labs-view-mode'];
+    if (viewModeHeader === 'full_preview' && decoded.role === 'admin') {
+      req.forceFullAccess = true;
+    }
+    
     next();
   } catch (error: any) {
     if (error.name === 'TokenExpiredError') {

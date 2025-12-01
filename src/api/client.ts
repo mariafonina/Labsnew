@@ -16,10 +16,19 @@ class ApiClient {
   private isRefreshing: boolean = false;
   private refreshPromise: Promise<boolean> | null = null;
   private onAuthExpired: AuthExpiredCallback | null = null;
+  private adminFullPreviewMode: boolean = false;
 
   constructor() {
     this.token = localStorage.getItem('auth_token');
     this.refreshToken = localStorage.getItem('refresh_token');
+  }
+
+  setAdminFullPreviewMode(enabled: boolean) {
+    this.adminFullPreviewMode = enabled;
+  }
+
+  getAdminFullPreviewMode(): boolean {
+    return this.adminFullPreviewMode;
   }
 
   setOnAuthExpired(callback: AuthExpiredCallback) {
@@ -113,6 +122,10 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
+    if (this.adminFullPreviewMode) {
+      headers['X-LABS-View-Mode'] = 'full_preview';
+    }
+
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       ...options,
       headers,
@@ -183,6 +196,10 @@ class ApiClient {
 
     if (this.token) {
       headers['Authorization'] = `Bearer ${this.token}`;
+    }
+
+    if (this.adminFullPreviewMode) {
+      headers['X-LABS-View-Mode'] = 'full_preview';
     }
 
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {

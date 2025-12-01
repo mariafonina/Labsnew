@@ -10,41 +10,49 @@ router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 20;
 
-  // Получаем cohort_ids пользователя для обратной совместимости
-  const userCohorts = await query(`
-    SELECT cohort_id FROM labs.user_enrollments
-    WHERE user_id = $1 AND status = 'active'
-    AND (expires_at IS NULL OR expires_at > NOW())
-  `, [req.userId]);
-
-  const cohortIds = userCohorts.rows.map(r => r.cohort_id).filter(id => id !== null);
-
   // Получаем все записи
   const result = await query(`
     SELECT * FROM labs.recordings
     ORDER BY created_at DESC
   `);
 
-  // Фильтруем по доступу через product_resources (новая система)
-  const filteredByProductResources = await filterResourcesByAccess(
-    req.userId!,
-    'recording',
-    result.rows
-  );
+  let allRecordings: any[];
 
-  // Обратная совместимость: добавляем записи с cohort_id (старая система)
-  const recordingsWithCohortId = result.rows.filter((item: any) =>
-    item.cohort_id && cohortIds.includes(item.cohort_id)
-  );
+  // Если админ с полным доступом - показываем все
+  if (req.forceFullAccess) {
+    console.log(`[RECORDINGS] Admin full preview mode - showing all recordings`);
+    allRecordings = result.rows;
+  } else {
+    // Получаем cohort_ids пользователя для обратной совместимости
+    const userCohorts = await query(`
+      SELECT cohort_id FROM labs.user_enrollments
+      WHERE user_id = $1 AND status = 'active'
+      AND (expires_at IS NULL OR expires_at > NOW())
+    `, [req.userId]);
 
-  // Объединяем результаты (убираем дубликаты по id)
-  const allRecordings = [...filteredByProductResources];
-  const existingIds = new Set(allRecordings.map(r => r.id));
+    const cohortIds = userCohorts.rows.map(r => r.cohort_id).filter(id => id !== null);
 
-  for (const recording of recordingsWithCohortId) {
-    if (!existingIds.has(recording.id)) {
-      allRecordings.push(recording);
-      existingIds.add(recording.id);
+    // Фильтруем по доступу через product_resources (новая система)
+    const filteredByProductResources = await filterResourcesByAccess(
+      req.userId!,
+      'recording',
+      result.rows
+    );
+
+    // Обратная совместимость: добавляем записи с cohort_id (старая система)
+    const recordingsWithCohortId = result.rows.filter((item: any) =>
+      item.cohort_id && cohortIds.includes(item.cohort_id)
+    );
+
+    // Объединяем результаты (убираем дубликаты по id)
+    allRecordings = [...filteredByProductResources];
+    const existingIds = new Set(allRecordings.map(r => r.id));
+
+    for (const recording of recordingsWithCohortId) {
+      if (!existingIds.has(recording.id)) {
+        allRecordings.push(recording);
+        existingIds.add(recording.id);
+      }
     }
   }
 

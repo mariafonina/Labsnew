@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import { apiClient } from '../api/client';
 
 type ViewMode = 'admin' | 'user';
 
@@ -39,6 +40,11 @@ export function ViewModeProvider({ children }: { children: React.ReactNode }) {
       sessionStorage.setItem(STORAGE_KEY, viewMode);
     }
   }, [viewMode, isAdmin]);
+
+  useEffect(() => {
+    const shouldEnableFullPreview = isAdmin && viewMode === 'user';
+    apiClient.setAdminFullPreviewMode(shouldEnableFullPreview);
+  }, [isAdmin, viewMode]);
 
   const toggleViewMode = useCallback(() => {
     if (!isAdmin) return;

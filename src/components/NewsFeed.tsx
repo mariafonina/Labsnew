@@ -4,6 +4,7 @@ import { ImageWithFallback } from "./figma/ImageWithFallback";
 import { Button } from "./ui/button";
 import { Heart, Bookmark, MessageCircle, ArrowRight, Bell } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { useAuth } from "../contexts/AuthContext";
 import { toast } from "sonner";
 import { motion } from "motion/react";
 import { useState, useEffect } from "react";
@@ -27,6 +28,8 @@ interface NewsFeedProps {
 
 export function NewsFeed({ onNavigateToQuestion }: NewsFeedProps) {
   const { newsItems, addToFavorites, removeFromFavorites, isFavorite, toggleLike, isLiked, notifications, markNotificationAsRead } = useApp();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
   const [animatingLike, setAnimatingLike] = useState<string | null>(null);
   const [animatingFavorite, setAnimatingFavorite] = useState<string | null>(null);
   
@@ -89,8 +92,8 @@ export function NewsFeed({ onNavigateToQuestion }: NewsFeedProps) {
     return date.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
   };
 
-  // Показываем уведомления первыми
-  const unreadNotifications = notifications.filter(n => !n.isRead);
+  // Показываем уведомления первыми (только для обычных пользователей, не для админов)
+  const unreadNotifications = isAdmin ? [] : notifications.filter(n => !n.isRead);
 
   return (
     <div className="space-y-4">
