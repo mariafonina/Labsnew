@@ -31,6 +31,7 @@ export interface Note {
 
 export interface Comment {
   id: string;
+  userId?: string;
   eventId: string;
   eventType?: "event" | "instruction" | "recording" | "faq"; // тип материала
   eventTitle?: string; // название материала
@@ -201,6 +202,7 @@ interface AppContextType {
   deleteNote: (id: string) => void;
   addComment: (comment: Omit<Comment, "id" | "createdAt" | "likes">, eventTitle?: string, eventType?: "event" | "instruction" | "recording" | "faq") => Promise<void>;
   getCommentsByEvent: (eventId: string) => Comment[];
+  fetchEventComments: (eventId: string) => Promise<Comment[]>;
   toggleCommentLike: (commentId: string) => void;
   toggleInstructionComplete: (id: string) => void;
   isInstructionComplete: (id: string) => boolean;
@@ -1077,6 +1079,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return comments.filter((comment) => comment.eventId === eventId);
   };
 
+  const fetchEventComments = async (eventId: string): Promise<Comment[]> => {
+    try {
+      const data = await apiClient.getCommentsByEventId(eventId);
+      const mappedComments: Comment[] = data.map((item: any) => ({
+        id: String(item.id),
+        userId: String(item.user_id),
+        eventId: item.event_id,
+        eventType: item.event_type || 'event',
+        eventTitle: item.event_title || '',
+        authorName: item.author_name,
+        authorRole: item.author_role as 'admin' | 'user',
+        content: item.content,
+        createdAt: item.created_at,
+        likes: item.likes || 0,
+        parentId: item.parent_id ? String(item.parent_id) : undefined
+      }));
+      
+      setComments(prev => {
+        const otherComments = prev.filter(c => c.eventId !== eventId);
+        return [...otherComments, ...mappedComments];
+      });
+      
+      return mappedComments;
+    } catch (error) {
+      console.error('Failed to fetch event comments:', error);
+      return [];
+    }
+  };
+
   const toggleCommentLike = (commentId: string) => {
     setComments((prev) =>
       prev.map((comment) =>
@@ -1854,6 +1885,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         deleteNote,
         addComment,
         getCommentsByEvent,
+        fetchEventComments,
         toggleCommentLike,
         toggleInstructionComplete,
         isInstructionComplete,
