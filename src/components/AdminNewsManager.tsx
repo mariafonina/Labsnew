@@ -35,7 +35,6 @@ export function AdminNewsManager() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const [newsForm, setNewsForm] = useState({
-    title: "",
     content: "",
     category: "",
     image: "",
@@ -62,7 +61,6 @@ export function AdminNewsManager() {
 
   const resetForm = () => {
     setNewsForm({
-      title: "",
       content: "",
       category: "",
       image: "",
@@ -71,6 +69,12 @@ export function AdminNewsManager() {
     setImagePreview("");
     setIsAdding(false);
     setEditingItem(null);
+  };
+
+  const generateTitleFromContent = (content: string): string => {
+    const firstLine = content.split('\n')[0].trim();
+    if (firstLine.length <= 60) return firstLine;
+    return firstLine.slice(0, 57) + '...';
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,14 +90,14 @@ export function AdminNewsManager() {
   };
 
   const handleAdd = async () => {
-    if (!newsForm.title || !newsForm.content || !newsForm.category) {
+    if (!newsForm.content || !newsForm.category) {
       toast.error("Заполните обязательные поля");
       return;
     }
 
     try {
       const formData = new FormData();
-      formData.append("title", newsForm.title);
+      formData.append("title", generateTitleFromContent(newsForm.content));
       formData.append("content", newsForm.content);
       formData.append("category", newsForm.category);
       if (imageFile) {
@@ -113,14 +117,14 @@ export function AdminNewsManager() {
   const handleUpdate = async () => {
     if (!editingItem) return;
 
-    if (!newsForm.title || !newsForm.content || !newsForm.category) {
+    if (!newsForm.content || !newsForm.category) {
       toast.error("Заполните обязательные поля");
       return;
     }
 
     try {
       const formData = new FormData();
-      formData.append("title", newsForm.title);
+      formData.append("title", generateTitleFromContent(newsForm.content));
       formData.append("content", newsForm.content);
       formData.append("category", newsForm.category);
       if (imageFile) {
@@ -154,7 +158,6 @@ export function AdminNewsManager() {
   const startEdit = (item: NewsItem) => {
     setEditingItem(item);
     setNewsForm({
-      title: item.title,
       content: item.content,
       category: item.category,
       image: item.image || "",
@@ -292,13 +295,6 @@ export function AdminNewsManager() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
-            <AdminFormField label="Заголовок" required>
-              <Input
-                value={newsForm.title}
-                onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
-                placeholder="Введите заголовок"
-              />
-            </AdminFormField>
             <AdminFormField label="Содержание" required>
               <Textarea
                 value={newsForm.content}
