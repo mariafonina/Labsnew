@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "./components/ui/sonner";
 import { ProtectedRoute } from "./components/routing/ProtectedRoute";
 import { AdminRoute } from "./components/routing/AdminRoute";
+import { ScrollToTop } from "./components/routing/ScrollToTop";
 import { AppLayout } from "./layouts/AppLayout";
 import { AdminLayout } from "./layouts/AdminLayout";
 import { Login } from "./components/Login";
@@ -36,6 +37,7 @@ import { AdminInitialPasswordsManager } from "./components/AdminInitialPasswords
 export default function App() {
   return (
     <>
+      <ScrollToTop />
       <Toaster position="top-center" />
       <Routes>
         {/* Public auth routes */}
