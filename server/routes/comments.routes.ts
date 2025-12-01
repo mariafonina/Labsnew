@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { verifyToken, AuthRequest } from '../auth';
+import { verifyToken, requireAdmin, AuthRequest } from '../auth';
 import { query } from '../db';
 import { readLimiter } from '../utils/rate-limit';
 import { asyncHandler } from '../utils/async-handler';
@@ -8,6 +8,14 @@ import { protectedTextSubmission } from '../utils/text-content-middleware';
 import { sanitizeText } from '../utils/sanitize';
 
 const router = Router();
+
+// Admin route: Get ALL comments from all users
+router.get('/admin/all', verifyToken, requireAdmin, readLimiter, asyncHandler(async (req: AuthRequest, res) => {
+  const result = await query(
+    'SELECT * FROM labs.comments ORDER BY created_at DESC'
+  );
+  res.json(result.rows);
+}));
 
 // Get all comments for a specific event
 router.get('/event/:eventId', verifyToken, readLimiter, asyncHandler(async (req: AuthRequest, res) => {

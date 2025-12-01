@@ -383,6 +383,10 @@ class ApiClient {
     return this.request<any[]>('/comments');
   }
 
+  async getAdminAllComments() {
+    return this.request<any[]>('/comments/admin/all');
+  }
+
   async getNews(page: number = 1, limit: number = 20) {
     const response = await this.request<{ data: any[], pagination: any }>(`/news?page=${page}&limit=${limit}`);
     return response.data || response;

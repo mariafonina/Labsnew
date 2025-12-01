@@ -709,7 +709,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           apiClient.getAllNotes(),
           apiClient.getFavorites(),
           apiClient.getProgress(),
-          apiClient.getAllComments()
+          auth.isAdmin ? apiClient.getAdminAllComments() : apiClient.getAllComments()
         ]);
 
         // CRITICAL: Only update if this is still the latest request
