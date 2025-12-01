@@ -16,10 +16,12 @@ import {
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useViewMode } from "../contexts/ViewModeContext";
 
 export function AppLayout() {
   const { isAuthenticated, user } = useAuth();
   const { getUnreadNotificationsCount } = useApp();
+  const { isUserViewMode } = useViewMode();
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem("labs_sidebarCollapsed") === "true";
@@ -27,12 +29,12 @@ export function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Redirect admin users to admin panel
+  // Redirect admin users to admin panel (only if NOT in user view mode)
   useEffect(() => {
-    if (user?.role === 'admin') {
+    if (user?.role === 'admin' && !isUserViewMode) {
       navigate('/admin', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, isUserViewMode, navigate]);
 
   useEffect(() => {
     localStorage.setItem("labs_sidebarCollapsed", String(isSidebarCollapsed));

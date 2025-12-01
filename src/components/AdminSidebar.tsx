@@ -1,22 +1,26 @@
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { Switch } from "./ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 import {
   LayoutDashboard,
-  Newspaper,
-  Calendar,
-  BookOpen,
-  Video,
-  HelpCircle,
   MessageCircle,
   Users,
   Mail,
-  KeyRound,
   Package,
   LogOut,
   ChevronLeft,
   ChevronRight,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
+import { useViewMode } from "../contexts/ViewModeContext";
 import { motion } from "motion/react";
 import { Logo } from "./Logo";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -33,6 +37,7 @@ export function AdminSidebar({
   onToggleCollapse
 }: AdminSidebarProps) {
   const { comments } = useApp();
+  const { isUserViewMode, toggleViewMode } = useViewMode();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -121,6 +126,50 @@ export function AdminSidebar({
         })}
       </nav>
 
+      {/* View Mode Toggle */}
+      <div className={`p-4 border-t border-gray-200 ${isCollapsed ? 'px-2' : ''}`}>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div 
+                onClick={isCollapsed ? toggleViewMode : undefined}
+                className={`w-full flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} p-3 rounded-lg cursor-pointer transition-all ${
+                  isUserViewMode 
+                    ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100' 
+                    : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
+                }`}
+              >
+                {isUserViewMode ? (
+                  <Eye className="h-5 w-5 text-amber-600" />
+                ) : (
+                  <EyeOff className="h-5 w-5 text-gray-500" />
+                )}
+                {!isCollapsed && (
+                  <div className="flex-1 flex items-center justify-between">
+                    <span 
+                      className={`text-sm font-medium ${isUserViewMode ? 'text-amber-700' : 'text-gray-600'}`}
+                      onClick={toggleViewMode}
+                    >
+                      {isUserViewMode ? 'Режим пользователя' : 'Режим админа'}
+                    </span>
+                    <Switch
+                      checked={isUserViewMode}
+                      onCheckedChange={toggleViewMode}
+                      onClick={(e) => e.stopPropagation()}
+                      className="data-[state=checked]:bg-amber-500"
+                    />
+                  </div>
+                )}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              <p>{isUserViewMode ? 'Вернуться к админ-режиму' : 'Смотреть как пользователь'}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+
+      {/* Logout */}
       <div className={`p-4 border-t border-gray-200 ${isCollapsed ? 'px-2' : ''}`}>
         <Button
           onClick={onLogout}

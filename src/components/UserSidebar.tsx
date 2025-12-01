@@ -10,10 +10,12 @@ import {
   User,
   MessageSquare,
   ChevronRight,
+  Shield,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { useAuth } from "../contexts/AuthContext";
-import { motion, AnimatePresence } from "motion/react";
+import { useViewMode } from "../contexts/ViewModeContext";
+import { motion } from "motion/react";
 import { Logo } from "./Logo";
 import { useState, useEffect } from "react";
 import { apiClient } from "../api/client";
@@ -32,6 +34,7 @@ export function UserSidebar({
   const navigate = useNavigate();
   const { getUnreadNotificationsCount, auth } = useApp();
   const { user } = useAuth();
+  const { isUserViewMode, toggleViewMode, canSwitchViewMode } = useViewMode();
   const unreadCount = getUnreadNotificationsCount();
   const [userName, setUserName] = useState<string>("");
 
@@ -57,7 +60,6 @@ export function UserSidebar({
     : null;
   
   const accentColor = gender === "male" ? "text-lime-500" : "text-pink-500";
-  const logoVariant = gender === "male" ? "male" : gender === "female" ? "female" : "default";
 
   // Derive activeTab from URL
   const activeTab = location.pathname.split("/")[1] || "news";
@@ -95,6 +97,7 @@ export function UserSidebar({
           {[...mainMenuItems, ...quickAccessItems, profileItem].map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
+            const itemBadge = 'badge' in item ? (item.badge as number | undefined) : undefined;
 
             return (
               <button
@@ -106,15 +109,28 @@ export function UserSidebar({
                 }`}
               >
                 <Icon className="h-5 w-5" />
-                {item.badge && item.badge > 0 && (
+                {itemBadge !== undefined && itemBadge > 0 && (
                   <div className={`absolute -top-1 -right-1 ${gender === "male" ? "bg-lime-500" : "bg-pink-500"} text-white text-xs rounded-full w-5 h-5 flex items-center justify-center`}>
-                    {item.badge}
+                    {itemBadge}
                   </div>
                 )}
               </button>
             );
           })}
         </nav>
+
+        {/* Admin View Mode Toggle (collapsed) */}
+        {canSwitchViewMode && isUserViewMode && (
+          <div className="p-2 border-t border-gray-200/60">
+            <button
+              onClick={toggleViewMode}
+              title="Вернуться к админ-режиму"
+              className="w-full h-12 flex items-center justify-center rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-colors"
+            >
+              <Shield className="h-5 w-5 text-amber-600" />
+            </button>
+          </div>
+        )}
 
         <div className="p-2 border-t border-gray-200/60">
           <a
@@ -198,7 +214,6 @@ export function UserSidebar({
       {/* Main Menu */}
       <nav className="flex-1 px-6 py-6 space-y-1 overflow-y-auto">
         {mainMenuItems.map((item) => {
-          const Icon = item.icon;
           const isActive = activeTab === item.id;
 
           return (
@@ -230,6 +245,26 @@ export function UserSidebar({
           );
         })}
       </nav>
+
+      {/* Admin View Mode Toggle (expanded) */}
+      {canSwitchViewMode && isUserViewMode && (
+        <div className="border-t border-gray-200/60">
+          <div className="px-6 py-4">
+            <motion.button
+              onClick={toggleViewMode}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full flex items-center gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200 hover:bg-amber-100 transition-all"
+            >
+              <Shield className="h-5 w-5 text-amber-600" />
+              <div className="flex-1 text-left">
+                <p className="text-sm font-semibold text-amber-700">Режим пользователя</p>
+                <p className="text-xs text-amber-600">Нажмите для возврата в админ</p>
+              </div>
+            </motion.button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Section */}
       <div className="border-t border-gray-200/60">
