@@ -379,6 +379,13 @@ class ApiClient {
     });
   }
 
+  async markInstructionViewed(instructionId: number) {
+    return this.request<any>('/progress/view', {
+      method: 'POST',
+      body: JSON.stringify({ instruction_id: instructionId }),
+    });
+  }
+
   async getAllComments() {
     return this.request<any[]>('/comments');
   }

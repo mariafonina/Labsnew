@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Card } from "./ui/card";
@@ -25,8 +25,13 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
     toggleCommentLike,
     isLiked,
     addNote,
-    auth
+    auth,
+    markInstructionViewed
   } = useApp();
+
+  useEffect(() => {
+    markInstructionViewed(String(instruction.id));
+  }, [instruction.id, markInstructionViewed]);
 
   const [questionText, setQuestionText] = useState("");
   const [noteText, setNoteText] = useState("");
@@ -34,7 +39,9 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
   const [replyText, setReplyText] = useState("");
 
   const comments = getCommentsByEvent(instruction.id);
-  const questions = comments.filter(c => !c.parentId);
+  const questions = comments
+    .filter(c => !c.parentId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const handleToggleFavorite = () => {
     if (isFavorite(instruction.id)) {
@@ -257,7 +264,7 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
                         <span className="font-black text-gray-900">{question.authorName}</span>
                         <span className="text-sm text-gray-500">{formatDate(question.createdAt)}</span>
                       </div>
-                      <p className="text-gray-700 mb-3 leading-relaxed">{question.content}</p>
+                      <p className="text-gray-700 mb-3 leading-relaxed whitespace-pre-wrap">{question.content}</p>
                       
                       <div className="flex items-center gap-4">
                         <Button
@@ -332,7 +339,7 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
                                   )}
                                   <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
                                 </div>
-                                <p className="text-sm text-gray-700 leading-relaxed">{reply.content}</p>
+                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
                               </div>
                             </div>
                           ))}

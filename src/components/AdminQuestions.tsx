@@ -270,7 +270,7 @@ export function AdminQuestions() {
                       </span>
                     </div>
 
-                    <p className="text-gray-800 leading-relaxed mb-3">
+                    <p className="text-gray-800 leading-relaxed mb-3 whitespace-pre-wrap">
                       {question.content}
                     </p>
 
@@ -380,7 +380,7 @@ export function AdminQuestions() {
                               {formatDate(reply.createdAt)}
                             </span>
                           </div>
-                          <p className="text-gray-700 text-sm leading-relaxed">
+                          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
                             {reply.content}
                           </p>
                           <Button

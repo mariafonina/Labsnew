@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Checkbox } from "./ui/checkbox";
-import { Bookmark, Eye } from "lucide-react";
+import { Bookmark, Eye, ExternalLink, Check } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { InstructionDetail } from "./InstructionDetail";
@@ -72,7 +72,8 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
     removeFromFavorites,
     isFavorite,
     toggleInstructionComplete,
-    isInstructionComplete
+    isInstructionComplete,
+    isInstructionViewed
   } = useApp();
 
   const [selectedInstruction, setSelectedInstruction] = useState<Instruction | null>(null);
@@ -229,6 +230,7 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
               <div className="space-y-3">
                 {uncategorizedInstructions.map((instruction) => {
                   const isCompleted = isInstructionComplete(String(instruction.id));
+                  const isViewed = isInstructionViewed(String(instruction.id));
 
                   return (
                     <Card
@@ -250,9 +252,17 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                         />
 
                         <div className="flex-1 min-w-0">
-                          <h3 className={`font-semibold text-base leading-relaxed ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                            {instruction.title}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className={`font-semibold text-base leading-relaxed ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                              {instruction.title}
+                            </h3>
+                            {isViewed && !isCompleted && (
+                              <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                                <Check className="h-3 w-3" />
+                                Просмотрено
+                              </span>
+                            )}
+                          </div>
                           {instruction.description && (
                             <p className={`text-sm mt-1 line-clamp-2 ${isCompleted ? 'text-gray-300' : 'text-gray-500'}`}>
                               {instruction.description}
@@ -280,6 +290,16 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                             title="Просмотр"
                           >
                             <Eye className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/library/${instruction.id}`, '_blank');
+                            }}
+                            className="p-2.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                            title="Открыть в новой вкладке"
+                          >
+                            <ExternalLink className="h-5 w-5" />
                           </button>
                         </div>
                       </div>
@@ -309,6 +329,7 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
               <div className="space-y-3">
                 {categoryInstructions.map((instruction) => {
                   const isCompleted = isInstructionComplete(String(instruction.id));
+                  const isViewed = isInstructionViewed(String(instruction.id));
                   
                   return (
                     <Card
@@ -330,9 +351,17 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                         />
                         
                         <div className="flex-1 min-w-0">
-                          <h3 className={`font-semibold text-base leading-relaxed ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
-                            {instruction.title}
-                          </h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className={`font-semibold text-base leading-relaxed ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                              {instruction.title}
+                            </h3>
+                            {isViewed && !isCompleted && (
+                              <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                                <Check className="h-3 w-3" />
+                                Просмотрено
+                              </span>
+                            )}
+                          </div>
                           {instruction.description && (
                             <p className={`text-sm mt-1 line-clamp-2 ${isCompleted ? 'text-gray-300' : 'text-gray-500'}`}>
                               {instruction.description}
@@ -360,6 +389,16 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                             title="Просмотр"
                           >
                             <Eye className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/library/${instruction.id}`, '_blank');
+                            }}
+                            className="p-2.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                            title="Открыть в новой вкладке"
+                          >
+                            <ExternalLink className="h-5 w-5" />
                           </button>
                         </div>
                       </div>

@@ -31,8 +31,10 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
 
   const allComments = getCommentsByEvent(eventId);
   
-  // Разделяем на основные вопросы и ответы
-  const mainQuestions = allComments.filter(c => !c.parentId);
+  // Разделяем на основные вопросы и ответы, сортируем от новых к старым
+  const mainQuestions = allComments
+    .filter(c => !c.parentId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const replies = allComments.filter(c => c.parentId);
 
   const getRepliesForComment = (commentId: string) => {
@@ -185,7 +187,7 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
                           </span>
                         </div>
 
-                        <p className="text-gray-800 leading-relaxed mb-3">
+                        <p className="text-gray-800 leading-relaxed mb-3 whitespace-pre-wrap">
                           {question.content}
                         </p>
 
@@ -285,7 +287,7 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
                                       {formatDate(reply.createdAt)}
                                     </span>
                                   </div>
-                                  <p className="text-gray-700 text-sm leading-relaxed">
+                                  <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
                                     {reply.content}
                                   </p>
                                   <Button

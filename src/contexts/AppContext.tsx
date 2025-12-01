@@ -178,6 +178,7 @@ interface AppContextType {
   likes: string[];
   comments: Comment[];
   completedInstructions: string[];
+  viewedInstructions: string[];
   auth: AuthData;
   notifications: Notification[];
   newsItems: NewsItem[];
@@ -203,6 +204,8 @@ interface AppContextType {
   toggleCommentLike: (commentId: string) => void;
   toggleInstructionComplete: (id: string) => void;
   isInstructionComplete: (id: string) => boolean;
+  markInstructionViewed: (id: string) => void;
+  isInstructionViewed: (id: string) => boolean;
   login: (email: string, password: string, rememberMe: boolean, isAdmin?: boolean) => void;
   logout: () => void;
   changePassword: (oldPassword: string, newPassword: string) => boolean;
@@ -253,6 +256,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [likes, setLikes] = useState<string[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [completedInstructions, setCompletedInstructions] = useState<string[]>([]);
+  const [viewedInstructions, setViewedInstructions] = useState<string[]>([]);
 
   const [isAuthInitialized, setIsAuthInitialized] = useState(false);
   
@@ -760,11 +764,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
               .filter((item: any) => item.completed)
               .map((item: any) => String(item.instruction_id));
             setCompletedInstructions(completedIds);
+            
+            const viewedIds = progressData.value
+              .map((item: any) => String(item.instruction_id));
+            setViewedInstructions(viewedIds);
           } else {
             setCompletedInstructions([]);
+            setViewedInstructions([]);
           }
         } else {
           setCompletedInstructions([]);
+          setViewedInstructions([]);
         }
 
         if (commentsData.status === 'fulfilled') {
@@ -1109,6 +1119,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const isInstructionComplete = (id: string) => {
     return completedInstructions.includes(id);
+  };
+
+  const markInstructionViewed = async (id: string) => {
+    if (!auth.isAuthenticated || viewedInstructions.includes(id)) {
+      return;
+    }
+    
+    setViewedInstructions(prev => [...prev, id]);
+    
+    try {
+      await apiClient.markInstructionViewed(Number(id));
+    } catch (error) {
+      console.error('Failed to mark instruction as viewed:', error);
+    }
+  };
+
+  const isInstructionViewed = (id: string) => {
+    return viewedInstructions.includes(id);
   };
 
   const login = (email: string, password: string, rememberMe: boolean, isAdmin: boolean = false) => {
@@ -1803,6 +1831,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         likes,
         comments,
         completedInstructions,
+        viewedInstructions,
         auth,
         notifications,
         newsItems,
@@ -1828,6 +1857,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         toggleCommentLike,
         toggleInstructionComplete,
         isInstructionComplete,
+        markInstructionViewed,
+        isInstructionViewed,
         login,
         logout,
         changePassword,

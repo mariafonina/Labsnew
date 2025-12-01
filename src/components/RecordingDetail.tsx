@@ -35,7 +35,9 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
   const [replyText, setReplyText] = useState("");
 
   const comments = getCommentsByEvent(recording.id);
-  const questions = comments.filter(c => !c.parentId);
+  const questions = comments
+    .filter(c => !c.parentId)
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   // Записываем просмотр записи при открытии страницы
   useEffect(() => {
@@ -326,7 +328,7 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
                         <span className="font-black text-gray-900">{question.authorName}</span>
                         <span className="text-sm text-gray-500">{formatDate(question.createdAt)}</span>
                       </div>
-                      <p className="text-gray-700 mb-3 leading-relaxed">{question.content}</p>
+                      <p className="text-gray-700 mb-3 leading-relaxed whitespace-pre-wrap">{question.content}</p>
                       
                       <div className="flex items-center gap-4">
                         <Button
@@ -401,7 +403,7 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
                                   )}
                                   <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
                                 </div>
-                                <p className="text-sm text-gray-700 leading-relaxed">{reply.content}</p>
+                                <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
                               </div>
                             </div>
                           ))}
