@@ -253,6 +253,11 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                           <h3 className={`font-semibold text-base leading-relaxed ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                             {instruction.title}
                           </h3>
+                          {instruction.description && (
+                            <p className={`text-sm mt-1 line-clamp-2 ${isCompleted ? 'text-gray-300' : 'text-gray-500'}`}>
+                              {instruction.description}
+                            </p>
+                          )}
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
@@ -328,6 +333,11 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                           <h3 className={`font-semibold text-base leading-relaxed ${isCompleted ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
                             {instruction.title}
                           </h3>
+                          {instruction.description && (
+                            <p className={`text-sm mt-1 line-clamp-2 ${isCompleted ? 'text-gray-300' : 'text-gray-500'}`}>
+                              {instruction.description}
+                            </p>
+                          )}
                         </div>
                         
                         <div className="flex items-center gap-2 shrink-0">
