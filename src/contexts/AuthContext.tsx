@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiClient } from '../api/client';
 
 interface User {
@@ -15,6 +15,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  forceLogout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,32 +24,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const forceLogout = useCallback(() => {
+    apiClient.clearToken();
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+  }, []);
+
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     const token = localStorage.getItem('auth_token');
+    const refreshToken = localStorage.getItem('refresh_token');
     
     if (savedUser && token) {
       try {
         setUser(JSON.parse(savedUser));
         apiClient.setToken(token);
+        if (refreshToken) {
+          apiClient.setRefreshToken(refreshToken);
+        }
       } catch (error) {
         console.error('Failed to parse saved user:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('refresh_token');
       }
     }
     setIsLoading(false);
   }, []);
 
+  useEffect(() => {
+    apiClient.setOnAuthExpired(() => {
+      console.log('[AuthContext] Session expired, forcing logout');
+      forceLogout();
+    });
+  }, [forceLogout]);
+
   const login = async (username: string, password: string) => {
     try {
       const response = await apiClient.login(username, password);
       apiClient.setToken(response.token);
+      if (response.refreshToken) {
+        apiClient.setRefreshToken(response.refreshToken);
+        localStorage.setItem('refresh_token', response.refreshToken);
+      }
       setUser(response.user);
       localStorage.setItem('user', JSON.stringify(response.user));
       localStorage.setItem('auth_token', response.token);
     } catch (error: any) {
-      // Пробрасываем ошибку дальше с понятным сообщением
       const errorMessage = error?.message || 'Ошибка входа. Проверьте учетные данные';
       throw new Error(errorMessage);
     }
@@ -57,6 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (username: string, email: string, password: string) => {
     const response = await apiClient.register(username, email, password);
     apiClient.setToken(response.token);
+    if (response.refreshToken) {
+      apiClient.setRefreshToken(response.refreshToken);
+      localStorage.setItem('refresh_token', response.refreshToken);
+    }
     setUser(response.user);
     localStorage.setItem('user', JSON.stringify(response.user));
     localStorage.setItem('auth_token', response.token);
@@ -68,6 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
   };
 
   return (
@@ -79,6 +108,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        forceLogout,
       }}
     >
       {children}

@@ -350,6 +350,24 @@ export async function initializeDatabase() {
     `);
     console.log('Table "labs.initial_password_tokens" created');
 
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.refresh_tokens (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
+        token_hash VARCHAR(255) NOT NULL,
+        expires_at TIMESTAMP NOT NULL,
+        revoked BOOLEAN DEFAULT FALSE,
+        device_info VARCHAR(255),
+        ip_address VARCHAR(45),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.refresh_tokens" created');
+
+    await query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON labs.refresh_tokens(user_id)`);
+    await query(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON labs.refresh_tokens(token_hash)`);
+    console.log('Indexes for labs.refresh_tokens created');
+
     const tokenHashExists = await query(`
       SELECT column_name 
       FROM information_schema.columns 

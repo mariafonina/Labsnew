@@ -8,11 +8,22 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+type AuthExpiredCallback = () => void;
+
 class ApiClient {
   private token: string | null = null;
+  private refreshToken: string | null = null;
+  private isRefreshing: boolean = false;
+  private refreshPromise: Promise<boolean> | null = null;
+  private onAuthExpired: AuthExpiredCallback | null = null;
 
   constructor() {
     this.token = localStorage.getItem('auth_token');
+    this.refreshToken = localStorage.getItem('refresh_token');
+  }
+
+  setOnAuthExpired(callback: AuthExpiredCallback) {
+    this.onAuthExpired = callback;
   }
 
   setToken(token: string) {
@@ -20,14 +31,79 @@ class ApiClient {
     localStorage.setItem('auth_token', token);
   }
 
+  setRefreshToken(token: string) {
+    this.refreshToken = token;
+    localStorage.setItem('refresh_token', token);
+  }
+
   clearToken() {
     this.token = null;
+    this.refreshToken = null;
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('refresh_token');
+  }
+
+  private async attemptTokenRefresh(): Promise<boolean> {
+    if (!this.refreshToken) {
+      return false;
+    }
+
+    if (this.isRefreshing && this.refreshPromise) {
+      return this.refreshPromise;
+    }
+
+    this.isRefreshing = true;
+    this.refreshPromise = this.doRefresh();
+    
+    try {
+      return await this.refreshPromise;
+    } finally {
+      this.isRefreshing = false;
+      this.refreshPromise = null;
+    }
+  }
+
+  private async doRefresh(): Promise<boolean> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refreshToken: this.refreshToken }),
+      });
+
+      if (!response.ok) {
+        this.clearToken();
+        if (this.onAuthExpired) {
+          this.onAuthExpired();
+        }
+        return false;
+      }
+
+      const data = await response.json();
+      this.setToken(data.token);
+      this.setRefreshToken(data.refreshToken);
+      
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user));
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('[ApiClient] Token refresh failed:', error);
+      this.clearToken();
+      if (this.onAuthExpired) {
+        this.onAuthExpired();
+      }
+      return false;
+    }
   }
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retryOnUnauthorized: boolean = true
   ): Promise<T> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -43,21 +119,40 @@ class ApiClient {
     });
 
     if (!response.ok) {
+      if (response.status === 401 && retryOnUnauthorized && this.refreshToken) {
+        let errorData: any = {};
+        try {
+          errorData = await response.clone().json();
+        } catch (e) {}
+
+        const isTokenExpired = errorData.code === 'TOKEN_EXPIRED' || errorData.code === 'INVALID_TOKEN';
+        
+        if (isTokenExpired) {
+          const refreshed = await this.attemptTokenRefresh();
+          if (refreshed) {
+            return this.request<T>(endpoint, options, false);
+          }
+        }
+        
+        this.clearToken();
+        if (this.onAuthExpired) {
+          this.onAuthExpired();
+        }
+      }
+
       let errorMessage = `HTTP ${response.status}`;
       try {
         const errorData = await response.json();
         errorMessage = errorData.error || errorData.message || errorMessage;
       } catch (e) {
-        // Если ответ не JSON, пытаемся получить текст
         try {
           const text = await response.text();
           if (text) {
             errorMessage = text;
           }
         } catch (textError) {
-          // Если и текст не получается, используем дефолтное сообщение
           if (response.status === 401) {
-            errorMessage = 'Неверные учетные данные';
+            errorMessage = 'Сессия истекла. Пожалуйста, войдите снова';
           } else if (response.status === 403) {
             errorMessage = 'Доступ запрещен';
           } else if (response.status === 404) {
@@ -81,7 +176,8 @@ class ApiClient {
   private async requestFormData<T>(
     endpoint: string,
     formData: FormData,
-    method: 'POST' | 'PUT' = 'POST'
+    method: 'POST' | 'PUT' = 'POST',
+    retryOnUnauthorized: boolean = true
   ): Promise<T> {
     const headers: Record<string, string> = {};
 
@@ -96,6 +192,13 @@ class ApiClient {
     });
 
     if (!response.ok) {
+      if (response.status === 401 && retryOnUnauthorized && this.refreshToken) {
+        const refreshed = await this.attemptTokenRefresh();
+        if (refreshed) {
+          return this.requestFormData<T>(endpoint, formData, method, false);
+        }
+      }
+
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
       const err: any = new Error(error.error || `HTTP ${response.status}`);
       err.status = response.status;
@@ -107,21 +210,50 @@ class ApiClient {
   }
 
   async register(username: string, email: string, password: string) {
-    return this.request<{ token: string; user: any }>('/auth/register', {
+    const response = await this.request<{ token: string; refreshToken: string; user: any }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ username, email, password }),
     });
+    
+    if (response.refreshToken) {
+      this.setRefreshToken(response.refreshToken);
+    }
+    
+    return response;
   }
 
   async login(username: string, password: string) {
-    return this.request<{ token: string; user: any }>('/auth/login', {
+    const response = await this.request<{ token: string; refreshToken: string; user: any }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ username, password }),
     });
+    
+    if (response.refreshToken) {
+      this.setRefreshToken(response.refreshToken);
+    }
+    
+    return response;
   }
 
   async logout() {
-    await this.request('/auth/logout', { method: 'POST' });
+    try {
+      await this.request('/auth/logout', { 
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: this.refreshToken })
+      });
+    } catch (e) {
+    }
+    this.clearToken();
+  }
+
+  async logoutAll() {
+    try {
+      await this.request('/auth/logout-all', { 
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: this.refreshToken })
+      });
+    } catch (e) {
+    }
     this.clearToken();
   }
 
@@ -251,15 +383,14 @@ class ApiClient {
     return this.request<any[]>('/comments');
   }
 
-  // Public content API methods (no auth required for reading)
   async getNews(page: number = 1, limit: number = 20) {
     const response = await this.request<{ data: any[], pagination: any }>(`/news?page=${page}&limit=${limit}`);
-    return response.data || response; // Обратная совместимость
+    return response.data || response;
   }
 
   async getRecordings(page: number = 1, limit: number = 20) {
     const response = await this.request<{ data: any[], pagination: any }>(`/recordings?page=${page}&limit=${limit}`);
-    return response.data || response; // Обратная совместимость
+    return response.data || response;
   }
 
   async recordRecordingView(recordingId: number) {
@@ -272,7 +403,6 @@ class ApiClient {
     return this.request<any[]>('/faq');
   }
 
-  // Admin API methods (auth required for write operations)
   async createNews(data: any) {
     return this.request<any>('/admin/news', {
       method: 'POST',
@@ -467,7 +597,6 @@ class ApiClient {
     return this.post<any>(`/admin/emails/${id}/refresh-stats`);
   }
 
-  // Generic methods for custom API calls
   async get<T = any>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint);
   }
@@ -492,7 +621,6 @@ class ApiClient {
     });
   }
 
-  // Password reset methods
   async forgotPassword(email: string): Promise<{ message: string }> {
     return this.post('/forgot-password', { email });
   }
@@ -505,7 +633,6 @@ class ApiClient {
     return this.post('/reset-password', { token, newPassword });
   }
 
-  // Initial password setup methods (admin only)
   async sendInitialPasswords(): Promise<{ sent: number; failed: number; total: number; message: string }> {
     return this.post('/admin/send-initial-passwords');
   }
@@ -514,7 +641,6 @@ class ApiClient {
     return this.get('/admin/initial-passwords/stats');
   }
 
-  // Setup password (for initial password creation)
   async verifySetupToken(token: string): Promise<{ valid: boolean; message?: string }> {
     return this.get(`/verify-setup-token/${token}`);
   }
@@ -523,7 +649,6 @@ class ApiClient {
     return this.post('/setup-password', { token, newPassword });
   }
 
-  // Products management
   async getProducts() {
     return this.get<any[]>('/admin/products');
   }
@@ -544,7 +669,6 @@ class ApiClient {
     return this.delete(`/admin/products/${id}`);
   }
 
-  // Pricing tiers management
   async getCohortTiers(productId: number, cohortId: number) {
     return this.get<any[]>(`/admin/products/${productId}/cohorts/${cohortId}/tiers`);
   }
@@ -561,7 +685,6 @@ class ApiClient {
     return this.delete(`/admin/products/${productId}/cohorts/${cohortId}/tiers/${tierId}`);
   }
 
-  // Backward compatibility (deprecated - use cohort-specific methods instead)
   async getProductTiers(productId: number) {
     return this.get<any[]>(`/admin/products/${productId}/tiers`);
   }
@@ -578,7 +701,6 @@ class ApiClient {
     return this.delete(`/admin/products/${productId}/tiers/${tierId}`);
   }
 
-  // Cohorts management
   async getCohorts(productId?: number) {
     const query = productId ? `?product_id=${productId}` : '';
     return this.get<any[]>(`/admin/cohorts${query}`);
@@ -645,7 +767,6 @@ class ApiClient {
     return this.delete(`/admin/cohorts/${cohortId}/materials/${materialType}/${materialId}`);
   }
 
-  // User enrollments management
   async getEnrollments(userId?: number, productId?: number) {
     const params = new URLSearchParams();
     if (userId) params.append('user_id', userId.toString());
@@ -666,7 +787,6 @@ class ApiClient {
     return this.delete(`/admin/enrollments/${id}`);
   }
 
-  // Product resources (materials assignment)
   async getProductResources(productId: number, resourceType?: string) {
     const query = resourceType ? `?resource_type=${resourceType}` : '';
     return this.get<any[]>(`/admin/resources/${productId}${query}`);
@@ -684,7 +804,6 @@ class ApiClient {
     return this.delete(`/admin/resources/${productId}/${resourceId}`);
   }
 
-  // Public catalog
   async getCatalogProducts() {
     return this.get<any[]>('/catalog/products');
   }
@@ -693,7 +812,6 @@ class ApiClient {
     return this.get<any>(`/catalog/products/${id}`);
   }
 
-  // Object Storage (image uploads to Yandex S3)
   async getObjectUploadUrl(folder: string = 'instructions', fileName: string = 'image.jpg') {
     return this.request<{ uploadURL: string; publicUrl: string; method: string }>('/admin/objects/upload-url', {
       method: 'POST',
@@ -708,7 +826,7 @@ class ApiClient {
     });
   }
 
-  async uploadImageDirect(file: File, folder: string = 'instructions') {
+  async uploadImageDirect(file: File, folder: string = 'instructions'): Promise<{ success: boolean; url: string; objectPath: string }> {
     const formData = new FormData();
     formData.append('image', file);
     formData.append('folder', folder);
@@ -725,10 +843,16 @@ class ApiClient {
     });
     
     if (!response.ok) {
+      if (response.status === 401 && this.refreshToken) {
+        const refreshed = await this.attemptTokenRefresh();
+        if (refreshed) {
+          return this.uploadImageDirect(file, folder);
+        }
+      }
       throw new Error('Upload failed');
     }
     
-    return response.json() as Promise<{ success: boolean; url: string; objectPath: string }>;
+    return response.json();
   }
 }
 

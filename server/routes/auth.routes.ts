@@ -1,7 +1,14 @@
 import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import { query } from '../db';
-import { generateToken } from '../auth';
+import { 
+  generateAccessToken, 
+  generateRefreshToken, 
+  storeRefreshToken, 
+  validateRefreshToken,
+  revokeRefreshToken,
+  revokeAllUserRefreshTokens 
+} from '../auth';
 import { authLimiter } from '../utils/rate-limit';
 
 const router = Router();
@@ -36,7 +43,6 @@ router.post('/register', authLimiter, async (req, res) => {
 
     const user = result.rows[0];
 
-    // Автоматически зачислить в дефолтный продукт и cohort
     const defaultProduct = await query(`
       SELECT p.id as product_id, c.id as cohort_id, pt.id as tier_id
       FROM labs.products p
@@ -62,10 +68,16 @@ router.post('/register', authLimiter, async (req, res) => {
       `, [cohort_id, user.id]);
     }
 
-    const token = generateToken(user.id, user.role);
+    const accessToken = generateAccessToken(user.id, user.role);
+    const refreshToken = generateRefreshToken();
+    
+    const deviceInfo = req.headers['user-agent']?.slice(0, 255);
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    await storeRefreshToken(user.id, refreshToken, deviceInfo, ipAddress);
 
     res.status(201).json({
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: user.id,
         username: user.username,
@@ -108,12 +120,18 @@ router.post('/login', authLimiter, async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const token = generateToken(user.id, user.role);
+    const accessToken = generateAccessToken(user.id, user.role);
+    const refreshToken = generateRefreshToken();
+    
+    const deviceInfo = req.headers['user-agent']?.slice(0, 255);
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    await storeRefreshToken(user.id, refreshToken, deviceInfo, ipAddress);
 
     console.log('[Login] Success:', { userId: user.id, username: user.username, role: user.role });
 
     res.json({
-      token,
+      token: accessToken,
+      refreshToken,
       user: {
         id: user.id,
         username: user.username,
@@ -127,8 +145,94 @@ router.post('/login', authLimiter, async (req, res) => {
   }
 });
 
-router.post('/logout', (req, res) => {
-  res.json({ message: 'Logged out successfully' });
+router.post('/refresh', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Refresh token is required', code: 'NO_REFRESH_TOKEN' });
+    }
+
+    const tokenData = await validateRefreshToken(refreshToken);
+
+    if (!tokenData) {
+      return res.status(401).json({ error: 'Invalid or expired refresh token', code: 'INVALID_REFRESH_TOKEN' });
+    }
+
+    const userResult = await query(
+      'SELECT id, username, email, role FROM labs.users WHERE id = $1',
+      [tokenData.userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(401).json({ error: 'User not found', code: 'USER_NOT_FOUND' });
+    }
+
+    const user = userResult.rows[0];
+
+    await revokeRefreshToken(refreshToken);
+
+    const newAccessToken = generateAccessToken(user.id, user.role);
+    const newRefreshToken = generateRefreshToken();
+    
+    const deviceInfo = req.headers['user-agent']?.slice(0, 255);
+    const ipAddress = req.ip || req.socket.remoteAddress;
+    await storeRefreshToken(user.id, newRefreshToken, deviceInfo, ipAddress);
+
+    console.log('[Refresh] Token refreshed for user:', { userId: user.id, username: user.username });
+
+    res.json({
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    console.error('[Refresh] Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/logout', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (refreshToken) {
+      await revokeRefreshToken(refreshToken);
+    }
+    
+    res.json({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('[Logout] Error:', error);
+    res.json({ message: 'Logged out successfully' });
+  }
+});
+
+router.post('/logout-all', async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    
+    if (!refreshToken) {
+      return res.status(400).json({ error: 'Refresh token is required' });
+    }
+
+    const tokenData = await validateRefreshToken(refreshToken);
+    
+    if (!tokenData) {
+      return res.status(401).json({ error: 'Invalid refresh token' });
+    }
+
+    await revokeAllUserRefreshTokens(tokenData.userId);
+    
+    res.json({ message: 'Logged out from all devices' });
+  } catch (error) {
+    console.error('[LogoutAll] Error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 export default router;
