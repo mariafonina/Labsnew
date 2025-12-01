@@ -407,8 +407,9 @@ export async function initializeDatabase() {
     await query(`ALTER TABLE labs.products ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'not_for_sale'`);
     await query(`ALTER TABLE labs.products ADD COLUMN IF NOT EXISTS project_start_date DATE`);
     await query(`ALTER TABLE labs.products ADD COLUMN IF NOT EXISTS project_end_date DATE`);
+    await query(`ALTER TABLE labs.products ADD COLUMN IF NOT EXISTS color VARCHAR(20)`);
     await query(`ALTER TABLE labs.products ALTER COLUMN type TYPE VARCHAR(200)`);
-    console.log('Added product status and project dates columns');
+    console.log('Added product status, project dates, and color columns');
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.pricing_tiers (

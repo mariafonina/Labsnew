@@ -11,6 +11,7 @@ import {
   MessageSquare,
   ChevronRight,
   Shield,
+  GraduationCap,
 } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -67,6 +68,7 @@ export function UserSidebar({
   const mainMenuItems = [
     { id: "news", label: "Новости", icon: Newspaper, path: "/news", badge: unreadCount },
     { id: "calendar", label: "Расписание", icon: Calendar, path: "/calendar" },
+    { id: "programs", label: "Программы", icon: GraduationCap, path: "/programs" },
     { id: "library", label: "База знаний", icon: BookOpen, path: "/library", hasArrow: true },
     { id: "recordings", label: "Записи", icon: Video, path: "/recordings", hasArrow: true },
   ];

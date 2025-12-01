@@ -5,6 +5,7 @@ import "./index.css";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AppProvider } from "./contexts/AppContext";
 import { ViewModeProvider } from "./contexts/ViewModeContext";
+import { ContentFilterProvider } from "./contexts/ContentFilterContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
 createRoot(document.getElementById("root")!).render(
@@ -12,9 +13,11 @@ createRoot(document.getElementById("root")!).render(
     <AuthProvider>
       <ViewModeProvider>
         <AppProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
+          <ContentFilterProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </ContentFilterProvider>
         </AppProvider>
       </ViewModeProvider>
     </AuthProvider>
