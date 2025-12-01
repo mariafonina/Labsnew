@@ -67,39 +67,6 @@ router.put('/', verifyToken, createLimiter, asyncHandler(async (req: AuthRequest
   res.json(result.rows[0]);
 }));
 
-// Get user's enrollments with products and cohorts (for Programs page)
-router.get('/enrollments', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const result = await query(`
-    SELECT 
-      ue.id as enrollment_id,
-      ue.status,
-      ue.enrolled_at,
-      ue.expires_at,
-      p.id as product_id,
-      p.name as product_name,
-      p.description as product_description,
-      p.type as product_type,
-      p.default_price,
-      p.status as product_status,
-      p.color as product_color,
-      c.id as cohort_id,
-      c.name as cohort_name,
-      c.start_date as cohort_start_date,
-      c.end_date as cohort_end_date,
-      pt.id as tier_id,
-      pt.name as tier_name,
-      pt.tier_level
-    FROM labs.user_enrollments ue
-    JOIN labs.products p ON ue.product_id = p.id
-    LEFT JOIN labs.cohorts c ON ue.cohort_id = c.id
-    LEFT JOIN labs.pricing_tiers pt ON ue.pricing_tier_id = pt.id
-    WHERE ue.user_id = $1
-    ORDER BY ue.enrolled_at DESC
-  `, [req.userId]);
-
-  res.json(result.rows);
-}));
-
 // Get user's cohorts
 router.get('/cohorts', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   console.log('[/profile/cohorts] Route hit, userId:', req.userId);

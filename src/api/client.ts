@@ -846,10 +846,6 @@ class ApiClient {
     return this.get<any[]>('/catalog/products');
   }
 
-  async getUserEnrollments() {
-    return this.get<any[]>('/profile/enrollments');
-  }
-
   async getCatalogProduct(id: number) {
     return this.get<any>(`/catalog/products/${id}`);
   }

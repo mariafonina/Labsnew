@@ -13,11 +13,9 @@ router.get('/products', asyncHandler(async (req: Request, res: Response) => {
       type,
       duration_weeks,
       default_price,
-      color,
-      status,
       created_at
     FROM labs.products
-    WHERE is_active = TRUE AND status IN ('for_sale', 'pre_registration')
+    WHERE is_active = TRUE
     ORDER BY created_at DESC
   `);
 

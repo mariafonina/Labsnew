@@ -19,7 +19,6 @@ import { FAQPage } from "./pages/user/FAQPage";
 import { FavoritesPage } from "./pages/user/FavoritesPage";
 import { NotesPage } from "./pages/user/NotesPage";
 import { ProfilePage } from "./pages/user/ProfilePage";
-import { ProgramsPage } from "./pages/user/ProgramsPage";
 
 // Admin pages
 import { AdminDashboard } from "./components/AdminDashboard";
@@ -52,7 +51,6 @@ export default function App() {
             <Route index element={<Navigate to="/news" replace />} />
             <Route path="news" element={<NewsPage />} />
             <Route path="calendar" element={<CalendarPage />} />
-            <Route path="programs" element={<ProgramsPage />} />
             <Route path="library" element={<LibraryPage />} />
             <Route path="library/:id" element={<LibraryPage />} />
             <Route path="recordings" element={<RecordingsPage />} />
