@@ -54,8 +54,6 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
         eventId,
         eventType: eventType,
         eventTitle: eventTitle,
-        authorName: auth.username || "Пользователь",
-        authorRole: "user",
         content: newQuestion,
       }, eventTitle, eventType);
 
@@ -76,8 +74,6 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
         eventId,
         eventType: eventType,
         eventTitle: eventTitle,
-        authorName: auth.username || (auth.isAdmin ? "Администратор" : "Пользователь"),
-        authorRole: auth.isAdmin ? "admin" : "user",
         content: replyText,
         parentId,
       }, eventTitle, eventType);

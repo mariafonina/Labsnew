@@ -3,16 +3,33 @@ import { verifyToken, requireAdmin, AuthRequest } from '../auth';
 import { query } from '../db';
 import { readLimiter } from '../utils/rate-limit';
 import { asyncHandler } from '../utils/async-handler';
-import { findAllByUser, deleteOneOrFail } from '../utils/db-helpers';
+import { deleteOneOrFail } from '../utils/db-helpers';
 import { protectedTextSubmission } from '../utils/text-content-middleware';
 import { sanitizeText } from '../utils/sanitize';
 
 const router = Router();
 
+const COMMENTS_SELECT_WITH_USER = `
+  SELECT 
+    c.id,
+    c.user_id,
+    c.event_id,
+    c.event_type,
+    c.event_title,
+    c.content,
+    c.parent_id,
+    c.likes,
+    c.created_at,
+    u.username as author_name,
+    u.role as author_role
+  FROM labs.comments c
+  LEFT JOIN labs.users u ON c.user_id = u.id
+`;
+
 // Admin route: Get ALL comments from all users
 router.get('/admin/all', verifyToken, requireAdmin, readLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const result = await query(
-    'SELECT * FROM labs.comments ORDER BY created_at DESC'
+    `${COMMENTS_SELECT_WITH_USER} ORDER BY c.created_at DESC`
   );
   res.json(result.rows);
 }));
@@ -21,7 +38,7 @@ router.get('/admin/all', verifyToken, requireAdmin, readLimiter, asyncHandler(as
 router.get('/event/:eventId', verifyToken, readLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { eventId } = req.params;
   const result = await query(
-    'SELECT * FROM labs.comments WHERE event_id = $1 ORDER BY created_at DESC',
+    `${COMMENTS_SELECT_WITH_USER} WHERE c.event_id = $1 ORDER BY c.created_at DESC`,
     [eventId]
   );
   res.json(result.rows);
@@ -29,28 +46,37 @@ router.get('/event/:eventId', verifyToken, readLimiter, asyncHandler(async (req:
 
 // Get all comments for current user
 router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const comments = await findAllByUser('comments', req.userId!, 'created_at DESC');
-  res.json(comments);
+  const result = await query(
+    `${COMMENTS_SELECT_WITH_USER} WHERE c.user_id = $1 ORDER BY c.created_at DESC`,
+    [req.userId]
+  );
+  res.json(result.rows);
 }));
 
 // Create a new comment
 router.post('/', ...protectedTextSubmission({ maxDuplicates: 2, windowMs: 60000 }), asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { event_id, event_type, event_title, author_name, author_role, content, parent_id } = req.body;
+  const { event_id, event_type, event_title, content, parent_id } = req.body;
 
-  if (!event_id || !author_name || !author_role || !content) {
-    return res.status(400).json({ error: 'Event ID, author name, author role, and content are required' });
+  if (!event_id || !content) {
+    return res.status(400).json({ error: 'Event ID and content are required' });
   }
 
   const sanitizedEventTitle = event_title ? sanitizeText(event_title) : null;
-  const sanitizedAuthorName = sanitizeText(author_name);
-  const sanitizedAuthorRole = sanitizeText(author_role);
 
   const result = await query(
-    'INSERT INTO labs.comments (user_id, event_id, event_type, event_title, author_name, author_role, content, parent_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-    [req.userId, event_id, event_type, sanitizedEventTitle, sanitizedAuthorName, sanitizedAuthorRole, content, parent_id || null]
+    `INSERT INTO labs.comments (user_id, event_id, event_type, event_title, content, parent_id) 
+     VALUES ($1, $2, $3, $4, $5, $6) 
+     RETURNING id`,
+    [req.userId, event_id, event_type, sanitizedEventTitle, content, parent_id || null]
   );
 
-  res.status(201).json(result.rows[0]);
+  // Return the created comment with user info
+  const commentResult = await query(
+    `${COMMENTS_SELECT_WITH_USER} WHERE c.id = $1`,
+    [result.rows[0].id]
+  );
+
+  res.status(201).json(commentResult.rows[0]);
 }));
 
 // Update comment likes
@@ -59,15 +85,21 @@ router.patch('/:id/like', verifyToken, asyncHandler(async (req: AuthRequest, res
   const { increment } = req.body;
 
   const result = await query(
-    'UPDATE labs.comments SET likes = likes + $1 WHERE id = $2 AND user_id = $3 RETURNING *',
-    [increment ? 1 : -1, id, req.userId]
+    'UPDATE labs.comments SET likes = likes + $1 WHERE id = $2 RETURNING *',
+    [increment ? 1 : -1, id]
   );
 
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'Comment not found' });
   }
 
-  res.json(result.rows[0]);
+  // Return with user info
+  const commentResult = await query(
+    `${COMMENTS_SELECT_WITH_USER} WHERE c.id = $1`,
+    [id]
+  );
+
+  res.json(commentResult.rows[0]);
 }));
 
 // Delete a comment (user can only delete their own)
@@ -92,30 +124,6 @@ router.delete('/admin/:id', verifyToken, requireAdmin, asyncHandler(async (req: 
   }
   
   res.json({ message: 'Comment and its replies deleted successfully' });
-}));
-
-// Admin route: Fix author names - replace email with username for admin comments
-router.post('/admin/fix-author-names', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
-  // Get admin user info
-  const userResult = await query('SELECT username FROM labs.users WHERE id = $1', [req.userId]);
-  if (userResult.rows.length === 0) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-  const adminUsername = userResult.rows[0].username;
-  
-  // Update all admin comments that have email-like author_name to use username
-  const result = await query(
-    `UPDATE labs.comments 
-     SET author_name = $1 
-     WHERE user_id = $2 AND author_role = 'admin' AND author_name LIKE '%@%'
-     RETURNING id`,
-    [adminUsername, req.userId]
-  );
-  
-  res.json({ 
-    message: 'Author names fixed successfully', 
-    updatedCount: result.rows.length 
-  });
 }));
 
 export default router;

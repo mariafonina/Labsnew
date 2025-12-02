@@ -35,12 +35,21 @@ export interface Comment {
   eventId: string;
   eventType?: "event" | "instruction" | "recording" | "faq"; // тип материала
   eventTitle?: string; // название материала
-  authorName: string;
-  authorRole: "user" | "admin";
+  authorName: string; // получается из users.username через JOIN
+  authorRole: "user" | "admin"; // получается из users.role через JOIN
   content: string;
   createdAt: string;
   parentId?: string; // для ответов на комментарии
   likes: number;
+}
+
+// Тип для создания комментария (без authorName/authorRole - они берутся из user)
+export interface CommentInput {
+  eventId: string;
+  eventType?: "event" | "instruction" | "recording" | "faq";
+  eventTitle?: string;
+  content: string;
+  parentId?: string;
 }
 
 export interface Notification {
@@ -202,7 +211,7 @@ interface AppContextType {
   addNote: (note: Omit<Note, "id" | "createdAt" | "updatedAt">) => Promise<void>;
   updateNote: (id: string, updates: Partial<Note>) => void;
   deleteNote: (id: string) => void;
-  addComment: (comment: Omit<Comment, "id" | "createdAt" | "likes">, eventTitle?: string, eventType?: "event" | "instruction" | "recording" | "faq") => Promise<void>;
+  addComment: (comment: CommentInput, eventTitle?: string, eventType?: "event" | "instruction" | "recording" | "faq") => Promise<void>;
   getCommentsByEvent: (eventId: string) => Comment[];
   fetchEventComments: (eventId: string) => Promise<Comment[]>;
   toggleCommentLike: (commentId: string) => void;
@@ -1019,18 +1028,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const addComment = async (
-    comment: Omit<Comment, "id" | "createdAt" | "likes">,
+    comment: CommentInput,
     eventTitle?: string,
     eventType?: "event" | "instruction" | "recording" | "faq"
   ) => {
     try {
-      // Send to API
+      // Send to API (author info is taken from user session on server)
       const result = await apiClient.post('/comments', {
         event_id: comment.eventId,
         event_type: eventType || comment.eventType || 'event',
         event_title: eventTitle || comment.eventTitle,
-        author_name: comment.authorName,
-        author_role: comment.authorRole,
         content: comment.content,
         parent_id: comment.parentId || null
       });
@@ -1052,7 +1059,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setComments((prev) => [newComment, ...prev]);
 
       // Если это ответ на вопрос пользователя (есть parentId), создаём уведомление
-      if (comment.parentId && comment.authorRole === "admin") {
+      if (comment.parentId && newComment.authorRole === "admin") {
         const parentComment = comments.find((c) => c.id === comment.parentId);
 
         // Проверяем, что родительский комментарий принадлежит пользователю
@@ -1065,7 +1072,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             eventId: comment.eventId,
             eventType: eventType || "event",
             eventTitle: eventTitle || "Материал курса",
-            answerAuthor: comment.authorName,
+            answerAuthor: newComment.authorName,
             answerPreview: comment.content.substring(0, 100),
             createdAt: new Date().toISOString(),
             isRead: false,

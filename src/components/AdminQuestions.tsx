@@ -38,10 +38,8 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 import { toast } from "sonner";
-import { apiClient } from "../api/client";
-
 export function AdminQuestions() {
-  const { comments, addComment, toggleCommentLike, adminDeleteComment, isLiked, auth } = useApp();
+  const { comments, addComment, toggleCommentLike, adminDeleteComment, isLiked } = useApp();
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -94,8 +92,6 @@ export function AdminQuestions() {
           eventId: question.eventId,
           eventType: question.eventType,
           eventTitle: question.eventTitle,
-          authorName: auth.username || "Администратор",
-          authorRole: "admin",
           content: replyText,
           parentId: question.id,
         },
@@ -120,20 +116,6 @@ export function AdminQuestions() {
       toast.error("Не удалось удалить вопрос");
     } finally {
       setDeletingId(null);
-    }
-  };
-
-  const handleFixAuthorNames = async () => {
-    try {
-      const result = await apiClient.adminFixAuthorNames();
-      if (result.updatedCount > 0) {
-        toast.success(`Исправлено ${result.updatedCount} записей. Обновите страницу.`);
-        window.location.reload();
-      } else {
-        toast.info("Все имена уже в порядке");
-      }
-    } catch (error) {
-      toast.error("Не удалось исправить имена");
     }
   };
 
@@ -189,26 +171,16 @@ export function AdminQuestions() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="font-black text-5xl mb-2">Вопросы пользователей</h1>
-          <p className="text-gray-500 text-lg">
-            Всего вопросов: <span className="font-bold">{allQuestions.length}</span>
-            {unansweredCount > 0 && (
-              <span className="ml-3 text-pink-500 font-bold">
-                • Требуют ответа: {unansweredCount}
-              </span>
-            )}
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleFixAuthorNames}
-          className="text-gray-500 hover:text-gray-700"
-        >
-          Исправить имена
-        </Button>
+      <div>
+        <h1 className="font-black text-5xl mb-2">Вопросы пользователей</h1>
+        <p className="text-gray-500 text-lg">
+          Всего вопросов: <span className="font-bold">{allQuestions.length}</span>
+          {unansweredCount > 0 && (
+            <span className="ml-3 text-pink-500 font-bold">
+              • Требуют ответа: {unansweredCount}
+            </span>
+          )}
+        </p>
       </div>
 
       {/* Filters */}
