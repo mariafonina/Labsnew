@@ -77,24 +77,24 @@ export function AppLayout() {
       <Onboarding open={showOnboarding} onComplete={handleOnboardingComplete} />
 
       {/* Desktop Layout with Sidebar */}
-      <div className="hidden lg:block min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
+      <div className="hidden lg:flex flex-col min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
         <UserSidebar
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         />
 
         <main
-          className="overflow-auto transition-all duration-300"
+          className="flex-1 flex flex-col overflow-auto transition-all duration-300"
           style={{
             marginLeft: isSidebarCollapsed ? "80px" : "256px",
           }}
         >
-          <div className="max-w-7xl mx-auto pl-16 pr-8 py-12">
+          <div className="flex-1 max-w-7xl mx-auto pl-16 pr-8 py-12">
             <Outlet />
           </div>
 
           {/* Footer */}
-          <footer className="border-t border-gray-800/40 bg-gray-900 mt-16">
+          <footer className="border-t border-gray-800/40 bg-gray-900 mt-auto">
             <div className="max-w-7xl mx-auto px-6 py-12">
               {/* Блок "Задайте вопрос" */}
               <div className="mb-8 text-center">
@@ -137,7 +137,7 @@ export function AppLayout() {
       </div>
 
       {/* Mobile Layout with Tabs */}
-      <div className="lg:hidden min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 pb-20">
+      <div className="lg:hidden flex flex-col min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 pb-20">
         {/* Header */}
         <header className="border-b border-gray-200/60 bg-white/80 backdrop-blur-xl sticky top-0 z-40">
           <div className="max-w-7xl mx-auto px-6 py-4">
@@ -154,12 +154,12 @@ export function AppLayout() {
         </header>
 
         {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-6 py-8">
+        <main className="flex-1 max-w-7xl mx-auto px-6 py-8 w-full">
           <Outlet />
         </main>
 
         {/* Mobile Footer */}
-        <footer className="border-t border-gray-800/40 bg-gray-900 mt-16">
+        <footer className="border-t border-gray-800/40 bg-gray-900 mt-auto">
           <div className="px-6 py-12">
             {/* Блок "Задайте вопрос" */}
             <div className="mb-8 text-center">
