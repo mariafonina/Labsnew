@@ -159,6 +159,7 @@ export interface Recording {
   instructor: string;
   thumbnail?: string;
   views: number;
+  view_count?: number;
   description: string;
   videoUrl?: string;
   loom_embed_url?: string;
@@ -1603,7 +1604,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.log('[AppContext] Auto-select check: cohorts.length =', cohorts.length, 'selectedCohortId =', selectedCohortId);
         if (cohorts.length > 0) {
           // Проверяем что выбранный поток существует в списке
-          const selectedExists = selectedCohortId && cohorts.some(c => c.id === selectedCohortId);
+          const selectedExists = selectedCohortId && cohorts.some((c: UserCohort) => c.id === selectedCohortId);
           if (!selectedExists) {
             console.log('[AppContext] Auto-selecting first cohort:', cohorts[0].id);
             setSelectedCohortIdState(cohorts[0].id);
@@ -1847,7 +1848,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addCohortKnowledgeCategory = async (cohortId: number, category: Omit<CohortKnowledgeCategory, "id" | "order" | "createdAt" | "cohort_id">) => {
     try {
-      const response = await apiClient.post(`/cohorts/${cohortId}/knowledge-categories`, category);
+      await apiClient.post(`/cohorts/${cohortId}/knowledge-categories`, category);
       await fetchCohortKnowledgeCategories(cohortId);
     } catch (error) {
       console.error('Error adding cohort knowledge category:', error);

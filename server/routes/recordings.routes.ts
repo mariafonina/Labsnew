@@ -10,10 +10,12 @@ router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 20;
 
-  // Получаем все записи
+  // Получаем все записи с подсчётом просмотров
   const result = await query(`
-    SELECT * FROM labs.recordings
-    ORDER BY created_at DESC
+    SELECT r.*,
+      (SELECT COUNT(*) FROM labs.recording_views rv WHERE rv.recording_id = r.id) as view_count
+    FROM labs.recordings r
+    ORDER BY r.created_at DESC
   `);
 
   let allRecordings: any[];

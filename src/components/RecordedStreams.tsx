@@ -132,12 +132,12 @@ export function RecordedStreams({ selectedItemId }: RecordedStreamsProps) {
                       <span>{recording.duration}</span>
                     </div>
                   )}
-                  {recording.views !== undefined && (
+                  {(recording.view_count !== undefined && parseInt(String(recording.view_count)) > 0) && (
                     <>
                       {recording.duration && <span>•</span>}
                       <div className="flex items-center gap-1">
                         <Eye className="h-4 w-4" />
-                        <span>{recording.views} просмотров</span>
+                        <span>{recording.view_count} просмотров</span>
                       </div>
                     </>
                   )}
