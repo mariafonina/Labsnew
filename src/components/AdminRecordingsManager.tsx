@@ -22,6 +22,7 @@ interface Recording {
   description?: string;
   video_url?: string;
   loom_embed_url?: string;
+  summary_url?: string;
   created_at: string;
   updated_at: string;
 }
@@ -42,6 +43,7 @@ export function AdminRecordingsManager() {
     description: "",
     video_url: "",
     loom_embed_url: "",
+    summary_url: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -72,6 +74,7 @@ export function AdminRecordingsManager() {
       description: "",
       video_url: "",
       loom_embed_url: "",
+      summary_url: "",
     });
     setImageFile(null);
     setImagePreview("");
@@ -106,6 +109,7 @@ export function AdminRecordingsManager() {
       if (recordingForm.description) formData.append("description", recordingForm.description);
       if (recordingForm.video_url) formData.append("video_url", recordingForm.video_url);
       if (recordingForm.loom_embed_url) formData.append("loom_embed_url", recordingForm.loom_embed_url);
+      formData.append("summary_url", recordingForm.summary_url || "");
       if (imageFile) formData.append("thumbnail", imageFile);
 
       const newItem = await apiClient.createRecordingWithImage(formData);
@@ -135,6 +139,7 @@ export function AdminRecordingsManager() {
       if (recordingForm.description) formData.append("description", recordingForm.description);
       if (recordingForm.video_url) formData.append("video_url", recordingForm.video_url);
       if (recordingForm.loom_embed_url) formData.append("loom_embed_url", recordingForm.loom_embed_url);
+      formData.append("summary_url", recordingForm.summary_url || "");
       if (imageFile) formData.append("thumbnail", imageFile);
 
       const updated = await apiClient.updateRecordingWithImage(editingItem.id, formData);
@@ -171,6 +176,7 @@ export function AdminRecordingsManager() {
       description: item.description || "",
       video_url: item.video_url || "",
       loom_embed_url: item.loom_embed_url || "",
+      summary_url: item.summary_url || "",
     });
     setImagePreview(item.thumbnail || "");
     setIsAdding(false);
@@ -357,6 +363,13 @@ export function AdminRecordingsManager() {
                 value={recordingForm.loom_embed_url}
                 onChange={(e) => setRecordingForm({ ...recordingForm, loom_embed_url: e.target.value })}
                 placeholder="https://www.loom.com/embed/... или https://www.loom.com/share/..."
+              />
+            </AdminFormField>
+            <AdminFormField label="Ссылка на конспект (PDF/документ)">
+              <Input
+                value={recordingForm.summary_url}
+                onChange={(e) => setRecordingForm({ ...recordingForm, summary_url: e.target.value })}
+                placeholder="https://... (оставьте пустым, если конспекта нет)"
               />
             </AdminFormField>
           </div>

@@ -227,6 +227,12 @@ export async function initializeDatabase() {
       ADD COLUMN IF NOT EXISTS loom_embed_url VARCHAR(500)
     `);
 
+    // Add summary_url column if it doesn't exist (migration)
+    await query(`
+      ALTER TABLE labs.recordings
+      ADD COLUMN IF NOT EXISTS summary_url VARCHAR(500)
+    `);
+
     await query(`
       CREATE TABLE IF NOT EXISTS labs.recording_views (
         id SERIAL PRIMARY KEY,

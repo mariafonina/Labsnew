@@ -152,8 +152,10 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
   };
 
   const handleDownloadSummary = () => {
-    // В реальном приложении здесь была бы загрузка файла
-    toast.success("«Конспект скачивается...»");
+    if (recording.summary_url) {
+      window.open(recording.summary_url, '_blank');
+      toast.success("«Конспект скачивается...»");
+    }
   };
 
   const getInitials = (name: string) => {
@@ -275,16 +277,18 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
         </div>
       )}
 
-      {/* Download Button */}
-      <div className="mb-10">
-        <Button
-          onClick={handleDownloadSummary}
-          className="bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all h-12 px-8"
-        >
-          <Download className="h-5 w-5 mr-2" />
-          Скачать конспект
-        </Button>
-      </div>
+      {/* Download Button - only show if summary_url exists */}
+      {recording.summary_url && (
+        <div className="mb-10">
+          <Button
+            onClick={handleDownloadSummary}
+            className="bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all h-12 px-8"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Скачать конспект
+          </Button>
+        </div>
+      )}
 
       {/* Description */}
       {recording.description && (

@@ -151,6 +151,7 @@ export interface Recording {
   description: string;
   videoUrl?: string;
   loom_embed_url?: string;
+  summary_url?: string;
 }
 
 export interface FAQItem {
