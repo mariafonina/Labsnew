@@ -26,7 +26,8 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
     pricing_tier_id: '',
     cohort_id: '',
     status: 'active',
-    expires_at: ''
+    expires_at: '',
+    actual_amount: ''
   });
 
   useEffect(() => {
@@ -48,8 +49,8 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
 
   const loadUsers = async () => {
     try {
-      const data = await apiClient.getUsers();
-      setUsers(data);
+      const response = await apiClient.getUsers();
+      setUsers(response.data || []);
     } catch (error) {
       console.error('Failed to load users:', error);
     }
@@ -70,7 +71,8 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
         pricing_tier_id: parseInt(formData.pricing_tier_id),
         cohort_id: formData.cohort_id ? parseInt(formData.cohort_id) : null,
         status: formData.status,
-        expires_at: formData.expires_at || null
+        expires_at: formData.expires_at || null,
+        actual_amount: formData.actual_amount ? parseFloat(formData.actual_amount) : null
       });
 
       toast.success('Пользователь зачислен на продукт');
@@ -80,7 +82,8 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
         pricing_tier_id: '',
         cohort_id: '',
         status: 'active',
-        expires_at: ''
+        expires_at: '',
+        actual_amount: ''
       });
       loadEnrollments();
       onRefresh?.();
@@ -215,6 +218,21 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
             </div>
 
             <div>
+              <Label>Фактическая сумма оплаты</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Оставьте пустым для цены тарифа"
+                value={formData.actual_amount}
+                onChange={(e) => setFormData({ ...formData, actual_amount: e.target.value })}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Если не указано, будет использоваться цена выбранного тарифа
+              </p>
+            </div>
+
+            <div>
               <Label>Срок действия (опционально)</Label>
               <Input
                 type="date"
@@ -233,7 +251,8 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
                   pricing_tier_id: '',
                   cohort_id: '',
                   status: 'active',
-                  expires_at: ''
+                  expires_at: '',
+                  actual_amount: ''
                 });
               }}>
                 Отмена
@@ -261,7 +280,7 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
                 <div className="text-sm text-muted-foreground mt-1">
                   {enrollment.email} • {enrollment.username}
                 </div>
-                <div className="flex gap-4 mt-3 text-sm">
+                <div className="flex flex-wrap gap-4 mt-3 text-sm">
                   <span className="text-muted-foreground">
                     Тариф: <span className="font-medium text-foreground">{enrollment.tier_name}</span> (уровень {enrollment.tier_level})
                   </span>
@@ -270,6 +289,15 @@ export function EnrollmentManager({ productId, tiers, cohorts, onRefresh }: Enro
                       Поток: <span className="font-medium text-foreground">{enrollment.cohort_name}</span>
                     </span>
                   )}
+                  <span className="text-muted-foreground">
+                    Оплата: <span className="font-medium text-foreground">
+                      {enrollment.actual_amount !== null && enrollment.actual_amount !== undefined
+                        ? `${Number(enrollment.actual_amount).toLocaleString('ru-RU')} ₽`
+                        : enrollment.tier_price !== null && enrollment.tier_price !== undefined
+                          ? `${Number(enrollment.tier_price).toLocaleString('ru-RU')} ₽ (тариф)`
+                          : 'не указано'}
+                    </span>
+                  </span>
                 </div>
               </div>
 

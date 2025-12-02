@@ -648,6 +648,7 @@ export async function initializeDatabase() {
         pricing_tier_id INTEGER REFERENCES labs.pricing_tiers(id) ON DELETE SET NULL,
         cohort_id INTEGER REFERENCES labs.cohorts(id) ON DELETE SET NULL,
         status VARCHAR(20) DEFAULT 'active',
+        actual_amount NUMERIC(10, 2),
         enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         expires_at TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -656,6 +657,15 @@ export async function initializeDatabase() {
       )
     `);
     console.log('Table "labs.user_enrollments" created');
+
+    try {
+      await query(`ALTER TABLE labs.user_enrollments ADD COLUMN IF NOT EXISTS actual_amount NUMERIC(10, 2)`);
+      console.log('Migrated labs.user_enrollments: added actual_amount column');
+    } catch (err: any) {
+      if (!err.message?.includes('already exists') && !err.message?.includes('duplicate')) {
+        console.error('Error migrating user_enrollments table:', err);
+      }
+    }
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.cohort_members (

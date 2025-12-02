@@ -24,7 +24,7 @@ router.get(
       query(`
         SELECT 
           COUNT(DISTINCT user_id) as enrolled_users,
-          SUM(pt.price) as total_revenue
+          SUM(COALESCE(ue.actual_amount, pt.price)) as total_revenue
         FROM labs.user_enrollments ue
         LEFT JOIN labs.pricing_tiers pt ON ue.pricing_tier_id = pt.id
         WHERE ue.status = 'active'

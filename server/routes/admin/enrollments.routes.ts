@@ -13,7 +13,7 @@ router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest,
     SELECT ue.*, 
            u.username, u.email, u.first_name, u.last_name,
            p.name as product_name, p.type as product_type,
-           pt.name as tier_name, pt.tier_level,
+           pt.name as tier_name, pt.tier_level, pt.price as tier_price,
            c.name as cohort_name
     FROM labs.user_enrollments ue
     JOIN labs.users u ON ue.user_id = u.id
@@ -47,7 +47,7 @@ router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest,
 }));
 
 router.post('/', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { user_id, product_id, pricing_tier_id, cohort_id, status, expires_at } = req.body;
+  const { user_id, product_id, pricing_tier_id, cohort_id, status, expires_at, actual_amount } = req.body;
 
   if (!user_id || !product_id || !pricing_tier_id) {
     return res.status(400).json({ error: 'user_id, product_id, and pricing_tier_id are required' });
@@ -86,23 +86,24 @@ router.post('/', verifyToken, requireAdmin, createLimiter, asyncHandler(async (r
   }
 
   const result = await query(`
-    INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status, expires_at)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status, expires_at, actual_amount)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (user_id, product_id, cohort_id) 
     DO UPDATE SET 
       pricing_tier_id = EXCLUDED.pricing_tier_id,
       status = EXCLUDED.status,
       expires_at = EXCLUDED.expires_at,
+      actual_amount = EXCLUDED.actual_amount,
       updated_at = CURRENT_TIMESTAMP
     RETURNING *
-  `, [user_id, product_id, pricing_tier_id, cohort_id || null, status || 'active', expires_at || null]);
+  `, [user_id, product_id, pricing_tier_id, cohort_id || null, status || 'active', expires_at || null, actual_amount !== undefined ? actual_amount : null]);
 
   res.status(201).json(result.rows[0]);
 }));
 
 router.put('/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { pricing_tier_id, status, expires_at } = req.body;
+  const { pricing_tier_id, status, expires_at, actual_amount } = req.body;
 
   const existingEnrollment = await query('SELECT id, product_id, cohort_id FROM labs.user_enrollments WHERE id = $1', [id]);
   if (existingEnrollment.rows.length === 0) {
@@ -138,6 +139,11 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async 
   if (expires_at !== undefined) {
     params.push(expires_at || null);
     updateQuery += `, expires_at = $${paramIndex++}`;
+  }
+
+  if (actual_amount !== undefined) {
+    params.push(actual_amount !== null && actual_amount !== '' ? actual_amount : null);
+    updateQuery += `, actual_amount = $${paramIndex++}`;
   }
 
   params.push(id);
