@@ -547,12 +547,19 @@ export function AdminStreamDetail({
       toast.error("Выберите пользователя");
       return;
     }
+    
+    if (!memberForm.pricing_tier_id) {
+      toast.error("Выберите тариф");
+      return;
+    }
 
     try {
+      const parsedAmount = memberForm.actual_amount ? parseFloat(memberForm.actual_amount) : null;
       await apiClient.post(`/admin/cohorts/${cohortId}/members`, {
         user_id: memberForm.user_id,
         pricing_tier_id: memberForm.pricing_tier_id,
         expires_at: memberForm.expires_at || null,
+        actual_amount: parsedAmount,
       });
       await loadMembers();
       setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "", actual_amount: "" });
@@ -1276,13 +1283,13 @@ export function AdminStreamDetail({
                   </Select>
                 </AdminFormField>
 
-                <AdminFormField label="Тариф" emoji="🏷️">
+                <AdminFormField label="Тариф" required emoji="🏷️">
                   <Select
                     value={memberForm.pricing_tier_id?.toString() || ""}
                     onValueChange={(value: string) => setMemberForm({ ...memberForm, pricing_tier_id: value ? parseInt(value) : null })}
                   >
                     <SelectTrigger className="h-12">
-                      <SelectValue placeholder="Выберите тариф (опционально)" />
+                      <SelectValue placeholder="Выберите тариф" />
                     </SelectTrigger>
                     <SelectContent>
                       {tiers.map((tier) => (
@@ -1292,6 +1299,21 @@ export function AdminStreamDetail({
                       ))}
                     </SelectContent>
                   </Select>
+                </AdminFormField>
+
+                <AdminFormField label="Фактическая сумма оплаты" emoji="💵">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={memberForm.pricing_tier_id ? `Цена тарифа: ${tiers.find(t => t.id === memberForm.pricing_tier_id)?.price?.toLocaleString('ru-RU') || ''} ₽` : 'Сначала выберите тариф'}
+                    value={memberForm.actual_amount}
+                    onChange={(e) => setMemberForm({ ...memberForm, actual_amount: e.target.value })}
+                    className="h-12"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Оставьте пустым для использования цены тарифа
+                  </p>
                 </AdminFormField>
 
                 <AdminFormField label="Срок действия" emoji="📅">
