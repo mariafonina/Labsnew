@@ -24,7 +24,7 @@ router.post(
     let result;
     if (cohortIds && cohortIds.length > 0) {
       result = await query(
-        `SELECT DISTINCT u.id, u.username, u.email 
+        `SELECT DISTINCT u.id, u.username, u.email, u.created_at
          FROM labs.users u
          JOIN labs.cohort_members cm ON u.id = cm.user_id
          WHERE cm.cohort_id = ANY($1) 
