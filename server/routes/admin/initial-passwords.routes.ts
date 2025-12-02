@@ -50,26 +50,36 @@ router.post(
         message: 'Нет пользователей для рассылки',
         sent: 0,
         failed: 0,
+        skipped: 0,
         total: 0
       });
       return;
     }
 
+    // Get users who already have valid (unused, non-expired) tokens
+    const existingTokensResult = await query(
+      `SELECT DISTINCT user_id FROM labs.initial_password_tokens 
+       WHERE used = FALSE AND expires_at > NOW()`
+    );
+    const usersWithValidTokens = new Set(existingTokensResult.rows.map((r: any) => r.user_id));
+
     const results = {
       sent: 0,
       failed: 0,
+      skipped: 0,
       total: users.length,
       errors: [] as Array<{ email: string; error: string }>
     };
 
     for (const user of users) {
-      try {
-        await query(
-          `DELETE FROM labs.initial_password_tokens 
-           WHERE user_id = $1 AND used = FALSE`,
-          [user.id]
-        );
+      // Skip users who already have a valid token
+      if (usersWithValidTokens.has(user.id)) {
+        results.skipped++;
+        console.log(`⊘ Skipped ${user.email} - already has valid token`);
+        continue;
+      }
 
+      try {
         const token = await generateInitialPasswordToken(user.id);
         await sendInitialPasswordEmail(user.email, user.username, token);
         results.sent++;
@@ -87,9 +97,10 @@ router.post(
 
     res.json({
       success: true,
-      message: `Рассылка завершена: отправлено ${results.sent} из ${results.total}`,
+      message: `Рассылка завершена: отправлено ${results.sent}, пропущено ${results.skipped} (уже получили письмо)`,
       sent: results.sent,
       failed: results.failed,
+      skipped: results.skipped,
       total: results.total,
       errors: results.errors.length > 0 ? results.errors : undefined
     });

@@ -119,7 +119,13 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
       const result = await apiClient.sendInitialPasswords(selectedCohorts);
       
       if (result.sent > 0) {
-        toast.success(`Отправлено ${result.sent} из ${result.total} писем с паролями`);
+        let message = `Отправлено ${result.sent} писем с паролями`;
+        if (result.skipped > 0) {
+          message += ` (${result.skipped} пропущено - уже получили)`;
+        }
+        toast.success(message);
+      } else if (result.skipped > 0 && result.sent === 0) {
+        toast.info(`Все ${result.skipped} пользователей уже получили письма ранее`);
       } else if (result.total === 0) {
         toast.info("Нет пользователей в выбранных потоках для рассылки");
       } else {

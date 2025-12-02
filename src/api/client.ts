@@ -683,7 +683,7 @@ class ApiClient {
     return this.post('/reset-password', { token, newPassword });
   }
 
-  async sendInitialPasswords(cohortIds?: number[]): Promise<{ sent: number; failed: number; total: number; message: string }> {
+  async sendInitialPasswords(cohortIds?: number[]): Promise<{ sent: number; failed: number; skipped: number; total: number; message: string }> {
     return this.post('/admin/send-initial-passwords', { cohortIds });
   }
 
