@@ -247,6 +247,7 @@ interface AppContextType {
   updateCohortKnowledgeCategory: (cohortId: number, categoryId: string | number, updates: Partial<CohortKnowledgeCategory>) => Promise<void>;
   deleteCohortKnowledgeCategory: (cohortId: number, categoryId: string | number) => Promise<void>;
   moveCohortKnowledgeCategory: (cohortId: number, categoryId: string | number, newOrder: number) => Promise<void>;
+  refreshRecordings: () => Promise<void>;
   addRecording: (recording: Omit<Recording, "id" | "views">) => void;
   updateRecording: (id: string, updates: Partial<Recording>) => void;
   deleteRecording: (id: string) => void;
@@ -1707,6 +1708,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           loom_embed_url: item.loom_embed_url,
           instructor: item.instructor,
           views: item.views || 0,
+          view_count: parseInt(String(item.view_count || 0)),
           thumbnail: item.thumbnail,
           category: item.category
         })) : [];
@@ -1726,6 +1728,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error fetching content:', error);
+    }
+  };
+
+  // Refresh recordings from API
+  const refreshRecordings = async () => {
+    try {
+      const recordingsData = await apiClient.getRecordings();
+      const items = recordingsData.length > 0 ? recordingsData.map((item: any) => ({
+        id: String(item.id),
+        title: item.title,
+        description: item.description,
+        date: item.date,
+        duration: item.duration,
+        loomUrl: item.loom_url,
+        videoUrl: item.video_url,
+        loom_embed_url: item.loom_embed_url,
+        instructor: item.instructor,
+        views: item.views || 0,
+        view_count: parseInt(String(item.view_count || 0)),
+        thumbnail: item.thumbnail,
+        category: item.category
+      })) : [];
+      setRecordings(items);
+    } catch (error) {
+      console.error('Error refreshing recordings:', error);
     }
   };
 
@@ -1945,6 +1972,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateCohortKnowledgeCategory,
         deleteCohortKnowledgeCategory,
         moveCohortKnowledgeCategory,
+        refreshRecordings,
         addRecording,
         updateRecording,
         deleteRecording,

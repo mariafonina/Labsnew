@@ -27,7 +27,8 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
     toggleCommentLike,
     isLiked,
     addNote,
-    auth
+    auth,
+    refreshRecordings
   } = useApp();
 
   useEffect(() => {
@@ -51,13 +52,14 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
       if (auth.isAuthenticated) {
         try {
           await apiClient.recordRecordingView(parseInt(recording.id));
+          await refreshRecordings();
         } catch (error) {
           console.error('Failed to record view:', error);
         }
       }
     };
     recordView();
-  }, [recording.id, auth.isAuthenticated]);
+  }, [recording.id, auth.isAuthenticated, refreshRecordings]);
 
   const handleToggleFavorite = () => {
     if (isFavorite(recording.id)) {
