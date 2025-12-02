@@ -169,12 +169,10 @@ export function EventsCalendar() {
                       <Clock className="h-3.5 w-3.5" />
                       <span>{event.time}</span>
                     </div>
-                    {event.view_count !== undefined && parseInt(String(event.view_count)) > 0 && (
-                      <div className="flex items-center gap-1">
-                        <Eye className="h-3.5 w-3.5" />
-                        <span>{event.view_count} просмотров</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-1">
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>{event.view_count ?? 0} просмотров</span>
+                    </div>
                   </div>
                 </div>
               </Card>
