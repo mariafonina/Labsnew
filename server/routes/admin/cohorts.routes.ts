@@ -146,6 +146,7 @@ router.get('/:id/members', verifyToken, requireAdmin, asyncHandler(async (req: A
   const result = await query(`
     SELECT cm.*, u.username, u.email, u.first_name, u.last_name,
            ue.id as enrollment_id, ue.pricing_tier_id, ue.status as enrollment_status, ue.expires_at,
+           ue.actual_amount,
            pt.name as tier_name, pt.price as tier_price, pt.tier_level
     FROM labs.cohort_members cm
     JOIN labs.users u ON cm.user_id = u.id
@@ -159,7 +160,7 @@ router.get('/:id/members', verifyToken, requireAdmin, asyncHandler(async (req: A
 
 router.post('/:id/members', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { user_ids, user_id, pricing_tier_id, expires_at } = req.body;
+  const { user_ids, user_id, pricing_tier_id, expires_at, actual_amount } = req.body;
 
   // Get cohort with product_id
   const cohort = await query('SELECT id, product_id, max_participants FROM labs.cohorts WHERE id = $1', [id]);
@@ -197,18 +198,19 @@ router.post('/:id/members', verifyToken, requireAdmin, createLimiter, asyncHandl
       DO UPDATE SET left_at = NULL, joined_at = CURRENT_TIMESTAMP
     `, [id, user_id]);
 
-    // Create/update enrollment
+    // Create/update enrollment with actual_amount
     const enrollment = await query(`
-      INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status, expires_at)
-      VALUES ($1, $2, $3, $4, 'active', $5)
+      INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status, expires_at, actual_amount)
+      VALUES ($1, $2, $3, $4, 'active', $5, $6)
       ON CONFLICT (user_id, product_id, cohort_id) 
       DO UPDATE SET 
         pricing_tier_id = EXCLUDED.pricing_tier_id,
         status = 'active',
         expires_at = EXCLUDED.expires_at,
+        actual_amount = EXCLUDED.actual_amount,
         updated_at = CURRENT_TIMESTAMP
       RETURNING *
-    `, [user_id, cohortData.product_id, pricing_tier_id, id, expires_at || null]);
+    `, [user_id, cohortData.product_id, pricing_tier_id, id, expires_at || null, actual_amount !== undefined && actual_amount !== null && actual_amount !== '' ? actual_amount : null]);
 
     return res.status(201).json({ 
       message: 'Member added to cohort with tier', 

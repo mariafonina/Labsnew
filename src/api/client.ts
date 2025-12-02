@@ -776,6 +776,10 @@ class ApiClient {
     return this.get<any[]>(`/admin/cohorts/${cohortId}/members`);
   }
 
+  async getPricingTiers(cohortId: number) {
+    return this.get<any[]>(`/admin/cohorts/${cohortId}/tiers`);
+  }
+
   async addCohortMembers(cohortId: number, userIds: number[]) {
     return this.post<any>(`/admin/cohorts/${cohortId}/members`, { user_ids: userIds });
   }
@@ -785,6 +789,7 @@ class ApiClient {
     pricing_tier_id: number; 
     status?: string;
     expires_at?: string | null;
+    actual_amount?: number | null;
   }) {
     return this.post<any>(`/admin/cohorts/${cohortId}/members`, data);
   }

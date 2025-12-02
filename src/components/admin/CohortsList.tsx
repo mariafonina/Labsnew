@@ -240,7 +240,7 @@ export function CohortsList({ productId }: CohortsListProps) {
             <DialogHeader>
               <DialogTitle>Участники потока: {selectedCohort.name}</DialogTitle>
             </DialogHeader>
-            <CohortMembers cohortId={selectedCohort.id} />
+            <CohortMembers cohortId={selectedCohort.id} productId={productId} />
           </DialogContent>
         </Dialog>
       )}
