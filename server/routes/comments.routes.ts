@@ -94,4 +94,28 @@ router.delete('/admin/:id', verifyToken, requireAdmin, asyncHandler(async (req: 
   res.json({ message: 'Comment and its replies deleted successfully' });
 }));
 
+// Admin route: Fix author names - replace email with username for admin comments
+router.post('/admin/fix-author-names', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
+  // Get admin user info
+  const userResult = await query('SELECT username FROM labs.users WHERE id = $1', [req.userId]);
+  if (userResult.rows.length === 0) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+  const adminUsername = userResult.rows[0].username;
+  
+  // Update all admin comments that have email-like author_name to use username
+  const result = await query(
+    `UPDATE labs.comments 
+     SET author_name = $1 
+     WHERE user_id = $2 AND author_role = 'admin' AND author_name LIKE '%@%'
+     RETURNING id`,
+    [adminUsername, req.userId]
+  );
+  
+  res.json({ 
+    message: 'Author names fixed successfully', 
+    updatedCount: result.rows.length 
+  });
+}));
+
 export default router;
