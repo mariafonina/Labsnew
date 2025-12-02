@@ -86,11 +86,31 @@ export async function initializeDatabase() {
         event_date DATE NOT NULL,
         event_time TIME,
         location VARCHAR(200),
+        views INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     console.log('Table "labs.events" created');
+
+    await query(`
+      ALTER TABLE labs.events
+      ADD COLUMN IF NOT EXISTS views INTEGER DEFAULT 0
+    `);
+
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.event_views (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
+        event_id INTEGER REFERENCES labs.events(id) ON DELETE CASCADE,
+        viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(user_id, event_id)
+      )
+    `);
+    console.log('Table "labs.event_views" created');
+
+    await query('CREATE INDEX IF NOT EXISTS idx_event_views_user_id ON labs.event_views(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_event_views_event_id ON labs.event_views(event_id)');
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.favorites (

@@ -7,10 +7,11 @@ import { deleteOneOrFail } from '../utils/db-helpers';
 const router = Router();
 
 router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
-  // Получаем все события
   const result = await query(`
-    SELECT * FROM labs.events
-    ORDER BY event_date ASC, event_time ASC
+    SELECT e.*, 
+      (SELECT COUNT(*) FROM labs.event_views ev WHERE ev.event_id = e.id) as view_count
+    FROM labs.events e
+    ORDER BY e.event_date ASC, e.event_time ASC
   `);
   console.log(`[EVENTS] Total events in DB:`, result.rows.length);
 
@@ -113,6 +114,20 @@ router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Re
   const deleted = await deleteOneOrFail('events', { id: req.params.id, user_id: req.userId! }, res);
   if (!deleted) return;
   res.json({ message: 'Event deleted successfully' });
+}));
+
+router.post('/:id/view', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const userId = req.userId!;
+
+  await query(`
+    INSERT INTO labs.event_views (user_id, event_id, viewed_at)
+    VALUES ($1, $2, CURRENT_TIMESTAMP)
+    ON CONFLICT (user_id, event_id) 
+    DO UPDATE SET viewed_at = CURRENT_TIMESTAMP
+  `, [userId, id]);
+
+  res.json({ success: true });
 }));
 
 export default router;

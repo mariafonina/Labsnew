@@ -1,27 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
-import { Calendar, Clock, Video, Bookmark } from "lucide-react";
+import { Calendar, Clock, Video, Bookmark, Eye } from "lucide-react";
 import { EventQuestions } from "./EventQuestions";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { apiClient } from "../api/client";
 
-interface Event {
-  id: string;
-  title: string;
-  description?: string;
-  date: string;
-  time?: string;
-  location?: string;
-  type?: string;
-  instructor?: string;
-  link?: string;
-}
-
 export function EventsCalendar() {
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
-  const { events, getCommentsByEvent, addToFavorites, removeFromFavorites, isFavorite, auth } = useApp();
+  const { events, addToFavorites, removeFromFavorites, isFavorite, auth } = useApp();
 
   // Get user gender for colors
   const gender = auth.isAuthenticated
@@ -89,8 +77,6 @@ export function EventsCalendar() {
         {upcomingEvents.length > 0 && (
           <div className="space-y-4">
             {upcomingEvents.map((event) => {
-              const questionsCount = getCommentsByEvent(event.id).filter(c => !c.parentId).length;
-
               return (
                 <Card
                   key={event.id}
@@ -135,7 +121,16 @@ export function EventsCalendar() {
                     <div className="flex gap-3">
                       {isUrl(event.location) && (
                         <Button
-                          onClick={() => window.open(event.location, "_blank")}
+                          onClick={async () => {
+                            if (auth.isAuthenticated) {
+                              try {
+                                await apiClient.recordEventView(parseInt(event.id));
+                              } catch (error) {
+                                console.error('Failed to record event view:', error);
+                              }
+                            }
+                            window.open(event.location, "_blank");
+                          }}
                           className={`flex-1 ${gender === "male" ? "bg-gradient-to-r from-lime-400 to-green-400 hover:from-lime-500 hover:to-green-500 hover:shadow-[0_0_30px_rgba(132,204,22,0.7)]" : "bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 hover:shadow-[0_0_30px_rgba(251,113,133,0.7)]"} text-white border-0 font-extrabold h-12 px-6 shadow-lg transition-all duration-200`}
                         >
                           <Video className="h-5 w-5 mr-2" />
@@ -174,6 +169,12 @@ export function EventsCalendar() {
                       <Clock className="h-3.5 w-3.5" />
                       <span>{event.time}</span>
                     </div>
+                    {event.view_count !== undefined && parseInt(String(event.view_count)) > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Eye className="h-3.5 w-3.5" />
+                        <span>{event.view_count} просмотров</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </Card>

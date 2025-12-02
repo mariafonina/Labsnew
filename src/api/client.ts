@@ -443,6 +443,12 @@ class ApiClient {
     });
   }
 
+  async recordEventView(eventId: number) {
+    return this.request<{ success: boolean }>(`/events/${eventId}/view`, {
+      method: 'POST',
+    });
+  }
+
   async getFAQ() {
     return this.request<any[]>('/faq');
   }

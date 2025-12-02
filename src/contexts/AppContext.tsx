@@ -98,6 +98,7 @@ export interface Event {
   instructor: string;
   type: "upcoming" | "past";
   link?: string;
+  view_count?: string | number;
 }
 
 export interface Instruction {
@@ -1660,7 +1661,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           duration: item.duration,
           instructor: item.instructor,
           type: item.type,
-          link: item.link
+          link: item.link,
+          view_count: item.view_count
         })) : [];
         console.log('[AppContext] Setting events:', items.length);
         setEvents(items);
