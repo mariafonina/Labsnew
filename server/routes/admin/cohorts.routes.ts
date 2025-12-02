@@ -254,7 +254,7 @@ router.post('/:id/members', verifyToken, requireAdmin, createLimiter, asyncHandl
 
 router.put('/:id/members/:userId', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id, userId } = req.params;
-  const { pricing_tier_id, expires_at, status } = req.body;
+  const { pricing_tier_id, expires_at, status, actual_amount } = req.body;
 
   // Get cohort with product_id
   const cohort = await query('SELECT id, product_id FROM labs.cohorts WHERE id = $1', [id]);
@@ -279,18 +279,19 @@ router.put('/:id/members/:userId', verifyToken, requireAdmin, createLimiter, asy
     }
   }
 
-  // Update or create enrollment
+  // Update or create enrollment with actual_amount
   const enrollment = await query(`
-    INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status, expires_at)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO labs.user_enrollments (user_id, product_id, pricing_tier_id, cohort_id, status, expires_at, actual_amount)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     ON CONFLICT (user_id, product_id, cohort_id) 
     DO UPDATE SET 
       pricing_tier_id = COALESCE(EXCLUDED.pricing_tier_id, labs.user_enrollments.pricing_tier_id),
       status = COALESCE(EXCLUDED.status, labs.user_enrollments.status),
       expires_at = EXCLUDED.expires_at,
+      actual_amount = EXCLUDED.actual_amount,
       updated_at = CURRENT_TIMESTAMP
     RETURNING *
-  `, [userId, cohort.rows[0].product_id, pricing_tier_id || null, id, status || 'active', expires_at || null]);
+  `, [userId, cohort.rows[0].product_id, pricing_tier_id || null, id, status || 'active', expires_at || null, actual_amount !== undefined && actual_amount !== null ? actual_amount : null]);
 
   res.json({ message: 'Member enrollment updated', enrollment: enrollment.rows[0] });
 }));

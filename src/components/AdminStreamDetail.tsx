@@ -95,6 +95,7 @@ interface CohortMember {
   enrollment_status?: string;
   expires_at?: string;
   joined_at: string;
+  actual_amount?: number;
 }
 
 interface PricingTier {
@@ -180,7 +181,7 @@ export function AdminStreamDetail({
   const [tiers, setTiers] = useState<PricingTier[]>([]);
   const [isAddingMember, setIsAddingMember] = useState(false);
   const [editingMember, setEditingMember] = useState<CohortMember | null>(null);
-  const [memberForm, setMemberForm] = useState<{ user_id: number | null; pricing_tier_id: number | null; expires_at: string }>({ user_id: null, pricing_tier_id: null, expires_at: "" });
+  const [memberForm, setMemberForm] = useState<{ user_id: number | null; pricing_tier_id: number | null; expires_at: string; actual_amount: string }>({ user_id: null, pricing_tier_id: null, expires_at: "", actual_amount: "" });
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
@@ -554,7 +555,7 @@ export function AdminStreamDetail({
         expires_at: memberForm.expires_at || null,
       });
       await loadMembers();
-      setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
+      setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "", actual_amount: "" });
       setIsAddingMember(false);
       navigate(`/admin/products/${productId}/cohorts/${cohortId}/members`);
       toast.success("Участник добавлен");
@@ -565,13 +566,15 @@ export function AdminStreamDetail({
 
   const handleUpdateMember = async (userId: number) => {
     try {
+      const parsedAmount = memberForm.actual_amount ? parseFloat(memberForm.actual_amount) : null;
       await apiClient.put(`/admin/cohorts/${cohortId}/members/${userId}`, {
         pricing_tier_id: memberForm.pricing_tier_id,
         expires_at: memberForm.expires_at || null,
+        actual_amount: parsedAmount,
       });
       await loadMembers();
       setEditingMember(null);
-      setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
+      setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "", actual_amount: "" });
       navigate(`/admin/products/${productId}/cohorts/${cohortId}/members`);
       toast.success("Участник обновлён");
     } catch (error: any) {
@@ -596,6 +599,7 @@ export function AdminStreamDetail({
       user_id: member.user_id,
       pricing_tier_id: member.pricing_tier_id || null,
       expires_at: member.expires_at || "",
+      actual_amount: member.actual_amount != null ? member.actual_amount.toString() : "",
     });
   };
 
@@ -1247,7 +1251,7 @@ export function AdminStreamDetail({
               onCancel={() => {
                 navigate(`/admin/products/${productId}/cohorts/${cohortId}/members`);
                 setIsAddingMember(false);
-                setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
+                setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "", actual_amount: "" });
               }}
               submitText="Добавить"
             >
@@ -1310,7 +1314,7 @@ export function AdminStreamDetail({
               onCancel={() => {
                 navigate(`/admin/products/${productId}/cohorts/${cohortId}/members`);
                 setEditingMember(null);
-                setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "" });
+                setMemberForm({ user_id: null, pricing_tier_id: null, expires_at: "", actual_amount: "" });
               }}
               submitText="Сохранить"
             >
@@ -1340,6 +1344,21 @@ export function AdminStreamDetail({
                     onChange={(e) => setMemberForm({ ...memberForm, expires_at: e.target.value })}
                     className="h-12"
                   />
+                </AdminFormField>
+
+                <AdminFormField label="Фактическая сумма оплаты" emoji="💵">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder={memberForm.pricing_tier_id ? `Цена тарифа: ${tiers.find(t => t.id === memberForm.pricing_tier_id)?.price?.toLocaleString('ru-RU') || ''} ₽` : 'Введите сумму'}
+                    value={memberForm.actual_amount}
+                    onChange={(e) => setMemberForm({ ...memberForm, actual_amount: e.target.value })}
+                    className="h-12"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Оставьте пустым для использования цены тарифа
+                  </p>
                 </AdminFormField>
               </div>
             </AdminFormWrapper>
