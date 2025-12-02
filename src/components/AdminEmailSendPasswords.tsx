@@ -116,9 +116,16 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
     setIsSending(true);
 
     try {
-      // TODO: Implement actual API call when backend endpoint is ready
-      // For now, just show success message
-      toast.success(`Первичные пароли будут отправлены ученикам выбранных потоков`);
+      const result = await apiClient.sendInitialPasswords(selectedCohorts);
+      
+      if (result.sent > 0) {
+        toast.success(`Отправлено ${result.sent} из ${result.total} писем с паролями`);
+      } else if (result.total === 0) {
+        toast.info("Нет пользователей в выбранных потоках для рассылки");
+      } else {
+        toast.warning(`Не удалось отправить письма: ${result.failed} ошибок`);
+      }
+      
       onBack();
     } catch (error: any) {
       toast.error(error.message || "Не удалось отправить пароли");

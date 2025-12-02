@@ -19,12 +19,28 @@ router.post(
   asyncHandler(async (req: AuthRequest, res: Response) => {
     await cleanupExpiredInitialTokens();
 
-    const result = await query(
-      `SELECT id, username, email 
-       FROM labs.users 
-       WHERE role = 'user'
-       ORDER BY created_at DESC`
-    );
+    const { cohortIds } = req.body as { cohortIds?: number[] };
+
+    let result;
+    if (cohortIds && cohortIds.length > 0) {
+      result = await query(
+        `SELECT DISTINCT u.id, u.username, u.email 
+         FROM labs.users u
+         JOIN labs.cohort_members cm ON u.id = cm.user_id
+         WHERE cm.cohort_id = ANY($1) 
+           AND cm.left_at IS NULL
+           AND u.role = 'user'
+         ORDER BY u.created_at DESC`,
+        [cohortIds]
+      );
+    } else {
+      result = await query(
+        `SELECT id, username, email 
+         FROM labs.users 
+         WHERE role = 'user'
+         ORDER BY created_at DESC`
+      );
+    }
 
     const users = result.rows;
     
