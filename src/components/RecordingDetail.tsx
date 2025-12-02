@@ -85,7 +85,7 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
     try {
       await addComment({
         eventId: String(recording.id),
-        authorName: auth.email?.split('@')[0] || "Пользователь",
+        authorName: auth.username || "Пользователь",
         authorRole: "user",
         content: questionText,
       }, recording.title, "recording");
@@ -109,7 +109,7 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
       await addComment({
         eventId: String(recording.id),
         parentId,
-        authorName: auth.email?.split('@')[0] || (auth.isAdmin ? "Администратор" : "Пользователь"),
+        authorName: auth.username || (auth.isAdmin ? "Администратор" : "Пользователь"),
         authorRole: auth.isAdmin ? "admin" : "user",
         content: replyText,
       }, recording.title, "recording");

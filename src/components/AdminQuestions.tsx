@@ -93,7 +93,7 @@ export function AdminQuestions() {
           eventId: question.eventId,
           eventType: question.eventType,
           eventTitle: question.eventTitle,
-          authorName: auth.email || "Администратор",
+          authorName: auth.username || "Администратор",
           authorRole: "admin",
           content: replyText,
           parentId: question.id,

@@ -38,6 +38,7 @@ export function Login() {
         const user = JSON.parse(savedUser);
         setAuth({
           email: user.email || loginUsername,
+          username: user.username || loginUsername,
           password: '',
           isAuthenticated: true,
           rememberMe: rememberMe,

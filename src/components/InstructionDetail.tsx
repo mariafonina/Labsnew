@@ -74,7 +74,7 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
     try {
       await addComment({
         eventId: String(instruction.id),
-        authorName: auth.email?.split('@')[0] || "Пользователь",
+        authorName: auth.username || "Пользователь",
         authorRole: "user",
         content: questionText,
       }, instruction.title, "instruction");
@@ -98,7 +98,7 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
       await addComment({
         eventId: String(instruction.id),
         parentId,
-        authorName: auth.email?.split('@')[0] || (auth.isAdmin ? "Администратор" : "Пользователь"),
+        authorName: auth.username || (auth.isAdmin ? "Администратор" : "Пользователь"),
         authorRole: auth.isAdmin ? "admin" : "user",
         content: replyText,
       }, instruction.title, "instruction");

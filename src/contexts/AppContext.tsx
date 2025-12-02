@@ -59,6 +59,7 @@ export interface Notification {
 
 export interface AuthData {
   email: string;
+  username: string;
   password: string;
   isAuthenticated: boolean;
   rememberMe: boolean;
@@ -276,6 +277,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         console.log('[AppContext] Auth restored from auth_token/user:', user.email);
         return {
           email: user.email || "",
+          username: user.username || "",
           password: "",
           isAuthenticated: true,
           rememberMe: true,
@@ -300,6 +302,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     console.log('[AppContext] No auth in localStorage, user not authenticated');
     return {
       email: "",
+      username: "",
       password: "",
       isAuthenticated: false,
       rememberMe: false,
@@ -1189,6 +1192,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const adminCheck = email === "admin@course.ru" && password === "admin123";
     setAuth({
       email,
+      username: email.split('@')[0],
       password,
       isAuthenticated: true,
       rememberMe,
@@ -1200,6 +1204,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Clear user authentication
     setAuth({
       email: "",
+      username: "",
       password: "",
       isAuthenticated: false,
       rememberMe: false,
