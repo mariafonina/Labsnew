@@ -43,7 +43,16 @@ export function UserSidebar({
       if (auth.isAuthenticated) {
         try {
           const profile = await apiClient.getProfile();
-          const name = profile.first_name || profile.username || user?.username || "Пользователь";
+          let name = "";
+          if (profile.first_name && profile.last_name) {
+            name = `${profile.first_name} ${profile.last_name}`;
+          } else if (profile.first_name) {
+            name = profile.first_name;
+          } else if (profile.last_name) {
+            name = profile.last_name;
+          } else {
+            name = profile.username || user?.username || "Пользователь";
+          }
           setUserName(name);
         } catch (error) {
           console.error("Failed to load user name:", error);
