@@ -195,6 +195,27 @@ export async function initializeDatabase() {
     console.log('Table "labs.comments" created');
 
     await query(`
+      CREATE TABLE IF NOT EXISTS labs.notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES labs.users(id) ON DELETE CASCADE,
+        type VARCHAR(50) NOT NULL DEFAULT 'answer_received',
+        comment_id INTEGER REFERENCES labs.comments(id) ON DELETE CASCADE,
+        question_id INTEGER REFERENCES labs.comments(id) ON DELETE CASCADE,
+        event_id VARCHAR(255) NOT NULL,
+        event_type VARCHAR(50) NOT NULL DEFAULT 'event',
+        event_title VARCHAR(500),
+        answer_author VARCHAR(255) NOT NULL,
+        answer_preview TEXT,
+        is_read BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.notifications" created');
+
+    await query('CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON labs.notifications(user_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON labs.notifications(is_read)');
+
+    await query(`
       CREATE TABLE IF NOT EXISTS labs.progress (
         id SERIAL PRIMARY KEY,
         user_id INTEGER REFERENCES labs.users(id) ON DELETE CASCADE,
