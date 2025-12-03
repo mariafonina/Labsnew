@@ -184,8 +184,8 @@ export async function initializeDatabase() {
         event_id VARCHAR(100) NOT NULL,
         event_type VARCHAR(20),
         event_title VARCHAR(200),
-        author_name VARCHAR(100) NOT NULL,
-        author_role VARCHAR(10) NOT NULL,
+        author_name VARCHAR(100),
+        author_role VARCHAR(10),
         content TEXT NOT NULL,
         parent_id INTEGER REFERENCES labs.comments(id) ON DELETE CASCADE,
         likes INTEGER DEFAULT 0,
@@ -193,6 +193,11 @@ export async function initializeDatabase() {
       )
     `);
     console.log('Table "labs.comments" created');
+
+    // Migration: Drop NOT NULL constraints on author_name and author_role 
+    // (author info is now obtained via JOIN with users table)
+    await query(`ALTER TABLE labs.comments ALTER COLUMN author_name DROP NOT NULL`);
+    await query(`ALTER TABLE labs.comments ALTER COLUMN author_role DROP NOT NULL`);
 
     await query(`
       CREATE TABLE IF NOT EXISTS labs.notifications (
