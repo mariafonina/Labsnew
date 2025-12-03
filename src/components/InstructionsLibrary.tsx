@@ -257,10 +257,7 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                               {instruction.title}
                             </h3>
                             {isViewed && !isCompleted && (
-                              <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                                <Check className="h-3 w-3" />
-                                Просмотрено
-                              </span>
+                              <Check className="h-4 w-4 text-green-500" title="Просмотрено" />
                             )}
                           </div>
                           {instruction.description && (
@@ -356,10 +353,7 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                               {instruction.title}
                             </h3>
                             {isViewed && !isCompleted && (
-                              <span className="inline-flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-                                <Check className="h-3 w-3" />
-                                Просмотрено
-                              </span>
+                              <Check className="h-4 w-4 text-green-500" title="Просмотрено" />
                             )}
                           </div>
                           {instruction.description && (
