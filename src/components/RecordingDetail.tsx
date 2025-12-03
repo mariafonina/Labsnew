@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Card } from "./ui/card";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { ArrowLeft, Bookmark, ThumbsUp, Send, Download } from "lucide-react";
+import { ArrowLeft, Bookmark, ThumbsUp, Send, Download, FileText } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { LoomEmbed } from "./LoomEmbed";
@@ -157,6 +157,30 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
     }
   };
 
+  const handleDownloadMarkdownNotes = () => {
+    if (recording.notes) {
+      const sanitizedTitle = recording.title
+        .replace(/[<>:"/\\|?*]/g, '')
+        .replace(/\s+/g, '_');
+      const filename = `${sanitizedTitle}_конспект.md`;
+      
+      const header = `# ${recording.title}\n\n**Дата:** ${recording.date}\n**Спикер:** ${recording.instructor}\n\n---\n\n`;
+      const content = header + recording.notes;
+      
+      const blob = new Blob([content], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("«Конспект скачан»");
+    }
+  };
+
   const getInitials = (name: string) => {
     const parts = name.split(" ");
     if (parts.length >= 2) {
@@ -276,16 +300,28 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
         </div>
       )}
 
-      {/* Download Button - only show if summary_url exists */}
-      {recording.summary_url && (
-        <div className="mb-10">
-          <Button
-            onClick={handleDownloadSummary}
-            className="bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all h-12 px-8"
-          >
-            <Download className="h-5 w-5 mr-2" />
-            Скачать конспект
-          </Button>
+      {/* Download Buttons - show if summary_url or notes exist */}
+      {(recording.summary_url || recording.notes) && (
+        <div className="mb-10 flex flex-wrap gap-4">
+          {recording.summary_url && (
+            <Button
+              onClick={handleDownloadSummary}
+              className="bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all h-12 px-8"
+            >
+              <Download className="h-5 w-5 mr-2" />
+              Скачать конспект (PDF)
+            </Button>
+          )}
+          {recording.notes && (
+            <Button
+              onClick={handleDownloadMarkdownNotes}
+              variant="outline"
+              className="border-2 border-pink-400 text-pink-500 hover:bg-pink-50 font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all h-12 px-8"
+            >
+              <FileText className="h-5 w-5 mr-2" />
+              Скачать конспект (Markdown)
+            </Button>
+          )}
         </div>
       )}
 
