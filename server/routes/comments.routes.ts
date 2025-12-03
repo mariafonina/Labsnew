@@ -20,7 +20,10 @@ const COMMENTS_SELECT_WITH_USER = `
     c.parent_id,
     c.likes,
     c.created_at,
-    u.username as author_name,
+    COALESCE(
+      NULLIF(TRIM(CONCAT(COALESCE(u.first_name, ''), ' ', COALESCE(u.last_name, ''))), ''),
+      u.username
+    ) as author_name,
     u.role as author_role
   FROM labs.comments c
   LEFT JOIN labs.users u ON c.user_id = u.id
