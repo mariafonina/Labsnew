@@ -36,6 +36,7 @@ import setupPasswordRoutes from './routes/setup-password.routes';
 import webhooksRoutes from './routes/webhooks.routes';
 import adminObjectsRoutes from './routes/admin/objects.routes';
 import objectsRoutes from './routes/objects.routes';
+import notificationsRoutes from './routes/notifications.routes';
 
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
@@ -83,6 +84,7 @@ app.use('/api/favorites', favoritesRoutes);
 app.use('/api/notes', notesRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/comments', commentsRoutes);
+app.use('/api/notifications', notificationsRoutes);
 
 // Content routes (authentication required for cohort-based filtering)
 app.use('/api/news', newsRoutes);
