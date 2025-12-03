@@ -27,7 +27,8 @@ export function EventQuestions({ eventId, eventTitle, eventType = "event", open,
     if (open) {
       fetchEventComments(eventId);
     }
-  }, [eventId, open, fetchEventComments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId, open]);
 
   // Get user gender for colors
   const gender = auth.isAuthenticated 

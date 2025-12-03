@@ -35,7 +35,8 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
 
   useEffect(() => {
     fetchEventComments(String(instruction.id));
-  }, [instruction.id, fetchEventComments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [instruction.id]);
 
   const comments = getCommentsByEvent(String(instruction.id));
 

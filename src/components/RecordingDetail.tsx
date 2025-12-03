@@ -33,7 +33,8 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
 
   useEffect(() => {
     fetchEventComments(String(recording.id));
-  }, [recording.id, fetchEventComments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording.id]);
 
   const comments = getCommentsByEvent(String(recording.id));
 
