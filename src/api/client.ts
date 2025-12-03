@@ -691,6 +691,13 @@ class ApiClient {
     });
   }
 
+  async patch<T = any>(endpoint: string, data?: any): Promise<T> {
+    return this.request<T>(endpoint, {
+      method: 'PATCH',
+      body: data ? JSON.stringify(data) : undefined,
+    });
+  }
+
   async forgotPassword(email: string): Promise<{ message: string }> {
     return this.post('/forgot-password', { email });
   }
