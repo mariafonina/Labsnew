@@ -421,6 +421,26 @@ class ApiClient {
     });
   }
 
+  async getNotifications() {
+    return this.request<any[]>('/notifications');
+  }
+
+  async getUnreadNotificationsCount() {
+    return this.request<{ count: number }>('/notifications/unread-count');
+  }
+
+  async markNotificationAsRead(notificationId: number) {
+    return this.request<any>(`/notifications/${notificationId}/read`, {
+      method: 'PATCH',
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return this.request<{ message: string }>('/notifications/read-all', {
+      method: 'PATCH',
+    });
+  }
+
   async adminFixAuthorNames() {
     return this.request<{ message: string; updatedCount: number }>('/comments/admin/fix-author-names', {
       method: 'POST',
