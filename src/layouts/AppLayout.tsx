@@ -105,7 +105,7 @@ export function AppLayout() {
                   Наша служба заботы всегда готова помочь
                 </p>
                 <a
-                  href="https://t.me/support"
+                  href="https://t.me/mashtab_sherif"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white font-black rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
@@ -170,7 +170,7 @@ export function AppLayout() {
                 Наша служба заботы всегда готова помочь
               </p>
               <a
-                href="https://t.me/support"
+                href="https://t.me/mashtab_sherif"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500 text-white font-black rounded-xl shadow-lg hover:shadow-xl active:scale-95 transition-all duration-200"
