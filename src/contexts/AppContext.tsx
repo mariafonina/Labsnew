@@ -119,6 +119,7 @@ export interface Instruction {
   display_order?: number; // Поле из БД
   loom_embed_url?: string; // URL Loom видео для встраивания
   imageUrl?: string; // URL изображения на всю ширину
+  is_visible?: boolean; // Видимость инструкции для пользователей
 }
 
 export interface InstructionCategory {
@@ -130,6 +131,7 @@ export interface InstructionCategory {
   createdAt: string;
   created_at?: string; // Поле из БД
   updated_at?: string; // Поле из БД
+  is_visible?: boolean; // Видимость категории для пользователей
 }
 
 export interface CohortKnowledgeCategory {
@@ -142,6 +144,7 @@ export interface CohortKnowledgeCategory {
   createdAt: string;
   created_at?: string;
   updated_at?: string;
+  is_visible?: boolean; // Видимость категории для пользователей
 }
 
 export interface UserCohort {
@@ -241,6 +244,8 @@ interface AppContextType {
   updateInstructionCategory: (id: string, updates: Partial<InstructionCategory>) => void;
   deleteInstructionCategory: (id: string) => void;
   moveInstructionCategory: (categoryId: string, newOrder: number) => void;
+  toggleCategoryVisibility: (id: string, isVisible: boolean) => Promise<void>;
+  toggleInstructionVisibility: (id: string, isVisible: boolean) => Promise<void>;
   setSelectedCohort: (cohortId: number | null) => void;
   fetchCohortKnowledgeCategories: (cohortId: number) => Promise<void>;
   addCohortKnowledgeCategory: (cohortId: number, category: Omit<CohortKnowledgeCategory, "id" | "order" | "createdAt" | "cohort_id">) => Promise<void>;
@@ -1552,6 +1557,64 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const toggleCategoryVisibility = async (id: string, isVisible: boolean) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Не авторизован');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/instruction-categories/${id}/visibility`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ is_visible: isVisible }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка при изменении видимости категории');
+      }
+
+      setInstructionCategories((prev) =>
+        prev.map((item) => item.id === id ? { ...item, is_visible: isVisible } : item)
+      );
+    } catch (error) {
+      console.error('Error toggling category visibility:', error);
+      throw error;
+    }
+  };
+
+  const toggleInstructionVisibility = async (id: string, isVisible: boolean) => {
+    try {
+      const token = localStorage.getItem('auth_token');
+      if (!token) {
+        throw new Error('Не авторизован');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/instructions/${id}/visibility`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ is_visible: isVisible }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Ошибка при изменении видимости инструкции');
+      }
+
+      setInstructions((prev) =>
+        prev.map((item) => item.id === id ? { ...item, is_visible: isVisible } : item)
+      );
+    } catch (error) {
+      console.error('Error toggling instruction visibility:', error);
+      throw error;
+    }
+  };
+
   // Fetch instruction categories from API
   const fetchInstructionCategories = async () => {
     const token = localStorage.getItem('auth_token');
@@ -1872,6 +1935,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         description: cat.description,
         order: cat.display_order || 0,
         display_order: cat.display_order,
+        is_visible: cat.is_visible !== false,
         createdAt: cat.created_at,
         created_at: cat.created_at,
         updated_at: cat.updated_at
@@ -1974,6 +2038,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateInstructionCategory,
         deleteInstructionCategory,
         moveInstructionCategory,
+        toggleCategoryVisibility,
+        toggleInstructionVisibility,
         setSelectedCohort,
         fetchCohortKnowledgeCategories,
         addCohortKnowledgeCategory,

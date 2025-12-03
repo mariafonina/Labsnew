@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { query } from '../db';
-import { verifyToken, AuthRequest } from '../auth';
+import { verifyToken, requireAdmin, AuthRequest } from '../auth';
 import { asyncHandler } from '../utils/async-handler';
 import { findOneOrFail, deleteOneOrFail } from '../utils/db-helpers';
 import { validateAndNormalizeLoomUrl } from '../utils/loom-validator';
@@ -10,10 +10,11 @@ const router = Router();
 
 router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohort_id, cohort_category_id, search } = req.query;
+  const isAdmin = req.userRole === 'admin';
 
-  // Если админ с полным доступом - показываем все инструкции
-  if (req.forceFullAccess) {
-    console.log(`[INSTRUCTIONS] Admin full preview mode - showing all instructions`);
+  // Если админ с полным доступом или просто админ - показываем все инструкции (включая скрытые)
+  if (req.forceFullAccess || isAdmin) {
+    console.log(`[INSTRUCTIONS] Admin mode - showing all instructions (including hidden)`);
     
     let queryText = 'SELECT * FROM labs.instructions WHERE 1=1';
     const params: any[] = [];
@@ -61,7 +62,7 @@ router.get('/', verifyToken, asyncHandler(async (req: AuthRequest, res: Response
     return res.json([]);
   }
 
-  let queryText = 'SELECT * FROM labs.instructions WHERE 1=1';
+  let queryText = 'SELECT * FROM labs.instructions WHERE is_visible = true';
   const params: any[] = [];
   let paramIndex = 1;
 
@@ -242,6 +243,27 @@ router.delete('/:id', verifyToken, asyncHandler(async (req: AuthRequest, res: Re
   const deleted = await deleteOneOrFail('instructions', { id: req.params.id, user_id: req.userId! }, res);
   if (!deleted) return;
   res.json({ message: 'Instruction deleted successfully' });
+}));
+
+// Toggle instruction visibility (admin only)
+router.patch('/:id/visibility', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { is_visible } = req.body;
+
+  if (typeof is_visible !== 'boolean') {
+    return res.status(400).json({ error: 'is_visible должен быть boolean' });
+  }
+
+  const result = await query(
+    'UPDATE labs.instructions SET is_visible = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+    [is_visible, id]
+  );
+
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Инструкция не найдена' });
+  }
+
+  res.json(result.rows[0]);
 }));
 
 export default router;

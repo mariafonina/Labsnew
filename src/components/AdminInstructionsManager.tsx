@@ -17,6 +17,8 @@ import {
   GripVertical,
   ChevronDown,
   ChevronRight,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
@@ -57,6 +59,8 @@ interface CategoryCardProps {
   onAddInstruction: (categoryId: string) => void;
   onMoveCategory: (categoryId: string, newOrder: number) => void;
   onMoveInstruction: (instructionId: string, targetCategoryId: string, newOrder: number) => void;
+  onToggleCategoryVisibility: (id: string, isVisible: boolean) => void;
+  onToggleInstructionVisibility: (id: string, isVisible: boolean) => void;
   index: number;
 }
 
@@ -70,6 +74,8 @@ function CategoryCard({
   onAddInstruction,
   onMoveCategory,
   onMoveInstruction,
+  onToggleCategoryVisibility,
+  onToggleInstructionVisibility,
   index,
 }: CategoryCardProps) {
   const storageKey = `labs_category_expanded_${category.id}`;
@@ -117,10 +123,12 @@ function CategoryCard({
       <Card
         className={`border-2 transition-all ${
           isDragging ? "opacity-50" : ""
-        } ${isOver ? "border-pink-400 bg-pink-50" : ""}`}
+        } ${isOver ? "border-pink-400 bg-pink-50" : ""} ${
+          category.is_visible === false ? "opacity-60 bg-gray-50" : ""
+        }`}
       >
         {/* Category Header */}
-        <div className="p-4 bg-gray-50 border-b">
+        <div className={`p-4 border-b ${category.is_visible === false ? "bg-gray-100" : "bg-gray-50"}`}>
           <div className="flex items-center gap-3">
             <div
               ref={dragRef}
@@ -242,6 +250,21 @@ function CategoryCard({
                   <p>Добавить инструкцию в эту категорию</p>
                 </TooltipContent>
               </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onToggleCategoryVisibility(String(category.id), !category.is_visible)}
+                    className={category.is_visible === false ? "bg-gray-100 text-gray-400" : "hover:bg-gray-100"}
+                  >
+                    {category.is_visible === false ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{category.is_visible === false ? "Показать категорию" : "Скрыть категорию"}</p>
+                </TooltipContent>
+              </Tooltip>
               <Button
                 size="sm"
                 variant="outline"
@@ -285,6 +308,7 @@ function CategoryCard({
                   onEdit={onEditInstruction}
                   onDelete={onDeleteInstruction}
                   onMove={onMoveInstruction}
+                  onToggleVisibility={onToggleInstructionVisibility}
                   index={idx}
                 />
               ))
@@ -302,6 +326,7 @@ interface InstructionItemProps {
   onEdit: (instruction: Instruction) => void;
   onDelete: (id: string) => void;
   onMove: (instructionId: string, targetCategoryId: string, newOrder: number) => void;
+  onToggleVisibility: (id: string, isVisible: boolean) => void;
   index: number;
 }
 
@@ -311,6 +336,7 @@ function InstructionItem({
   onEdit,
   onDelete,
   onMove,
+  onToggleVisibility,
   index,
 }: InstructionItemProps) {
   const [{ isDragging }, dragRef, previewRef] = useDrag<
@@ -347,7 +373,9 @@ function InstructionItem({
       <Card
         className={`p-3 lg:p-4 transition-all ${
           isDragging ? "opacity-50" : ""
-        } ${isOver ? "border-pink-400 bg-pink-50" : "hover:shadow-md"}`}
+        } ${isOver ? "border-pink-400 bg-pink-50" : "hover:shadow-md"} ${
+          instruction.is_visible === false ? "opacity-60 bg-gray-50" : ""
+        }`}
       >
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
           <div className="hidden lg:block">
@@ -383,6 +411,21 @@ function InstructionItem({
               <Edit2 className="h-3 w-3 lg:mr-1" />
               <span className="hidden lg:inline text-xs">Изменить</span>
             </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onToggleVisibility(instruction.id, !instruction.is_visible)}
+                  className={instruction.is_visible === false ? "bg-gray-100 text-gray-400" : "hover:bg-gray-100"}
+                >
+                  {instruction.is_visible === false ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{instruction.is_visible === false ? "Показать инструкцию" : "Скрыть инструкцию"}</p>
+              </TooltipContent>
+            </Tooltip>
             <Button
               size="sm"
               variant="outline"
@@ -410,6 +453,8 @@ export function AdminInstructionsManager() {
     updateInstructionCategory,
     deleteInstructionCategory,
     moveInstructionCategory,
+    toggleCategoryVisibility,
+    toggleInstructionVisibility,
   } = useApp();
 
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -865,6 +910,22 @@ export function AdminInstructionsManager() {
                 }}
                 onMoveCategory={moveInstructionCategory}
                 onMoveInstruction={moveInstruction}
+                onToggleCategoryVisibility={async (id, isVisible) => {
+                  try {
+                    await toggleCategoryVisibility(id, isVisible);
+                    toast.success(isVisible ? "Категория показана" : "Категория скрыта");
+                  } catch (error) {
+                    toast.error("Ошибка при изменении видимости");
+                  }
+                }}
+                onToggleInstructionVisibility={async (id, isVisible) => {
+                  try {
+                    await toggleInstructionVisibility(id, isVisible);
+                    toast.success(isVisible ? "Инструкция показана" : "Инструкция скрыта");
+                  } catch (error) {
+                    toast.error("Ошибка при изменении видимости");
+                  }
+                }}
                 index={index}
               />
             ))

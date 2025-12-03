@@ -1063,6 +1063,16 @@ export async function initializeDatabase() {
     //   console.log(`Enrolled ${users.rows.length} existing users into default product`);
     // }
 
+    // Migration: Add is_visible column for instructions, categories, and cohort knowledge categories
+    try {
+      await query(`ALTER TABLE labs.instructions ADD COLUMN IF NOT EXISTS is_visible BOOLEAN DEFAULT true`);
+      await query(`ALTER TABLE labs.instruction_categories ADD COLUMN IF NOT EXISTS is_visible BOOLEAN DEFAULT true`);
+      await query(`ALTER TABLE labs.cohort_knowledge_categories ADD COLUMN IF NOT EXISTS is_visible BOOLEAN DEFAULT true`);
+      console.log('Added is_visible column to instructions, instruction_categories, and cohort_knowledge_categories');
+    } catch (err) {
+      console.error('Error adding is_visible columns:', err);
+    }
+
     console.log('Database initialization completed successfully!');
   } catch (error) {
     console.error('Error initializing database:', error);

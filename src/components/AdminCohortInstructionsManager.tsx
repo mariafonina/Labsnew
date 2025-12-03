@@ -18,6 +18,8 @@ import {
   ChevronDown,
   ChevronRight,
   BookOpen,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { DndProvider, useDrag, useDrop } from "react-dnd";
@@ -53,6 +55,7 @@ interface CohortInstruction {
   display_order: number;
   updated_at?: string;
   views?: number;
+  is_visible?: boolean;
 }
 
 interface CohortKnowledgeCategory {
@@ -61,6 +64,7 @@ interface CohortKnowledgeCategory {
   name: string;
   description?: string;
   display_order: number;
+  is_visible?: boolean;
 }
 
 interface DragItem {
@@ -80,6 +84,8 @@ interface CategoryCardProps {
   onAddInstruction: (categoryId: number) => void;
   onMoveCategory: (categoryId: number, newOrder: number) => void;
   onMoveInstruction: (instructionId: number, targetCategoryId: number, newOrder: number) => void;
+  onToggleCategoryVisibility: (id: number, isVisible: boolean) => void;
+  onToggleInstructionVisibility: (id: number, isVisible: boolean) => void;
   index: number;
   productId: number;
   cohortId: number;
@@ -95,6 +101,8 @@ function CategoryCard({
   onAddInstruction,
   onMoveCategory,
   onMoveInstruction,
+  onToggleCategoryVisibility,
+  onToggleInstructionVisibility,
   index,
   productId,
   cohortId,
@@ -145,10 +153,12 @@ function CategoryCard({
       <Card
         className={`border-2 transition-all ${
           isDragging ? "opacity-50" : ""
-        } ${isOver ? "border-purple-400 bg-purple-50" : ""}`}
+        } ${isOver ? "border-purple-400 bg-purple-50" : ""} ${
+          category.is_visible === false ? "opacity-60 bg-gray-50" : ""
+        }`}
       >
         {/* Category Header */}
-        <div className="p-4 bg-gray-50 border-b">
+        <div className={`p-4 border-b ${category.is_visible === false ? "bg-gray-100" : "bg-gray-50"}`}>
           <div className="flex items-center gap-3">
             <div
               ref={dragRef}
@@ -270,6 +280,21 @@ function CategoryCard({
                   <p>Добавить инструкцию в эту категорию</p>
                 </TooltipContent>
               </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onToggleCategoryVisibility(category.id, !category.is_visible)}
+                    className={category.is_visible === false ? "bg-gray-100 text-gray-400" : "hover:bg-gray-100"}
+                  >
+                    {category.is_visible === false ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{category.is_visible === false ? "Показать категорию" : "Скрыть категорию"}</p>
+                </TooltipContent>
+              </Tooltip>
               <Button
                 size="sm"
                 variant="outline"
@@ -313,6 +338,7 @@ function CategoryCard({
                   onEdit={onEditInstruction}
                   onDelete={onDeleteInstruction}
                   onMove={onMoveInstruction}
+                  onToggleVisibility={onToggleInstructionVisibility}
                   index={idx}
                   productId={productId}
                   cohortId={cohortId}
@@ -332,6 +358,7 @@ interface InstructionItemProps {
   onEdit: (instruction: CohortInstruction) => void;
   onDelete: (id: number) => void;
   onMove: (instructionId: number, targetCategoryId: number, newOrder: number) => void;
+  onToggleVisibility: (id: number, isVisible: boolean) => void;
   index: number;
   productId: number;
   cohortId: number;
@@ -343,6 +370,7 @@ function InstructionItem({
   onEdit,
   onDelete,
   onMove,
+  onToggleVisibility,
   index,
   productId,
   cohortId,
@@ -382,7 +410,9 @@ function InstructionItem({
       <Card
         className={`p-3 lg:p-4 transition-all ${
           isDragging ? "opacity-50" : ""
-        } ${isOver ? "border-purple-400 bg-purple-50" : "hover:shadow-md"}`}
+        } ${isOver ? "border-purple-400 bg-purple-50" : "hover:shadow-md"} ${
+          instruction.is_visible === false ? "opacity-60 bg-gray-50" : ""
+        }`}
       >
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3">
           <div className="hidden lg:block">
@@ -422,6 +452,21 @@ function InstructionItem({
               <Edit2 className="h-3 w-3 lg:mr-1" />
               <span className="hidden lg:inline text-xs">Изменить</span>
             </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => onToggleVisibility(instruction.id, !instruction.is_visible)}
+                  className={instruction.is_visible === false ? "bg-gray-100 text-gray-400" : "hover:bg-gray-100"}
+                >
+                  {instruction.is_visible === false ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{instruction.is_visible === false ? "Показать" : "Скрыть"}</p>
+              </TooltipContent>
+            </Tooltip>
             <Button
               size="sm"
               variant="outline"
@@ -649,6 +694,26 @@ export function AdminCohortInstructionsManager({
       toast.success("Инструкция удалена");
     } catch (error: any) {
       toast.error(error.message || "Ошибка при удалении инструкции");
+    }
+  };
+
+  const handleToggleCategoryVisibility = async (id: number, isVisible: boolean) => {
+    try {
+      await apiClient.patch(`/cohorts/${cohortId}/knowledge-categories/${id}/visibility`, { is_visible: isVisible });
+      setCategories(categories.map(c => c.id === id ? { ...c, is_visible: isVisible } : c));
+      toast.success(isVisible ? "Категория показана" : "Категория скрыта");
+    } catch (error: any) {
+      toast.error(error.message || "Ошибка при изменении видимости");
+    }
+  };
+
+  const handleToggleInstructionVisibility = async (id: number, isVisible: boolean) => {
+    try {
+      await apiClient.patch(`/instructions/${id}/visibility`, { is_visible: isVisible });
+      setInstructions(instructions.map(i => i.id === id ? { ...i, is_visible: isVisible } : i));
+      toast.success(isVisible ? "Инструкция показана" : "Инструкция скрыта");
+    } catch (error: any) {
+      toast.error(error.message || "Ошибка при изменении видимости");
     }
   };
 
@@ -1101,6 +1166,8 @@ export function AdminCohortInstructionsManager({
                   }}
                   onMoveCategory={handleMoveCategory}
                   onMoveInstruction={handleMoveInstruction}
+                  onToggleCategoryVisibility={handleToggleCategoryVisibility}
+                  onToggleInstructionVisibility={handleToggleInstructionVisibility}
                   index={index}
                   productId={productId}
                   cohortId={cohortId}

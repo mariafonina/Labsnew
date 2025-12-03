@@ -5,10 +5,14 @@ import { verifyToken, requireAdmin, AuthRequest } from '../auth';
 const router = Router();
 
 // Get all categories
-router.get('/', async (req, res) => {
+router.get('/', verifyToken, async (req: AuthRequest, res) => {
   try {
+    const isAdmin = req.userRole === 'admin';
+    
+    // Admin sees all categories, users see only visible ones
+    const visibilityFilter = isAdmin ? '' : 'WHERE is_visible = true';
     const result = await query(
-      'SELECT * FROM labs.instruction_categories ORDER BY display_order ASC, created_at ASC'
+      `SELECT * FROM labs.instruction_categories ${visibilityFilter} ORDER BY display_order ASC, created_at ASC`
     );
     res.json(result.rows);
   } catch (error) {
@@ -147,6 +151,32 @@ router.post('/reorder', verifyToken, requireAdmin, async (req: AuthRequest, res)
   } catch (error) {
     console.error('Error reordering instruction categories:', error);
     res.status(500).json({ error: 'Ошибка при изменении порядка категорий' });
+  }
+});
+
+// Toggle category visibility (admin only)
+router.patch('/:id/visibility', verifyToken, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const { is_visible } = req.body;
+
+    if (typeof is_visible !== 'boolean') {
+      return res.status(400).json({ error: 'is_visible должен быть boolean' });
+    }
+
+    const result = await query(
+      'UPDATE labs.instruction_categories SET is_visible = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [is_visible, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Категория не найдена' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error toggling instruction category visibility:', error);
+    res.status(500).json({ error: 'Ошибка при изменении видимости категории' });
   }
 });
 

@@ -8,6 +8,7 @@ const router = Router({ mergeParams: true });
 router.get('/', verifyToken, async (req: AuthRequest, res) => {
   try {
     const { cohortId } = req.params;
+    const isAdmin = req.userRole === 'admin';
 
     // Verify user has access to this cohort
     const accessCheck = await query(`
@@ -16,18 +17,20 @@ router.get('/', verifyToken, async (req: AuthRequest, res) => {
       AND (expires_at IS NULL OR expires_at > NOW())
     `, [req.userId, cohortId]);
 
-    if (accessCheck.rows.length === 0 && req.user?.role !== 'admin') {
-      return res.status(403).json({ error: '\u041d\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u0430 \u043a \u044d\u0442\u043e\u043c\u0443 \u043f\u043e\u0442\u043e\u043a\u0443' });
+    if (accessCheck.rows.length === 0 && !isAdmin) {
+      return res.status(403).json({ error: 'Нет доступа к этому потоку' });
     }
 
+    // Admin sees all categories, users see only visible ones
+    const visibilityFilter = isAdmin ? '' : 'AND is_visible = true';
     const result = await query(
-      'SELECT * FROM labs.cohort_knowledge_categories WHERE cohort_id = $1 ORDER BY display_order ASC, created_at ASC',
+      `SELECT * FROM labs.cohort_knowledge_categories WHERE cohort_id = $1 ${visibilityFilter} ORDER BY display_order ASC, created_at ASC`,
       [cohortId]
     );
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching cohort knowledge categories:', error);
-    res.status(500).json({ error: '\u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u043f\u043e\u043b\u0443\u0447\u0435\u043d\u0438\u0438 \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0439' });
+    res.status(500).json({ error: 'Ошибка при получении категорий' });
   }
 });
 
@@ -168,6 +171,32 @@ router.post('/reorder', verifyToken, requireAdmin, async (req: AuthRequest, res)
   } catch (error) {
     console.error('Error reordering cohort knowledge categories:', error);
     res.status(500).json({ error: '\u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u0440\u0438 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u0438 \u043f\u043e\u0440\u044f\u0434\u043a\u0430 \u043a\u0430\u0442\u0435\u0433\u043e\u0440\u0438\u0439' });
+  }
+});
+
+// Toggle category visibility (admin only)
+router.patch('/:id/visibility', verifyToken, requireAdmin, async (req: AuthRequest, res) => {
+  try {
+    const { cohortId, id } = req.params;
+    const { is_visible } = req.body;
+
+    if (typeof is_visible !== 'boolean') {
+      return res.status(400).json({ error: 'is_visible должен быть boolean' });
+    }
+
+    const result = await query(
+      'UPDATE labs.cohort_knowledge_categories SET is_visible = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND cohort_id = $3 RETURNING *',
+      [is_visible, id, cohortId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Категория не найдена' });
+    }
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Error toggling cohort knowledge category visibility:', error);
+    res.status(500).json({ error: 'Ошибка при изменении видимости категории' });
   }
 });
 
