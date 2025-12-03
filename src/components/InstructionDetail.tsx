@@ -143,27 +143,27 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
     return name.substring(0, 2).toUpperCase();
   };
 
-  const formatDate = (dateStr: string) => {
+  const formatDateTime = (dateStr: string) => {
     try {
       const date = new Date(dateStr);
-      const now = new Date();
-      const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+      const day = date.getDate();
+      const month = date.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
+      const year = date.getFullYear();
+      const hours = date.getHours().toString().padStart(2, "0");
+      const minutes = date.getMinutes().toString().padStart(2, "0");
+      return `${day} ${month}. ${year}, ${hours}:${minutes}`;
+    } catch {
+      return dateStr;
+    }
+  };
 
-      if (diffInHours < 1) {
-        return "только что";
-      } else if (diffInHours < 24) {
-        const hours = Math.floor(diffInHours);
-        return `${hours} ${hours === 1 ? 'час' : hours < 5 ? 'часа' : 'часов'} назад`;
-      } else if (diffInHours < 48) {
-        return "вчера";
-      } else {
-        const day = date.getDate();
-        const month = date.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
-        const year = date.getFullYear();
-        const hours = date.getHours().toString().padStart(2, "0");
-        const minutes = date.getMinutes().toString().padStart(2, "0");
-        return `${day} ${month}., ${year}, ${hours}:${minutes}`;
-      }
+  const formatDateOnly = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      const day = date.getDate();
+      const month = date.toLocaleDateString("ru-RU", { month: "short" }).replace(".", "");
+      const year = date.getFullYear();
+      return `${day} ${month}. ${year}`;
     } catch {
       return dateStr;
     }
@@ -268,7 +268,7 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="font-black text-gray-900">{question.authorName}</span>
-                        <span className="text-sm text-gray-500">{formatDate(question.createdAt)}</span>
+                        <span className="text-sm text-gray-500">{formatDateTime(question.createdAt)}</span>
                       </div>
                       <p className="text-gray-700 mb-3 leading-relaxed whitespace-pre-wrap">{question.content}</p>
                       
@@ -343,7 +343,7 @@ export function InstructionDetail({ instruction, onBack }: InstructionDetailProp
                                       Преподаватель
                                     </span>
                                   )}
-                                  <span className="text-xs text-gray-500">{formatDate(reply.createdAt)}</span>
+                                  <span className="text-xs text-gray-500">{formatDateOnly(reply.createdAt)}</span>
                                 </div>
                                 <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
                               </div>
