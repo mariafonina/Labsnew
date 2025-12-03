@@ -16,6 +16,7 @@ import {
   Calendar,
   Video,
   Users,
+  FileText,
 } from "lucide-react";
 import {
   Select,
@@ -39,6 +40,7 @@ import { AdminFormWrapper } from "./AdminFormWrapper";
 import { AdminFormField } from "./AdminFormField";
 import { apiClient } from "../api/client";
 import { AdminCohortInstructionsManager } from "./AdminCohortInstructionsManager";
+import { RichTextEditor } from "./RichTextEditor";
 
 interface FAQ {
   id: number;
@@ -77,6 +79,7 @@ interface Recording {
   thumbnail?: string;
   views: number;
   description?: string;
+  notes?: string;
   created_at: string;
 }
 
@@ -174,7 +177,7 @@ export function AdminStreamDetail({
   // Recording states
   const [editingRecording, setEditingRecording] = useState<Recording | null>(null);
   const [isAddingRecording, setIsAddingRecording] = useState(false);
-  const [recordingForm, setRecordingForm] = useState({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
+  const [recordingForm, setRecordingForm] = useState({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
 
   // Members states
   const [members, setMembers] = useState<CohortMember[]>([]);
@@ -429,7 +432,7 @@ export function AdminStreamDetail({
     try {
       await apiClient.post(`/admin/cohort-materials/${cohortId}/recordings`, recordingForm);
       await loadMaterials();
-      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
+      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
       setIsAddingRecording(false);
       navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
       toast.success("Запись добавлена");
@@ -448,7 +451,7 @@ export function AdminStreamDetail({
       await apiClient.put(`/admin/cohort-materials/${cohortId}/recordings/${editingRecording.id}`, recordingForm);
       await loadMaterials();
       setEditingRecording(null);
-      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
+      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
       navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
       toast.success("Запись обновлена");
     } catch (error: any) {
@@ -505,7 +508,8 @@ export function AdminStreamDetail({
       date: recording.date,
       instructor: recording.instructor || "",
       thumbnail: recording.thumbnail || "",
-      description: recording.description || ""
+      description: recording.description || "",
+      notes: recording.notes || ""
     });
   };
 
@@ -991,7 +995,7 @@ export function AdminStreamDetail({
                 navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
                 setIsAddingRecording(false);
                 setEditingRecording(null);
-                setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "" });
+                setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
               }}
               submitText={editingRecording ? "Сохранить" : "Опубликовать"}
             >
@@ -1066,6 +1070,21 @@ export function AdminStreamDetail({
                     placeholder="Краткое описание записи..."
                     rows={4}
                   />
+                </AdminFormField>
+
+                <AdminFormField label="Конспект (Markdown)" emoji="📋">
+                  <div className="border rounded-lg">
+                    <RichTextEditor
+                      value={recordingForm.notes}
+                      onChange={(value) => setRecordingForm({ ...recordingForm, notes: value })}
+                      placeholder="Введите текст конспекта..."
+                      minHeight="300px"
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    <FileText className="h-4 w-4 inline mr-1" />
+                    Если заполнить конспект, пользователи смогут скачать его в формате Markdown
+                  </p>
                 </AdminFormField>
               </div>
             </AdminFormWrapper>

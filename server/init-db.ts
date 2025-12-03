@@ -444,6 +444,9 @@ export async function initializeDatabase() {
     await query(`ALTER TABLE labs.instructions ADD COLUMN IF NOT EXISTS loom_embed_url TEXT`);
     console.log('Added loom_embed_url columns to recordings and instructions');
 
+    await query(`ALTER TABLE labs.recordings ADD COLUMN IF NOT EXISTS notes TEXT`);
+    console.log('Added notes column to recordings');
+
     await query(`
       CREATE TABLE IF NOT EXISTS labs.products (
         id SERIAL PRIMARY KEY,
