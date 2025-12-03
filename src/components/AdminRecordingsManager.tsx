@@ -5,9 +5,10 @@ import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
-import { Plus, Pencil, Trash2, Video, Search } from "lucide-react";
+import { Plus, Pencil, Trash2, Video, Search, FileText } from "lucide-react";
 import { AdminFormField } from "./AdminFormField";
 import { AdminEmptyState } from "./AdminEmptyState";
+import { RichTextEditor } from "./RichTextEditor";
 import { apiClient } from "../api/client";
 import { toast } from "sonner";
 
@@ -23,6 +24,7 @@ interface Recording {
   video_url?: string;
   loom_embed_url?: string;
   summary_url?: string;
+  notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +46,7 @@ export function AdminRecordingsManager() {
     video_url: "",
     loom_embed_url: "",
     summary_url: "",
+    notes: "",
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -75,6 +78,7 @@ export function AdminRecordingsManager() {
       video_url: "",
       loom_embed_url: "",
       summary_url: "",
+      notes: "",
     });
     setImageFile(null);
     setImagePreview("");
@@ -110,6 +114,7 @@ export function AdminRecordingsManager() {
       if (recordingForm.video_url) formData.append("video_url", recordingForm.video_url);
       if (recordingForm.loom_embed_url) formData.append("loom_embed_url", recordingForm.loom_embed_url);
       formData.append("summary_url", recordingForm.summary_url || "");
+      formData.append("notes", recordingForm.notes || "");
       if (imageFile) formData.append("thumbnail", imageFile);
 
       const newItem = await apiClient.createRecordingWithImage(formData);
@@ -140,6 +145,7 @@ export function AdminRecordingsManager() {
       if (recordingForm.video_url) formData.append("video_url", recordingForm.video_url);
       if (recordingForm.loom_embed_url) formData.append("loom_embed_url", recordingForm.loom_embed_url);
       formData.append("summary_url", recordingForm.summary_url || "");
+      formData.append("notes", recordingForm.notes || "");
       if (imageFile) formData.append("thumbnail", imageFile);
 
       const updated = await apiClient.updateRecordingWithImage(editingItem.id, formData);
@@ -177,6 +183,7 @@ export function AdminRecordingsManager() {
       video_url: item.video_url || "",
       loom_embed_url: item.loom_embed_url || "",
       summary_url: item.summary_url || "",
+      notes: item.notes || "",
     });
     setImagePreview(item.thumbnail || "");
     setIsAdding(false);
@@ -371,6 +378,20 @@ export function AdminRecordingsManager() {
                 onChange={(e) => setRecordingForm({ ...recordingForm, summary_url: e.target.value })}
                 placeholder="https://... (оставьте пустым, если конспекта нет)"
               />
+            </AdminFormField>
+            <AdminFormField label="Конспект (Markdown)">
+              <div className="border rounded-lg">
+                <RichTextEditor
+                  value={recordingForm.notes}
+                  onChange={(value) => setRecordingForm({ ...recordingForm, notes: value })}
+                  placeholder="Введите текст конспекта..."
+                  minHeight="300px"
+                />
+              </div>
+              <p className="text-sm text-gray-500 mt-2">
+                <FileText className="h-4 w-4 inline mr-1" />
+                Если заполнить этот конспект, пользователи смогут скачать его в формате Markdown
+              </p>
             </AdminFormField>
           </div>
           <DialogFooter className="gap-3">

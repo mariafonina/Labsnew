@@ -279,6 +279,12 @@ export async function initializeDatabase() {
       ADD COLUMN IF NOT EXISTS summary_url VARCHAR(500)
     `);
 
+    // Add notes column if it doesn't exist (migration for markdown notes)
+    await query(`
+      ALTER TABLE labs.recordings
+      ADD COLUMN IF NOT EXISTS notes TEXT
+    `);
+
     await query(`
       CREATE TABLE IF NOT EXISTS labs.recording_views (
         id SERIAL PRIMARY KEY,
