@@ -225,7 +225,7 @@ interface AppContextType {
   login: (email: string, password: string, rememberMe: boolean, isAdmin?: boolean) => void;
   logout: () => void;
   changePassword: (oldPassword: string, newPassword: string) => boolean;
-  markNotificationAsRead: (notificationId: string) => void;
+  markNotificationAsRead: (notificationId: string) => Promise<void>;
   getUnreadNotificationsCount: () => number;
   addNewsItem: (item: Omit<NewsItem, "id">) => void;
   updateNewsItem: (id: string, updates: Partial<NewsItem>) => void;
@@ -636,10 +636,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ];
   });
 
-  const [notifications, setNotifications] = useState<Notification[]>(() => {
-    const saved = localStorage.getItem("notifications");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem("users");
@@ -1061,29 +1058,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
       setComments((prev) => [newComment, ...prev]);
 
-      // Если это ответ на вопрос пользователя (есть parentId), создаём уведомление
-      if (comment.parentId && newComment.authorRole === "admin") {
-        const parentComment = comments.find((c) => c.id === comment.parentId);
-
-        // Проверяем, что родительский комментарий принадлежит пользователю
-        if (parentComment && parentComment.authorRole === "user") {
-          const notification: Notification = {
-            id: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            type: "answer_received",
-            commentId: newComment.id,
-            questionId: comment.parentId,
-            eventId: comment.eventId,
-            eventType: eventType || "event",
-            eventTitle: eventTitle || "Материал курса",
-            answerAuthor: newComment.authorName,
-            answerPreview: comment.content.substring(0, 100),
-            createdAt: new Date().toISOString(),
-            isRead: false,
-          };
-
-          setNotifications((prev) => [notification, ...prev]);
-        }
-      }
     } catch (error) {
       console.error('Failed to save comment:', error);
       throw error;
@@ -1251,12 +1225,43 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const markNotificationAsRead = (notificationId: string) => {
+  const markNotificationAsRead = async (notificationId: string) => {
     setNotifications((prev) =>
       prev.map((notif) =>
         notif.id === notificationId ? { ...notif, isRead: true } : notif
       )
     );
+    
+    try {
+      const numericId = parseInt(notificationId, 10);
+      if (!isNaN(numericId)) {
+        await apiClient.markNotificationAsRead(numericId);
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const data = await apiClient.getNotifications();
+      const mappedNotifications: Notification[] = data.map((item: any) => ({
+        id: String(item.id),
+        type: item.type,
+        commentId: String(item.comment_id),
+        questionId: String(item.question_id),
+        eventId: item.event_id,
+        eventType: item.event_type,
+        eventTitle: item.event_title,
+        answerAuthor: item.answer_author,
+        answerPreview: item.answer_preview,
+        createdAt: item.created_at,
+        isRead: item.is_read,
+      }));
+      setNotifications(mappedNotifications);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    }
   };
 
   const getUnreadNotificationsCount = (): number => {
@@ -1726,6 +1731,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         })) : [];
         setFaqItems(items);
       }
+
+      // Fetch notifications
+      await fetchNotifications();
     } catch (error) {
       console.error('Error fetching content:', error);
     }
