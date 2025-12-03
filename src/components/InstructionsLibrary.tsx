@@ -257,7 +257,7 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                               {instruction.title}
                             </h3>
                             {isViewed && !isCompleted && (
-                              <Check className="h-4 w-4 text-green-500" title="Просмотрено" />
+                              <Check className="h-4 w-4 text-green-500" />
                             )}
                           </div>
                           {instruction.description && (
@@ -353,7 +353,7 @@ export function InstructionsLibrary({ selectedItemId }: InstructionsLibraryProps
                               {instruction.title}
                             </h3>
                             {isViewed && !isCompleted && (
-                              <Check className="h-4 w-4 text-green-500" title="Просмотрено" />
+                              <Check className="h-4 w-4 text-green-500" />
                             )}
                           </div>
                           {instruction.description && (
