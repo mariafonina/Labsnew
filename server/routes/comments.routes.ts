@@ -6,6 +6,7 @@ import { asyncHandler } from '../utils/async-handler';
 import { deleteOneOrFail } from '../utils/db-helpers';
 import { protectedTextSubmission } from '../utils/text-content-middleware';
 import { sanitizeText } from '../utils/sanitize';
+import { createNotification } from './notifications.routes';
 
 const router = Router();
 
@@ -79,7 +80,41 @@ router.post('/', ...protectedTextSubmission({ maxDuplicates: 2, windowMs: 60000 
     [result.rows[0].id]
   );
 
-  res.status(201).json(commentResult.rows[0]);
+  const newComment = commentResult.rows[0];
+
+  // If this is a reply to a user's question by an admin, create a notification
+  if (parent_id && newComment.author_role === 'admin') {
+    try {
+      // Get the parent comment to check if it belongs to a regular user
+      const parentResult = await query(
+        'SELECT user_id, u.role as author_role FROM labs.comments c LEFT JOIN labs.users u ON c.user_id = u.id WHERE c.id = $1',
+        [parent_id]
+      );
+      
+      if (parentResult.rows.length > 0) {
+        const parentComment = parentResult.rows[0];
+        
+        // Only create notification if parent was written by a regular user (not admin)
+        if (parentComment.author_role === 'user') {
+          await createNotification(
+            parentComment.user_id,
+            newComment.id,
+            parseInt(parent_id),
+            event_id,
+            event_type || 'event',
+            sanitizedEventTitle || 'Материал курса',
+            newComment.author_name,
+            content.substring(0, 100)
+          );
+        }
+      }
+    } catch (notifError) {
+      console.error('Failed to create notification:', notifError);
+      // Don't fail the request if notification fails
+    }
+  }
+
+  res.status(201).json(newComment);
 }));
 
 // Update comment likes
