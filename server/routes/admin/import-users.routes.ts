@@ -193,6 +193,14 @@ router.post('/import', verifyToken, requireAdmin, upload.single('file'), async (
           enrolled++;
         }
 
+        // Добавляем в cohort_members если еще нет
+        await query(
+          `INSERT INTO labs.cohort_members (cohort_id, user_id)
+           VALUES ($1, $2)
+           ON CONFLICT (cohort_id, user_id) DO UPDATE SET left_at = NULL, joined_at = CURRENT_TIMESTAMP`,
+          [parseInt(user.cohortId), userId]
+        );
+
       } catch (error: any) {
         errorDetails.push(`Error processing ${user.email}: ${error.message}`);
         errors++;
