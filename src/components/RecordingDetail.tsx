@@ -10,6 +10,7 @@ import { LoomEmbed } from "./LoomEmbed";
 import type { Recording } from "../contexts/AppContext";
 import { validateAndNormalizeLoomUrl } from "../utils/loom-validator";
 import { apiClient } from "../api/client";
+import { sanitizeMarkdown } from "../utils/sanitize";
 
 interface RecordingDetailProps {
   recording: Recording;
@@ -300,19 +301,29 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
         </div>
       )}
 
-      {/* Download Buttons - show if summary_url or notes exist */}
-      {(recording.summary_url || recording.notes) && (
-        <div className="mb-10 flex flex-wrap gap-4">
-          {recording.summary_url && (
-            <Button
-              onClick={handleDownloadSummary}
-              className="bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all h-12 px-8"
-            >
-              <Download className="h-5 w-5 mr-2" />
-              Скачать конспект (PDF)
-            </Button>
-          )}
-          {recording.notes && (
+      {/* Notes Content - display like instruction content */}
+      {recording.notes && (
+        <div className="mb-10">
+          <h2 className="font-black text-3xl text-gray-900 mb-6">Конспект</h2>
+          <Card className="p-8 md:p-10 bg-white/80 backdrop-blur-sm border-gray-200/60 shadow-lg overflow-hidden">
+            <div className="rich-content prose prose-lg max-w-none">
+              <div
+                dangerouslySetInnerHTML={{ __html: sanitizeMarkdown(recording.notes) }}
+              />
+            </div>
+          </Card>
+          
+          {/* Download Buttons */}
+          <div className="mt-6 flex flex-wrap gap-4">
+            {recording.summary_url && (
+              <Button
+                onClick={handleDownloadSummary}
+                className="bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all h-12 px-8"
+              >
+                <Download className="h-5 w-5 mr-2" />
+                Скачать конспект (PDF)
+              </Button>
+            )}
             <Button
               onClick={handleDownloadMarkdownNotes}
               variant="outline"
@@ -321,7 +332,20 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
               <FileText className="h-5 w-5 mr-2" />
               Скачать конспект (Markdown)
             </Button>
-          )}
+          </div>
+        </div>
+      )}
+
+      {/* Download Buttons - show only if summary_url exists but no notes */}
+      {recording.summary_url && !recording.notes && (
+        <div className="mb-10 flex flex-wrap gap-4">
+          <Button
+            onClick={handleDownloadSummary}
+            className="bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all h-12 px-8"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Скачать конспект (PDF)
+          </Button>
         </div>
       )}
 
