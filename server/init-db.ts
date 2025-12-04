@@ -285,6 +285,12 @@ export async function initializeDatabase() {
       ADD COLUMN IF NOT EXISTS notes TEXT
     `);
 
+    // Add notes_url column for external notes link (e.g., Google Docs)
+    await query(`
+      ALTER TABLE labs.recordings
+      ADD COLUMN IF NOT EXISTS notes_url VARCHAR(500)
+    `);
+
     await query(`
       CREATE TABLE IF NOT EXISTS labs.recording_views (
         id SERIAL PRIMARY KEY,

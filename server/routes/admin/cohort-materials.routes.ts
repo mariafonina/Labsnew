@@ -140,17 +140,17 @@ router.delete('/:cohortId/instructions/:id', verifyToken, requireAdmin, asyncHan
 // Create recording for cohort
 router.post('/:cohortId/recordings', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohortId } = req.params;
-  const { title, video_url, loom_embed_url, duration, date, instructor, thumbnail, description, notes } = req.body;
+  const { title, video_url, loom_embed_url, duration, date, instructor, thumbnail, description, notes, notes_url } = req.body;
 
   if (!title || !date || !instructor) {
     return res.status(400).json({ error: 'Title, date, and instructor are required' });
   }
 
   const result = await query(`
-    INSERT INTO labs.recordings (cohort_id, title, video_url, loom_embed_url, duration, date, instructor, thumbnail, description, notes)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    INSERT INTO labs.recordings (cohort_id, title, video_url, loom_embed_url, duration, date, instructor, thumbnail, description, notes, notes_url)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
     RETURNING *
-  `, [cohortId, sanitizeText(title), video_url, loom_embed_url, duration, date, sanitizeText(instructor), thumbnail, description ? sanitizeText(description) : null, notes || null]);
+  `, [cohortId, sanitizeText(title), video_url, loom_embed_url, duration, date, sanitizeText(instructor), thumbnail, description ? sanitizeText(description) : null, notes || null, notes_url && notes_url.trim() ? notes_url.trim() : null]);
 
   res.status(201).json(result.rows[0]);
 }));
@@ -158,14 +158,14 @@ router.post('/:cohortId/recordings', verifyToken, requireAdmin, createLimiter, a
 // Update recording
 router.put('/:cohortId/recordings/:id', verifyToken, requireAdmin, createLimiter, asyncHandler(async (req: AuthRequest, res: Response) => {
   const { cohortId, id } = req.params;
-  const { title, video_url, loom_embed_url, duration, date, instructor, thumbnail, description, notes } = req.body;
+  const { title, video_url, loom_embed_url, duration, date, instructor, thumbnail, description, notes, notes_url } = req.body;
 
   const result = await query(`
     UPDATE labs.recordings
-    SET title = $1, video_url = $2, loom_embed_url = $3, duration = $4, date = $5, instructor = $6, thumbnail = $7, description = $8, notes = $9, updated_at = CURRENT_TIMESTAMP
-    WHERE id = $10 AND cohort_id = $11
+    SET title = $1, video_url = $2, loom_embed_url = $3, duration = $4, date = $5, instructor = $6, thumbnail = $7, description = $8, notes = $9, notes_url = $10, updated_at = CURRENT_TIMESTAMP
+    WHERE id = $11 AND cohort_id = $12
     RETURNING *
-  `, [sanitizeText(title), video_url, loom_embed_url, duration, date, sanitizeText(instructor), thumbnail, description ? sanitizeText(description) : null, notes || null, id, cohortId]);
+  `, [sanitizeText(title), video_url, loom_embed_url, duration, date, sanitizeText(instructor), thumbnail, description ? sanitizeText(description) : null, notes || null, notes_url && notes_url.trim() ? notes_url.trim() : null, id, cohortId]);
 
   if (result.rows.length === 0) {
     return res.status(404).json({ error: 'Recording not found' });

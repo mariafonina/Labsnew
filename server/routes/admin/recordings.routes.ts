@@ -31,7 +31,7 @@ router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest,
 }));
 
 router.post('/', verifyToken, requireAdmin, createLimiter, upload.single('thumbnail'), asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { title, date, duration, instructor, description, video_url, loom_embed_url, cohort_id, summary_url, notes } = req.body;
+  const { title, date, duration, instructor, description, video_url, loom_embed_url, cohort_id, summary_url, notes, notes_url } = req.body;
 
   if (!title || !date || !instructor) {
     return res.status(400).json({ error: 'Title, date, and instructor are required' });
@@ -57,8 +57,8 @@ router.post('/', verifyToken, requireAdmin, createLimiter, upload.single('thumbn
   const parsedCohortId = cohort_id ? parseInt(cohort_id, 10) : null;
 
   const result = await query(
-    'INSERT INTO labs.recordings (title, date, duration, instructor, thumbnail, views, description, video_url, loom_embed_url, cohort_id, summary_url, notes) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
-    [sanitizedTitle, date, duration, sanitizedInstructor, thumbnail, 0, sanitizedDescription, video_url, validatedLoomUrl, parsedCohortId, summary_url && summary_url.trim() ? summary_url.trim() : null, notes && notes.trim() ? notes.trim() : null]
+    'INSERT INTO labs.recordings (title, date, duration, instructor, thumbnail, views, description, video_url, loom_embed_url, cohort_id, summary_url, notes, notes_url) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *',
+    [sanitizedTitle, date, duration, sanitizedInstructor, thumbnail, 0, sanitizedDescription, video_url, validatedLoomUrl, parsedCohortId, summary_url && summary_url.trim() ? summary_url.trim() : null, notes && notes.trim() ? notes.trim() : null, notes_url && notes_url.trim() ? notes_url.trim() : null]
   );
 
   res.status(201).json(result.rows[0]);
@@ -66,7 +66,7 @@ router.post('/', verifyToken, requireAdmin, createLimiter, upload.single('thumbn
 
 router.put('/:id', verifyToken, requireAdmin, createLimiter, upload.single('thumbnail'), asyncHandler(async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
-  const { title, date, duration, instructor, description, video_url, loom_embed_url, cohort_id, summary_url, notes } = req.body;
+  const { title, date, duration, instructor, description, video_url, loom_embed_url, cohort_id, summary_url, notes, notes_url } = req.body;
 
   const sanitizedTitle = title ? sanitizeText(title) : undefined;
   const sanitizedInstructor = instructor ? sanitizeText(instructor) : undefined;
@@ -132,6 +132,10 @@ router.put('/:id', verifyToken, requireAdmin, createLimiter, upload.single('thum
   if (notes !== undefined) {
     updateParts.push(`notes = $${paramIndex++}`);
     values.push(notes && notes.trim() ? notes.trim() : null);
+  }
+  if (notes_url !== undefined) {
+    updateParts.push(`notes_url = $${paramIndex++}`);
+    values.push(notes_url && notes_url.trim() ? notes_url.trim() : null);
   }
 
   if (updateParts.length === 0) {
