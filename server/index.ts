@@ -35,6 +35,7 @@ import passwordResetRoutes from './routes/password-reset.routes';
 import setupPasswordRoutes from './routes/setup-password.routes';
 import webhooksRoutes from './routes/webhooks.routes';
 import adminObjectsRoutes from './routes/admin/objects.routes';
+import adminImportUsersRoutes from './routes/admin/import-users.routes';
 import objectsRoutes from './routes/objects.routes';
 import notificationsRoutes from './routes/notifications.routes';
 
@@ -106,6 +107,7 @@ app.use('/api/admin/enrollments', adminEnrollmentsRoutes);
 app.use('/api/admin/resources', adminResourcesRoutes);
 app.use('/api/admin', adminInitialPasswordsRoutes);
 app.use('/api/admin/objects', adminObjectsRoutes);
+app.use('/api/admin/import-users', adminImportUsersRoutes);
 
 // Object storage routes (for serving uploaded files)
 app.use('/objects', objectsRoutes);

@@ -99,6 +99,7 @@
             "server": "tsx watch server/index.ts",
             "build": "vite build",
             "migrate": "tsx server/migrate.ts",
+            "import:users": "tsx server/import-users.ts",
             "db:up": "docker-compose up -d",
             "db:down": "docker-compose down",
             "db:logs": "docker-compose logs -f postgres",
