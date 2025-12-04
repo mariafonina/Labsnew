@@ -5,9 +5,10 @@ import { verifyToken, requireAdmin, AuthRequest } from '../../auth';
 import { createLimiter } from '../../utils/rate-limit';
 import { 
   generateInitialPasswordToken, 
-  sendInitialPasswordEmail,
+  getInitialPasswordEmailContent,
   cleanupExpiredInitialTokens 
 } from '../../utils/initial-password';
+import { emailQueueService, QueuedEmail } from '../../utils/email-queue';
 
 const router = Router();
 
@@ -48,61 +49,69 @@ router.post(
       res.json({
         success: true,
         message: 'Нет пользователей для рассылки',
-        sent: 0,
-        failed: 0,
+        queued: 0,
         skipped: 0,
         total: 0
       });
       return;
     }
 
-    // Get users who already have valid (unused, non-expired) tokens
     const existingTokensResult = await query(
       `SELECT DISTINCT user_id FROM labs.initial_password_tokens 
        WHERE used = FALSE AND expires_at > NOW()`
     );
     const usersWithValidTokens = new Set(existingTokensResult.rows.map((r: any) => r.user_id));
 
-    const results = {
-      sent: 0,
-      failed: 0,
-      skipped: 0,
-      total: users.length,
-      errors: [] as Array<{ email: string; error: string }>
-    };
+    const emailsToQueue: QueuedEmail[] = [];
+    let skipped = 0;
 
     for (const user of users) {
-      // Skip users who already have a valid token
       if (usersWithValidTokens.has(user.id)) {
-        results.skipped++;
+        skipped++;
         console.log(`⊘ Skipped ${user.email} - already has valid token`);
         continue;
       }
 
       try {
         const token = await generateInitialPasswordToken(user.id);
-        await sendInitialPasswordEmail(user.email, user.username, token);
-        results.sent++;
+        const emailContent = getInitialPasswordEmailContent(user.email, user.username, token);
         
-        console.log(`✓ Sent initial password email to ${user.email}`);
-      } catch (error: any) {
-        results.failed++;
-        results.errors.push({
-          email: user.email,
-          error: error.message || 'Unknown error'
+        emailsToQueue.push({
+          email_type: 'initial_password',
+          recipient_email: user.email,
+          recipient_name: user.username,
+          subject: emailContent.subject,
+          html_content: emailContent.html,
+          from_email: emailContent.from_email,
+          from_name: emailContent.from_name,
+          user_id: user.id,
+          priority: 1
         });
-        console.error(`✗ Failed to send to ${user.email}:`, error.message);
+      } catch (error: any) {
+        console.error(`✗ Failed to generate token for ${user.email}:`, error.message);
       }
     }
 
+    if (emailsToQueue.length === 0) {
+      res.json({
+        success: true,
+        message: 'Нет пользователей для рассылки (все уже получили письмо)',
+        queued: 0,
+        skipped,
+        total: users.length
+      });
+      return;
+    }
+
+    const batchResult = await emailQueueService.addBatchToQueue(emailsToQueue);
+
     res.json({
       success: true,
-      message: `Рассылка завершена: отправлено ${results.sent}, пропущено ${results.skipped} (уже получили письмо)`,
-      sent: results.sent,
-      failed: results.failed,
-      skipped: results.skipped,
-      total: results.total,
-      errors: results.errors.length > 0 ? results.errors : undefined
+      message: `Рассылка запущена: ${batchResult.queued} писем в очереди, пропущено ${skipped} (уже получили письмо)`,
+      batch_id: batchResult.batch_id,
+      queued: batchResult.queued,
+      skipped,
+      total: users.length
     });
   })
 );

@@ -1,10 +1,11 @@
-import { Router } from 'express';
+import { Router, Response } from 'express';
 import { verifyToken, requireAdmin, AuthRequest } from '../../auth';
 import { query } from '../../db';
 import { createLimiter } from '../../utils/rate-limit';
 import { asyncHandler } from '../../utils/async-handler';
 import { sanitizeText } from '../../utils/sanitize';
 import { notisendClient } from '../../utils/notisend-client';
+import { emailQueueService, QueuedEmail } from '../../utils/email-queue';
 
 const router = Router();
 
@@ -249,50 +250,27 @@ router.post('/:id/send', verifyToken, requireAdmin, createLimiter, asyncHandler(
     ['sending', recipientEmails.length, id]
   );
 
-  let sendResult;
+  const emailsToQueue: QueuedEmail[] = recipientEmails.map(email => ({
+    email_type: 'campaign' as const,
+    recipient_email: email,
+    subject: campaign.subject || 'Уведомление',
+    html_content: campaign.html_content || '',
+    text_content: campaign.text_content,
+    template_id: campaign.template_id || undefined,
+    template_data: {},
+    from_email: 'noreply@mariafonina.ru',
+    from_name: 'ЛАБС',
+    campaign_id: parseInt(id),
+    priority: 0
+  }));
 
-  if (campaign.template_id) {
-    sendResult = await notisendClient.sendBulkTemplateEmail(
-      recipientEmails,
-      campaign.template_id,
-      {},
-      campaign.subject || 'Уведомление'
-    );
-  } else {
-    sendResult = await notisendClient.sendBulkEmail({
-      recipients: recipientEmails,
-      subject: campaign.subject || 'Notification',
-      html: campaign.html_content || '',
-      text: campaign.text_content,
-      from_email: 'noreply@mariafonina.ru',
-      from_name: 'ЛАБС',
-    });
-  }
-
-  for (const result of sendResult.results) {
-    await query(
-      'INSERT INTO labs.email_logs (campaign_id, recipient_email, status, notisend_id, sent_at) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)',
-      [id, result.email, 'sent', result.result?.id || null]
-    );
-  }
-
-  for (const error of sendResult.errors) {
-    await query(
-      'INSERT INTO labs.email_logs (campaign_id, recipient_email, status, error_message) VALUES ($1, $2, $3, $4)',
-      [id, error.email, 'failed', error.error]
-    );
-  }
-
-  await query(
-    'UPDATE labs.email_campaigns SET status = $1, sent_count = $2, failed_count = $3, sent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = $4',
-    ['sent', sendResult.sent, sendResult.failed, id]
-  );
+  const batchResult = await emailQueueService.addBatchToQueue(emailsToQueue);
 
   res.json({
-    message: 'Campaign sent successfully',
-    total: sendResult.total,
-    sent: sendResult.sent,
-    failed: sendResult.failed,
+    message: 'Рассылка запущена',
+    batch_id: batchResult.batch_id,
+    total: recipientEmails.length,
+    queued: batchResult.queued,
   });
 }));
 
@@ -318,36 +296,59 @@ router.post('/send-user-credentials', verifyToken, requireAdmin, createLimiter, 
     return res.status(400).json({ error: 'No users found' });
   }
 
-  const results = [];
-  const errors = [];
+  const emailsToQueue: QueuedEmail[] = users.map((user: any) => ({
+    email_type: 'credential' as const,
+    recipient_email: user.email,
+    recipient_name: user.username,
+    subject: 'Данные для входа в ЛАБС',
+    template_id: template_id,
+    template_data: {
+      username: user.username,
+      email: user.email,
+      login_url: process.env.REPLIT_DOMAINS?.split(',')[0] || 'https://yourapp.com',
+    },
+    from_email: 'noreply@mariafonina.ru',
+    from_name: 'ЛАБС',
+    user_id: user.id,
+    priority: 1
+  }));
 
-  for (const user of users) {
-    try {
-      const templateData = {
-        username: user.username,
-        email: user.email,
-        login_url: process.env.REPLIT_DOMAINS?.split(',')[0] || 'https://yourapp.com',
-      };
-
-      const result = await notisendClient.sendTemplateEmail(
-        user.email,
-        template_id,
-        templateData,
-        'Данные для входа в ЛАБС'
-      );
-
-      results.push({ user_id: user.id, email: user.email, status: 'sent', result });
-    } catch (error: any) {
-      errors.push({ user_id: user.id, email: user.email, status: 'failed', error: error.message });
-    }
-  }
+  const batchResult = await emailQueueService.addBatchToQueue(emailsToQueue);
 
   res.json({
+    message: 'Рассылка запущена',
+    batch_id: batchResult.batch_id,
     total: users.length,
-    sent: results.length,
-    failed: errors.length,
-    results,
-    errors,
+    queued: batchResult.queued,
+  });
+}));
+
+router.get('/queue/stats', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const stats = await emailQueueService.getQueueStats();
+  res.json(stats);
+}));
+
+router.get('/queue/batch/:batchId', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { batchId } = req.params;
+  const status = await emailQueueService.getBatchStatus(batchId);
+  res.json(status);
+}));
+
+router.post('/queue/batch/:batchId/cancel', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { batchId } = req.params;
+  const cancelled = await emailQueueService.cancelBatch(batchId);
+  res.json({ 
+    message: `Отменено ${cancelled} писем`,
+    cancelled 
+  });
+}));
+
+router.post('/queue/batch/:batchId/retry', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { batchId } = req.params;
+  const retried = await emailQueueService.retryFailedInBatch(batchId);
+  res.json({ 
+    message: `${retried} писем поставлено на повторную отправку`,
+    retried 
   });
 }));
 

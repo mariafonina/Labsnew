@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import path from 'path';
 import { initializeDatabase } from './init-db';
 import { globalLimiter, burstLimiter, requestSizeLimiter } from './utils/rate-limit';
+import { emailQueueService } from './utils/email-queue';
 import authRoutes from './routes/auth.routes';
 import profileRoutes from './routes/profile.routes';
 import instructionsRoutes from './routes/instructions.routes';
@@ -170,15 +171,22 @@ async function initDB() {
   if (isProduction) {
     console.log('Production mode: Skipping automatic database initialization');
     console.log('Run "npm run migrate" separately to initialize database schema');
-    return;
+  } else {
+    try {
+      await initializeDatabase();
+      console.log('Database initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize database:', error);
+      console.error('Server will continue running, but database operations may fail');
+    }
   }
   
+  // Start email queue worker (processes emails asynchronously)
   try {
-    await initializeDatabase();
-    console.log('Database initialized successfully');
+    emailQueueService.startWorker(5000);
+    console.log('Email queue worker started');
   } catch (error) {
-    console.error('Failed to initialize database:', error);
-    console.error('Server will continue running, but database operations may fail');
+    console.error('Failed to start email queue worker:', error);
   }
 }
 

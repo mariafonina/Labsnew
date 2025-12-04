@@ -1088,6 +1088,50 @@ export async function initializeDatabase() {
       console.error('Error adding is_visible columns:', err);
     }
 
+    // Email Queue table for async email sending
+    await query(`
+      CREATE TABLE IF NOT EXISTS labs.email_queue (
+        id SERIAL PRIMARY KEY,
+        email_type VARCHAR(50) NOT NULL,
+        recipient_email VARCHAR(255) NOT NULL,
+        recipient_name VARCHAR(255),
+        subject VARCHAR(500) NOT NULL,
+        html_content TEXT,
+        text_content TEXT,
+        template_id VARCHAR(100),
+        template_data JSONB,
+        from_email VARCHAR(255) DEFAULT 'noreply@mariafonina.ru',
+        from_name VARCHAR(255) DEFAULT 'ЛАБС',
+        
+        status VARCHAR(20) DEFAULT 'pending' NOT NULL,
+        priority INTEGER DEFAULT 0,
+        batch_id UUID,
+        
+        attempts INTEGER DEFAULT 0,
+        max_attempts INTEGER DEFAULT 3,
+        last_attempt_at TIMESTAMP WITH TIME ZONE,
+        next_retry_at TIMESTAMP WITH TIME ZONE,
+        
+        campaign_id INTEGER REFERENCES labs.email_campaigns(id) ON DELETE SET NULL,
+        user_id INTEGER REFERENCES labs.users(id) ON DELETE SET NULL,
+        
+        notisend_id VARCHAR(100),
+        error_message TEXT,
+        sent_at TIMESTAMP WITH TIME ZONE,
+        
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    console.log('Table "labs.email_queue" created');
+
+    // Indexes for queue processing
+    await query('CREATE INDEX IF NOT EXISTS idx_email_queue_status_priority ON labs.email_queue(status, priority DESC, created_at)');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_queue_batch_id ON labs.email_queue(batch_id)');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_queue_next_retry ON labs.email_queue(next_retry_at) WHERE status = \'pending\'');
+    await query('CREATE INDEX IF NOT EXISTS idx_email_queue_campaign ON labs.email_queue(campaign_id) WHERE campaign_id IS NOT NULL');
+    console.log('Indexes for labs.email_queue created');
+
     console.log('Database initialization completed successfully!');
   } catch (error) {
     console.error('Error initializing database:', error);

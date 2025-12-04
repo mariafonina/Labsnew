@@ -4,6 +4,13 @@ import { notisendClient } from './notisend-client';
 
 const INITIAL_TOKEN_EXPIRY_DAYS = 7;
 
+export interface InitialPasswordEmailContent {
+  subject: string;
+  html: string;
+  from_email: string;
+  from_name: string;
+}
+
 function hashToken(token: string): string {
   const secret = process.env.INITIAL_PASSWORD_TOKEN_SECRET;
   if (!secret) {
@@ -27,34 +34,29 @@ export async function generateInitialPasswordToken(userId: number): Promise<stri
   return token;
 }
 
-export async function sendInitialPasswordEmail(email: string, username: string, token: string): Promise<void> {
-  // Определяем базовый URL фронтенда
+function getFrontendBaseUrl(): string {
   let frontendBaseUrl = process.env.FRONTEND_BASE_URL;
   
   if (!frontendBaseUrl) {
-    // Для Replit
     if (process.env.REPL_SLUG && process.env.REPLIT_DOMAINS) {
       const domains = process.env.REPLIT_DOMAINS.split(',');
       frontendBaseUrl = `https://${process.env.REPL_SLUG}.${domains[0]}`;
-    } 
-    // Для локальной разработки
-    else if (process.env.NODE_ENV === 'development') {
+    } else if (process.env.NODE_ENV === 'development') {
       frontendBaseUrl = 'http://localhost:5173';
-    }
-    // Fallback
-    else {
+    } else {
       frontendBaseUrl = 'http://localhost:5173';
     }
   }
 
-  // Убираем trailing slash если есть
-  frontendBaseUrl = frontendBaseUrl.replace(/\/$/, '');
+  return frontendBaseUrl.replace(/\/$/, '');
+}
+
+export function getInitialPasswordEmailContent(email: string, username: string, token: string): InitialPasswordEmailContent {
+  const frontendBaseUrl = getFrontendBaseUrl();
   const setupUrl = `${frontendBaseUrl}/setup-password/${token}`;
 
-  console.log(`[InitialPassword] Generating setup URL for ${email}: ${setupUrl}`);
-
   const subject = 'Создайте ваш пароль - ЛАБС';
-  const htmlBody = `
+  const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #ec4899;">Добро пожаловать в ЛАБС!</h2>
       <p>Здравствуйте, ${username}!</p>
@@ -80,13 +82,28 @@ export async function sendInitialPasswordEmail(email: string, username: string, 
     </div>
   `;
 
+  return {
+    subject,
+    html,
+    from_email: 'noreply@mariafonina.ru',
+    from_name: 'ЛАБС',
+  };
+}
+
+export async function sendInitialPasswordEmail(email: string, username: string, token: string): Promise<void> {
+  const content = getInitialPasswordEmailContent(email, username, token);
+  const frontendBaseUrl = getFrontendBaseUrl();
+  const setupUrl = `${frontendBaseUrl}/setup-password/${token}`;
+  
+  console.log(`[InitialPassword] Generating setup URL for ${email}: ${setupUrl}`);
+
   try {
     await notisendClient.sendEmail({
       to: email,
-      subject,
-      html: htmlBody,
-      from_email: 'noreply@mariafonina.ru',
-      from_name: 'ЛАБС',
+      subject: content.subject,
+      html: content.html,
+      from_email: content.from_email,
+      from_name: content.from_name,
     });
   } catch (error) {
     console.error('Failed to send initial password email:', error);
