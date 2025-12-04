@@ -35,8 +35,8 @@ export interface QueueStats {
   total: number;
 }
 
-const EMAIL_DELAY_MS = 1500;
-const MAX_BATCH_SIZE = 10;
+const EMAIL_DELAY_MS = 1000;
+const MAX_BATCH_SIZE = 5;
 const RETRY_DELAY_MINUTES = [1, 5, 15];
 
 class EmailQueueService {
@@ -124,22 +124,31 @@ class EmailQueueService {
 
   async processQueue(): Promise<void> {
     if (this.isProcessing) {
-      console.log('[EmailQueue] Already processing, skipping...');
       return;
     }
 
     this.isProcessing = true;
 
+    const client = await getClient();
     try {
-      const pendingEmails = await query(
-        `SELECT * FROM labs.email_queue 
-         WHERE status = 'pending' 
-           AND (next_retry_at IS NULL OR next_retry_at <= NOW())
-         ORDER BY priority DESC, created_at ASC
-         LIMIT $1
-         FOR UPDATE SKIP LOCKED`,
+      await client.query('BEGIN');
+
+      const pendingEmails = await client.query(
+        `UPDATE labs.email_queue 
+         SET status = 'processing', last_attempt_at = NOW(), updated_at = NOW()
+         WHERE id IN (
+           SELECT id FROM labs.email_queue 
+           WHERE status = 'pending' 
+             AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+           ORDER BY priority DESC, created_at ASC
+           LIMIT $1
+           FOR UPDATE SKIP LOCKED
+         )
+         RETURNING *`,
         [MAX_BATCH_SIZE]
       );
+
+      await client.query('COMMIT');
 
       if (pendingEmails.rows.length === 0) {
         return;
@@ -152,8 +161,10 @@ class EmailQueueService {
         await this.delay(EMAIL_DELAY_MS);
       }
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('[EmailQueue] Error processing queue:', error);
     } finally {
+      client.release();
       this.isProcessing = false;
     }
   }
@@ -162,13 +173,6 @@ class EmailQueueService {
     const emailId = email.id;
 
     try {
-      await query(
-        `UPDATE labs.email_queue 
-         SET status = 'processing', last_attempt_at = NOW(), updated_at = NOW()
-         WHERE id = $1`,
-        [emailId]
-      );
-
       let sendResult: any;
 
       if (email.template_id) {
