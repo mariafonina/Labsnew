@@ -84,6 +84,7 @@ interface Recording {
   views: number;
   description?: string;
   notes?: string;
+  notes_url?: string;
   created_at: string;
 }
 
@@ -181,7 +182,7 @@ export function AdminStreamDetail({
   // Recording states
   const [editingRecording, setEditingRecording] = useState<Recording | null>(null);
   const [isAddingRecording, setIsAddingRecording] = useState(false);
-  const [recordingForm, setRecordingForm] = useState({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
+  const [recordingForm, setRecordingForm] = useState({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "", notes_url: "" });
   
   // Thumbnail upload states
   const [thumbnailTab, setThumbnailTab] = useState<"upload" | "url">("upload");
@@ -442,7 +443,7 @@ export function AdminStreamDetail({
     try {
       await apiClient.post(`/admin/cohort-materials/${cohortId}/recordings`, recordingForm);
       await loadMaterials();
-      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
+      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "", notes_url: "" });
       resetThumbnailUpload();
       setThumbnailTab("upload");
       setIsAddingRecording(false);
@@ -463,7 +464,7 @@ export function AdminStreamDetail({
       await apiClient.put(`/admin/cohort-materials/${cohortId}/recordings/${editingRecording.id}`, recordingForm);
       await loadMaterials();
       setEditingRecording(null);
-      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
+      setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "", notes_url: "" });
       resetThumbnailUpload();
       setThumbnailTab("upload");
       navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
@@ -573,7 +574,8 @@ export function AdminStreamDetail({
       instructor: recording.instructor || "",
       thumbnail: recording.thumbnail || "",
       description: recording.description || "",
-      notes: recording.notes || ""
+      notes: recording.notes || "",
+      notes_url: recording.notes_url || ""
     });
     resetThumbnailUpload();
     setThumbnailTab("upload");
@@ -1061,7 +1063,7 @@ export function AdminStreamDetail({
                 navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
                 setIsAddingRecording(false);
                 setEditingRecording(null);
-                setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
+                setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "", notes_url: "" });
               }}
               submitText={editingRecording ? "Сохранить" : "Опубликовать"}
             >
@@ -1261,6 +1263,19 @@ export function AdminStreamDetail({
                   <p className="text-sm text-gray-500 mt-2">
                     <FileText className="h-4 w-4 inline mr-1" />
                     Если заполнить конспект, пользователи смогут скачать его в формате Markdown
+                  </p>
+                </AdminFormField>
+
+                <AdminFormField label="Ссылка на файл конспекта" emoji="🔗">
+                  <Input
+                    value={recordingForm.notes_url}
+                    onChange={(e) => setRecordingForm({ ...recordingForm, notes_url: e.target.value })}
+                    placeholder="https://docs.google.com/document/..."
+                    className="h-12"
+                  />
+                  <p className="text-sm text-gray-500 mt-2">
+                    <Link className="h-4 w-4 inline mr-1" />
+                    Ссылка на внешний файл конспекта (Google Docs, Notion и т.д.)
                   </p>
                 </AdminFormField>
               </div>

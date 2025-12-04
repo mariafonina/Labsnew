@@ -3,7 +3,7 @@ import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Card } from "./ui/card";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { ArrowLeft, Bookmark, ThumbsUp, Send, Download, FileText } from "lucide-react";
+import { ArrowLeft, Bookmark, ThumbsUp, Send, Download, FileText, ExternalLink } from "lucide-react";
 import { useApp } from "../contexts/AppContext";
 import { toast } from "sonner";
 import { LoomEmbed } from "./LoomEmbed";
@@ -323,6 +323,21 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
           <Card className="p-8 md:p-10 bg-white/80 backdrop-blur-sm border-gray-200/60 shadow-lg">
             <p className="text-gray-700 text-lg leading-relaxed">{recording.description}</p>
           </Card>
+        </div>
+      )}
+
+      {/* External Notes Link */}
+      {recording.notes_url && (
+        <div className="mb-10">
+          <a
+            href={recording.notes_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-3 bg-gradient-to-r from-pink-400 to-rose-400 text-white hover:from-pink-500 hover:to-rose-500 font-black shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-all h-14 px-8 rounded-lg text-lg"
+          >
+            <ExternalLink className="h-6 w-6" />
+            Открыть конспект
+          </a>
         </div>
       )}
 
