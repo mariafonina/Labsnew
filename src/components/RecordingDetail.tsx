@@ -301,6 +301,15 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
         </div>
       )}
 
+      {/* Description */}
+      {recording.description && (
+        <div className="mb-10">
+          <Card className="p-8 md:p-10 bg-white/80 backdrop-blur-sm border-gray-200/60 shadow-lg">
+            <p className="text-gray-700 text-lg leading-relaxed">{recording.description}</p>
+          </Card>
+        </div>
+      )}
+
       {/* Notes Content - display like instruction content */}
       {recording.notes && (
         <div className="mb-10">
@@ -346,15 +355,6 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
             <Download className="h-5 w-5 mr-2" />
             Скачать конспект (PDF)
           </Button>
-        </div>
-      )}
-
-      {/* Description */}
-      {recording.description && (
-        <div className="mb-10">
-          <Card className="p-8 md:p-10 bg-white/80 backdrop-blur-sm border-gray-200/60 shadow-lg">
-            <p className="text-gray-700 text-lg leading-relaxed">{recording.description}</p>
-          </Card>
         </div>
       )}
 
