@@ -34,23 +34,40 @@ function parseCSV(content: string): CSVUser[] {
   const users: CSVUser[] = [];
 
   for (const line of dataLines) {
-    // Парсим CSV с учетом кавычек
-    const matches = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g);
-    if (!matches || matches.length < 10) continue;
+    // Парсим CSV с учетом кавычек и экранирования
+    const fields: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        fields.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    fields.push(current.trim()); // Последнее поле
+
+    if (fields.length < 10) continue;
 
     const clean = (str: string) => str.replace(/^"|"$/g, '').trim();
 
     users.push({
-      firstName: clean(matches[0]),
-      lastName: clean(matches[1]),
-      email: clean(matches[2]),
-      phone: clean(matches[3]),
-      price: clean(matches[4]),
-      actualPayment: clean(matches[5]),
-      city: clean(matches[6]),
-      country: clean(matches[7]),
-      productId: clean(matches[8]),
-      cohortId: clean(matches[9])
+      firstName: clean(fields[0]),
+      lastName: clean(fields[1]),
+      email: clean(fields[2]),
+      phone: clean(fields[3]),
+      price: clean(fields[4]),
+      actualPayment: clean(fields[5]),
+      city: clean(fields[6]),
+      country: clean(fields[7]),
+      productId: clean(fields[8]),
+      cohortId: clean(fields[9])
     });
   }
 
