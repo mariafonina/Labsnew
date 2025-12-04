@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
@@ -17,6 +17,10 @@ import {
   Video,
   Users,
   FileText,
+  Upload,
+  Loader2,
+  X,
+  Link,
 } from "lucide-react";
 import {
   Select,
@@ -178,6 +182,13 @@ export function AdminStreamDetail({
   const [editingRecording, setEditingRecording] = useState<Recording | null>(null);
   const [isAddingRecording, setIsAddingRecording] = useState(false);
   const [recordingForm, setRecordingForm] = useState({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
+  
+  // Thumbnail upload states
+  const [thumbnailTab, setThumbnailTab] = useState<"upload" | "url">("upload");
+  const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+  const [selectedThumbnailFile, setSelectedThumbnailFile] = useState<File | null>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   // Members states
   const [members, setMembers] = useState<CohortMember[]>([]);
@@ -433,6 +444,8 @@ export function AdminStreamDetail({
       await apiClient.post(`/admin/cohort-materials/${cohortId}/recordings`, recordingForm);
       await loadMaterials();
       setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
+      resetThumbnailUpload();
+      setThumbnailTab("upload");
       setIsAddingRecording(false);
       navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
       toast.success("Запись добавлена");
@@ -452,6 +465,8 @@ export function AdminStreamDetail({
       await loadMaterials();
       setEditingRecording(null);
       setRecordingForm({ title: "", video_url: "", loom_embed_url: "", duration: "", date: "", instructor: "", thumbnail: "", description: "", notes: "" });
+      resetThumbnailUpload();
+      setThumbnailTab("upload");
       navigate(`/admin/products/${productId}/cohorts/${cohortId}/recordings`);
       toast.success("Запись обновлена");
     } catch (error: any) {
@@ -467,6 +482,64 @@ export function AdminStreamDetail({
       toast.success("Запись удалена");
     } catch (error: any) {
       toast.error(error.message || "Не удалось удалить запись");
+    }
+  };
+
+  // Thumbnail upload handlers
+  const handleThumbnailFileSelect = (file: File) => {
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Разрешены только изображения (JPEG, PNG, GIF, WebP)");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("Файл слишком большой. Максимум 5MB");
+      return;
+    }
+
+    setSelectedThumbnailFile(file);
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setThumbnailPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleThumbnailUpload = async () => {
+    if (!selectedThumbnailFile) {
+      toast.error("Выберите файл для загрузки");
+      return;
+    }
+
+    setIsThumbnailUploading(true);
+
+    try {
+      const result = await apiClient.uploadImageDirect(selectedThumbnailFile, "thumbnails");
+
+      if (!result.success) {
+        throw new Error("Upload failed");
+      }
+
+      setRecordingForm({ ...recordingForm, thumbnail: result.url });
+      setSelectedThumbnailFile(null);
+      setThumbnailPreview(null);
+      toast.success("Обложка загружена");
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("Не удалось загрузить обложку");
+    } finally {
+      setIsThumbnailUploading(false);
+    }
+  };
+
+  const resetThumbnailUpload = () => {
+    setSelectedThumbnailFile(null);
+    setThumbnailPreview(null);
+    if (thumbnailInputRef.current) {
+      thumbnailInputRef.current.value = "";
     }
   };
 
@@ -511,6 +584,8 @@ export function AdminStreamDetail({
       description: recording.description || "",
       notes: recording.notes || ""
     });
+    resetThumbnailUpload();
+    setThumbnailTab("upload");
   };
 
   // Members handlers
@@ -1036,13 +1111,144 @@ export function AdminStreamDetail({
                   />
                 </AdminFormField>
 
-                <AdminFormField label="Обложка (URL)" emoji="🖼️">
-                  <Input
-                    value={recordingForm.thumbnail}
-                    onChange={(e) => setRecordingForm({ ...recordingForm, thumbnail: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
-                    className="h-12"
-                  />
+                <AdminFormField label="Обложка" emoji="🖼️">
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={thumbnailTab === "upload" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setThumbnailTab("upload")}
+                        className={thumbnailTab === "upload" ? "bg-gradient-to-r from-pink-400 to-rose-400" : ""}
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        Загрузить
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={thumbnailTab === "url" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setThumbnailTab("url")}
+                        className={thumbnailTab === "url" ? "bg-gradient-to-r from-pink-400 to-rose-400" : ""}
+                      >
+                        <Link className="h-4 w-4 mr-2" />
+                        URL
+                      </Button>
+                    </div>
+
+                    {thumbnailTab === "upload" ? (
+                      <div className="space-y-3">
+                        <input
+                          ref={thumbnailInputRef}
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleThumbnailFileSelect(file);
+                          }}
+                          className="hidden"
+                        />
+                        
+                        {!selectedThumbnailFile && !recordingForm.thumbnail ? (
+                          <div
+                            onClick={() => thumbnailInputRef.current?.click()}
+                            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-pink-400 transition-colors"
+                          >
+                            <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                            <p className="text-gray-600 font-medium">Нажмите для выбора файла</p>
+                            <p className="text-sm text-gray-400 mt-1">JPEG, PNG, GIF, WebP до 5MB</p>
+                          </div>
+                        ) : thumbnailPreview ? (
+                          <div className="space-y-3">
+                            <div className="relative">
+                              <img
+                                src={thumbnailPreview}
+                                alt="Preview"
+                                className="w-full h-48 object-cover rounded-lg border"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2 h-8 w-8"
+                                onClick={resetThumbnailUpload}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <Button
+                              type="button"
+                              onClick={handleThumbnailUpload}
+                              disabled={isThumbnailUploading}
+                              className="w-full bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500"
+                            >
+                              {isThumbnailUploading ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Загрузка...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Загрузить в хранилище
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        ) : recordingForm.thumbnail ? (
+                          <div className="space-y-3">
+                            <div className="relative">
+                              <img
+                                src={recordingForm.thumbnail}
+                                alt="Current thumbnail"
+                                className="w-full h-48 object-cover rounded-lg border"
+                              />
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2 h-8 w-8"
+                                onClick={() => setRecordingForm({ ...recordingForm, thumbnail: "" })}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <p className="text-sm text-gray-500 text-center">Текущая обложка загружена</p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => thumbnailInputRef.current?.click()}
+                              className="w-full"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Заменить обложку
+                            </Button>
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <Input
+                          value={recordingForm.thumbnail}
+                          onChange={(e) => setRecordingForm({ ...recordingForm, thumbnail: e.target.value })}
+                          placeholder="https://example.com/image.jpg"
+                          className="h-12"
+                        />
+                        {recordingForm.thumbnail && (
+                          <div className="relative">
+                            <img
+                              src={recordingForm.thumbnail}
+                              alt="Preview"
+                              className="w-full h-48 object-cover rounded-lg border"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </AdminFormField>
 
                 <AdminFormField label="Loom Embed URL" emoji="🎥">
