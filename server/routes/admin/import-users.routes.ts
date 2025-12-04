@@ -114,6 +114,22 @@ router.post('/import', verifyToken, requireAdmin, upload.single('file'), async (
 
         if (existingUser.rows.length > 0) {
           userId = existingUser.rows[0].id;
+
+          // Обновляем данные существующего пользователя
+          await query(
+            `UPDATE labs.users
+             SET first_name = $1, last_name = $2, phone = $3, city = $4, country = $5, updated_at = CURRENT_TIMESTAMP
+             WHERE id = $6`,
+            [
+              user.firstName || null,
+              user.lastName || null,
+              user.phone || null,
+              user.city || null,
+              user.country || null,
+              userId
+            ]
+          );
+
           existing++;
         } else {
           // Создаем пользователя с паролем = email
