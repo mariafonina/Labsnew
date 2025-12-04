@@ -122,23 +122,20 @@ router.post('/import', verifyToken, requireAdmin, upload.single('file'), async (
           created++;
         }
 
-        // Проверяем существует ли enrollment
+        // Проверяем существует ли enrollment для этого пользователя, продукта и потока
         const existingEnrollment = await query(
-          'SELECT id FROM labs.user_enrollments WHERE user_id = $1 AND product_id = $2',
-          [userId, parseInt(user.productId)]
+          'SELECT id FROM labs.user_enrollments WHERE user_id = $1 AND product_id = $2 AND cohort_id = $3',
+          [userId, parseInt(user.productId), parseInt(user.cohortId)]
         );
 
-        if (existingEnrollment.rows.length > 0) {
-          // Enrollment уже существует
-        } else {
-          // Получаем первый доступный pricing tier для продукта
+        if (existingEnrollment.rows.length === 0) {
+          // Получаем первый доступный pricing tier
           const tierResult = await query(
-            'SELECT id FROM labs.pricing_tiers WHERE product_id = $1 ORDER BY tier_level LIMIT 1',
-            [parseInt(user.productId)]
+            'SELECT id FROM labs.pricing_tiers ORDER BY tier_level LIMIT 1'
           );
 
           if (tierResult.rows.length === 0) {
-            errorDetails.push(`No pricing tier found for product ${user.productId} (user: ${user.email})`);
+            errorDetails.push(`No pricing tiers found in system (user: ${user.email})`);
             errors++;
             continue;
           }
