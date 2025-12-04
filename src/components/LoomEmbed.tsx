@@ -4,10 +4,7 @@ interface LoomEmbedProps {
 }
 
 export function LoomEmbed({ url, className = "" }: LoomEmbedProps) {
-  console.log('[LoomEmbed] Received URL:', url);
-  
   if (!url || !url.includes("loom.com")) {
-    console.log('[LoomEmbed] Invalid URL - returning null');
     return null;
   }
 
@@ -16,8 +13,10 @@ export function LoomEmbed({ url, className = "" }: LoomEmbedProps) {
   if (url.includes("/share/")) {
     embedUrl = url.replace("/share/", "/embed/");
   }
-
-  console.log('[LoomEmbed] Using embed URL:', embedUrl);
+  
+  // Add hide_owner and hide_share_and_more_options for cleaner embed
+  const separator = embedUrl.includes('?') ? '&' : '?';
+  const finalUrl = `${embedUrl}${separator}hide_owner=true&hideEmbedTopBar=true`;
 
   return (
     <div
@@ -25,10 +24,9 @@ export function LoomEmbed({ url, className = "" }: LoomEmbedProps) {
       style={{ paddingBottom: "56.25%", height: 0 }}
     >
       <iframe
-        src={embedUrl}
+        src={finalUrl}
         title="Loom Video"
         frameBorder="0"
-        allowFullScreen
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
         referrerPolicy="no-referrer-when-downgrade"
         className="absolute top-0 left-0 w-full h-full"

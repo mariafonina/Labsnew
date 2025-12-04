@@ -1,0 +1,544 @@
+[AppContext] Auth restored from auth_token/user: ivan@ivanov.com
+AppContext.tsx:856 [AppContext] Token set in apiClient during initialization
+AppContext.tsx:859 [AppContext] Auth initialized, isAuthenticated: true
+AppContext.tsx:865 [AppContext] Waiting for auth initialization...
+AppContext.tsx:869 [AppContext] Auth changed, isAuthenticated: true
+AppContext.tsx:871 [AppContext] User is authenticated, calling fetchContent
+AppContext.tsx:1657 [AppContext] fetchContent called
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+chunk-YFB5YCE7.js?v=d2edc1df:1233 Allow attribute will take precedence over 'allowfullscreen'.
+setValueForProperty @ chunk-YFB5YCE7.js?v=d2edc1df:1233
+setInitialDOMProperties @ chunk-YFB5YCE7.js?v=d2edc1df:7494
+setInitialProperties @ chunk-YFB5YCE7.js?v=d2edc1df:7627
+finalizeInitialChildren @ chunk-YFB5YCE7.js?v=d2edc1df:8392
+completeWork @ chunk-YFB5YCE7.js?v=d2edc1df:16341
+completeUnitOfWork @ chunk-YFB5YCE7.js?v=d2edc1df:19277
+performUnitOfWork @ chunk-YFB5YCE7.js?v=d2edc1df:19259
+workLoopSync @ chunk-YFB5YCE7.js?v=d2edc1df:19190
+renderRootSync @ chunk-YFB5YCE7.js?v=d2edc1df:19169
+performConcurrentWorkOnRoot @ chunk-YFB5YCE7.js?v=d2edc1df:18728
+workLoop @ chunk-YFB5YCE7.js?v=d2edc1df:197
+flushWork @ chunk-YFB5YCE7.js?v=d2edc1df:176
+performWorkUntilDeadline @ chunk-YFB5YCE7.js?v=d2edc1df:384
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+AppContext.tsx:1664 [AppContext] Cohorts data: {status: 'fulfilled', value: Array(1)}
+AppContext.tsx:1670 [AppContext] Cohorts array: [{…}] length: 1
+AppContext.tsx:1674 [AppContext] Auto-select check: cohorts.length = 1 selectedCohortId = 4
+AppContext.tsx:1682 [AppContext] Selected cohort exists: 4
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+vendor-2-50c2716b50cf93cc.js:4 {msg: 'An error has occurred checking the feature gate. Only the first occurrence of this error is logged.', gateName: 'analytics_cross_product_interaction_tracking', error: Error: Client must be initialized before using this method
+    at e.value (https://cdn.loom.com/ass…}
+value @ vendor-2-50c2716b50cf93cc.js:4
+(anonymous) @ vendor-2-50c2716b50cf93cc.js:4
+(anonymous) @ vendor-3-3e7d76752f20af98.js:3
+g @ vendor-3-3e7d76752f20af98.js:3
+eg @ vendor-7-24c172cf9707f021.js:1
+sP @ vendor-7-24c172cf9707f021.js:4
+value @ vendor-6-a74ed6a8f6c7dc77.js:1
+e @ vendor-6-a74ed6a8f6c7dc77.js:1
+t @ vendor-6-a74ed6a8f6c7dc77.js:1
+eu @ vendor-6-a74ed6a8f6c7dc77.js:1
+59724 @ embed-video-1f669e6bc1f9b09c.js:4898
+d @ 0runtime-0bade58c6b45e4fd.js:1
+18517 @ embed-video-1f669e6bc1f9b09c.js:5818
+d @ 0runtime-0bade58c6b45e4fd.js:1
+86132 @ embed-video-1f669e6bc1f9b09c.js:2683
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97106 @ embed-video-1f669e6bc1f9b09c.js:3404
+d @ 0runtime-0bade58c6b45e4fd.js:1
+85926 @ embed-video-1f669e6bc1f9b09c.js:8302
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97489 @ embed-video-1f669e6bc1f9b09c.js:8302
+d @ 0runtime-0bade58c6b45e4fd.js:1
+72633 @ embed-video-1f669e6bc1f9b09c.js:4898
+d @ 0runtime-0bade58c6b45e4fd.js:1
+99502 @ embed-video-1f669e6bc1f9b09c.js:2591
+d @ 0runtime-0bade58c6b45e4fd.js:1
+86844 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+96234 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+98523 @ embed-video-1f669e6bc1f9b09c.js:8274
+d @ 0runtime-0bade58c6b45e4fd.js:1
+18787 @ embed-video-1f669e6bc1f9b09c.js:5287
+d @ 0runtime-0bade58c6b45e4fd.js:1
+30642 @ embed-video-1f669e6bc1f9b09c.js:4840
+d @ 0runtime-0bade58c6b45e4fd.js:1
+741 @ embed-video-1f669e6bc1f9b09c.js:2343
+d @ 0runtime-0bade58c6b45e4fd.js:1
+53659 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+41043 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+t @ embed-video-1f669e6bc1f9b09c.js:8311
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+d.O @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+a @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:1
+vendor-2-50c2716b50cf93cc.js:3 Multiple versions of FeatureGateClients found on the current page.
+      The currently bound version is 0.0.0-development when module version 4.26.5 was loading.
+27746 @ vendor-2-50c2716b50cf93cc.js:3
+d @ 0runtime-0bade58c6b45e4fd.js:1
+45204 @ vendor-1-6caf695cbbc30aef.js:5
+d @ 0runtime-0bade58c6b45e4fd.js:1
+34282 @ vendor-1-6caf695cbbc30aef.js:5
+d @ 0runtime-0bade58c6b45e4fd.js:1
+32832 @ vendor-2-50c2716b50cf93cc.js:1
+d @ 0runtime-0bade58c6b45e4fd.js:1
+55899 @ embed-video-1f669e6bc1f9b09c.js:4772
+d @ 0runtime-0bade58c6b45e4fd.js:1
+90514 @ embed-video-1f669e6bc1f9b09c.js:7915
+d @ 0runtime-0bade58c6b45e4fd.js:1
+43580 @ embed-video-1f669e6bc1f9b09c.js:5983
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97391 @ embed-video-1f669e6bc1f9b09c.js:6116
+d @ 0runtime-0bade58c6b45e4fd.js:1
+96890 @ embed-video-1f669e6bc1f9b09c.js:5386
+d @ 0runtime-0bade58c6b45e4fd.js:1
+68098 @ embed-video-1f669e6bc1f9b09c.js:5095
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97106 @ embed-video-1f669e6bc1f9b09c.js:3666
+d @ 0runtime-0bade58c6b45e4fd.js:1
+85926 @ embed-video-1f669e6bc1f9b09c.js:8302
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97489 @ embed-video-1f669e6bc1f9b09c.js:8302
+d @ 0runtime-0bade58c6b45e4fd.js:1
+72633 @ embed-video-1f669e6bc1f9b09c.js:4898
+d @ 0runtime-0bade58c6b45e4fd.js:1
+99502 @ embed-video-1f669e6bc1f9b09c.js:2591
+d @ 0runtime-0bade58c6b45e4fd.js:1
+86844 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+96234 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+98523 @ embed-video-1f669e6bc1f9b09c.js:8274
+d @ 0runtime-0bade58c6b45e4fd.js:1
+18787 @ embed-video-1f669e6bc1f9b09c.js:5287
+d @ 0runtime-0bade58c6b45e4fd.js:1
+30642 @ embed-video-1f669e6bc1f9b09c.js:4840
+d @ 0runtime-0bade58c6b45e4fd.js:1
+741 @ embed-video-1f669e6bc1f9b09c.js:2343
+d @ 0runtime-0bade58c6b45e4fd.js:1
+53659 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+41043 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+t @ embed-video-1f669e6bc1f9b09c.js:8311
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+d.O @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+a @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:1
+vendor-41-274e7d8a8f06baef.js:1 An error occurred! For more details, see the full error text at https://go.apollo.dev/c/err#%7B%22version%22%3A%223.8.3%22%2C%22message%22%3A33%2C%22args%22%3A%5B%5D%7D e {request: ƒ}
+(anonymous) @ vendor-41-274e7d8a8f06baef.js:1
+(anonymous) @ vendor-0-c1d0bec0d90695ca.js:9
+e.concat @ vendor-0-c1d0bec0d90695ca.js:5
+e.concat @ vendor-0-c1d0bec0d90695ca.js:5
+(anonymous) @ vendor-0-c1d0bec0d90695ca.js:5
+e.from @ vendor-0-c1d0bec0d90695ca.js:5
+V @ embed-video-1f669e6bc1f9b09c.js:8298
+$ @ embed-video-1f669e6bc1f9b09c.js:8298
+s @ embed-video-1f669e6bc1f9b09c.js:2565
+s @ embed-video-1f669e6bc1f9b09c.js:2565
+72633 @ embed-video-1f669e6bc1f9b09c.js:4947
+d @ 0runtime-0bade58c6b45e4fd.js:1
+99502 @ embed-video-1f669e6bc1f9b09c.js:2591
+d @ 0runtime-0bade58c6b45e4fd.js:1
+86844 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+96234 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+98523 @ embed-video-1f669e6bc1f9b09c.js:8274
+d @ 0runtime-0bade58c6b45e4fd.js:1
+18787 @ embed-video-1f669e6bc1f9b09c.js:5287
+d @ 0runtime-0bade58c6b45e4fd.js:1
+30642 @ embed-video-1f669e6bc1f9b09c.js:4840
+d @ 0runtime-0bade58c6b45e4fd.js:1
+741 @ embed-video-1f669e6bc1f9b09c.js:2343
+d @ 0runtime-0bade58c6b45e4fd.js:1
+53659 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+41043 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+t @ embed-video-1f669e6bc1f9b09c.js:8311
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+d.O @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+a @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:1
+vendor-12-d937a3ea228a6323.js:4 No storage available for session. We will not send any data.
+(anonymous) @ vendor-12-d937a3ea228a6323.js:4
+l @ vendor-12-d937a3ea228a6323.js:3
+(anonymous) @ vendor-12-d937a3ea228a6323.js:3
+r @ embed-video-1f669e6bc1f9b09c.js:8302
+41043 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+t @ embed-video-1f669e6bc1f9b09c.js:8311
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+d.O @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+a @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:1
+vendor-36-201d192cdc83338d.js:16 SecurityError: Failed to read a named property 'pathname' from 'Location': Blocked a frame with origin "https://www.loom.com" from accessing a cross-origin frame.
+    at H (embed-video-1f669e6bc1f9b09c.js:3404:42805)
+    at embed-video-1f669e6bc1f9b09c.js:3404:43082
+    at X (embed-video-1f669e6bc1f9b09c.js:3404:43678)
+    at embed-video-1f669e6bc1f9b09c.js:4349:121
+    at op (vendor-31-c34c4024545f554f.js:29:18311)
+    at lp (vendor-31-c34c4024545f554f.js:31:3135)
+    at lc (vendor-31-c34c4024545f554f.js:31:2341)
+    at ls (vendor-31-c34c4024545f554f.js:31:1946)
+    at u (vendor-31-c34c4024545f554f.js:31:53066)
+    at iA (vendor-31-c34c4024545f554f.js:31:29411)
+    at vendor-31-c34c4024545f554f.js:31:29277
+    at iz (vendor-31-c34c4024545f554f.js:31:29285)
+    at iT (vendor-31-c34c4024545f554f.js:31:26036)
+    at iC (vendor-31-c34c4024545f554f.js:31:24594)
+    at R (vendor-34-055b058ed11e817a.js:9:1353)
+    at MessagePort.P (vendor-34-055b058ed11e817a.js:9:1874)
+(anonymous) @ vendor-36-201d192cdc83338d.js:16
+o9 @ vendor-31-c34c4024545f554f.js:31
+o.componentDidCatch.n.callback @ vendor-31-c34c4024545f554f.js:31
+aG @ vendor-31-c34c4024545f554f.js:29
+lY @ vendor-31-c34c4024545f554f.js:31
+e @ vendor-31-c34c4024545f554f.js:31
+(anonymous) @ vendor-31-c34c4024545f554f.js:31
+iU @ vendor-31-c34c4024545f554f.js:31
+iC @ vendor-31-c34c4024545f554f.js:31
+R @ vendor-34-055b058ed11e817a.js:9
+P @ vendor-34-055b058ed11e817a.js:9
+vendor-2-50c2716b50cf93cc.js:4 {msg: 'An error has occurred checking the feature gate. Only the first occurrence of this error is logged.', gateName: 'analytics_cross_product_interaction_tracking', error: Error: Client must be initialized before using this method
+    at e.value (https://cdn.loom.com/ass…}
+value @ vendor-2-50c2716b50cf93cc.js:4
+(anonymous) @ vendor-2-50c2716b50cf93cc.js:4
+(anonymous) @ vendor-3-3e7d76752f20af98.js:3
+g @ vendor-3-3e7d76752f20af98.js:3
+eg @ vendor-7-24c172cf9707f021.js:1
+sP @ vendor-7-24c172cf9707f021.js:4
+value @ vendor-6-a74ed6a8f6c7dc77.js:1
+e @ vendor-6-a74ed6a8f6c7dc77.js:1
+t @ vendor-6-a74ed6a8f6c7dc77.js:1
+eu @ vendor-6-a74ed6a8f6c7dc77.js:1
+59724 @ embed-video-1f669e6bc1f9b09c.js:4898
+d @ 0runtime-0bade58c6b45e4fd.js:1
+18517 @ embed-video-1f669e6bc1f9b09c.js:5818
+d @ 0runtime-0bade58c6b45e4fd.js:1
+86132 @ embed-video-1f669e6bc1f9b09c.js:2683
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97106 @ embed-video-1f669e6bc1f9b09c.js:3404
+d @ 0runtime-0bade58c6b45e4fd.js:1
+85926 @ embed-video-1f669e6bc1f9b09c.js:8302
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97489 @ embed-video-1f669e6bc1f9b09c.js:8302
+d @ 0runtime-0bade58c6b45e4fd.js:1
+72633 @ embed-video-1f669e6bc1f9b09c.js:4898
+d @ 0runtime-0bade58c6b45e4fd.js:1
+99502 @ embed-video-1f669e6bc1f9b09c.js:2591
+d @ 0runtime-0bade58c6b45e4fd.js:1
+86844 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+96234 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+98523 @ embed-video-1f669e6bc1f9b09c.js:8274
+d @ 0runtime-0bade58c6b45e4fd.js:1
+18787 @ embed-video-1f669e6bc1f9b09c.js:5287
+d @ 0runtime-0bade58c6b45e4fd.js:1
+30642 @ embed-video-1f669e6bc1f9b09c.js:4840
+d @ 0runtime-0bade58c6b45e4fd.js:1
+741 @ embed-video-1f669e6bc1f9b09c.js:2343
+d @ 0runtime-0bade58c6b45e4fd.js:1
+53659 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+41043 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+t @ embed-video-1f669e6bc1f9b09c.js:8311
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+d.O @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+a @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:1
+vendor-2-50c2716b50cf93cc.js:3 Multiple versions of FeatureGateClients found on the current page.
+      The currently bound version is 0.0.0-development when module version 4.26.5 was loading.
+27746 @ vendor-2-50c2716b50cf93cc.js:3
+d @ 0runtime-0bade58c6b45e4fd.js:1
+45204 @ vendor-1-6caf695cbbc30aef.js:5
+d @ 0runtime-0bade58c6b45e4fd.js:1
+34282 @ vendor-1-6caf695cbbc30aef.js:5
+d @ 0runtime-0bade58c6b45e4fd.js:1
+32832 @ vendor-2-50c2716b50cf93cc.js:1
+d @ 0runtime-0bade58c6b45e4fd.js:1
+55899 @ embed-video-1f669e6bc1f9b09c.js:4772
+d @ 0runtime-0bade58c6b45e4fd.js:1
+90514 @ embed-video-1f669e6bc1f9b09c.js:7915
+d @ 0runtime-0bade58c6b45e4fd.js:1
+43580 @ embed-video-1f669e6bc1f9b09c.js:5983
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97391 @ embed-video-1f669e6bc1f9b09c.js:6116
+d @ 0runtime-0bade58c6b45e4fd.js:1
+96890 @ embed-video-1f669e6bc1f9b09c.js:5386
+d @ 0runtime-0bade58c6b45e4fd.js:1
+68098 @ embed-video-1f669e6bc1f9b09c.js:5095
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97106 @ embed-video-1f669e6bc1f9b09c.js:3666
+d @ 0runtime-0bade58c6b45e4fd.js:1
+85926 @ embed-video-1f669e6bc1f9b09c.js:8302
+d @ 0runtime-0bade58c6b45e4fd.js:1
+97489 @ embed-video-1f669e6bc1f9b09c.js:8302
+d @ 0runtime-0bade58c6b45e4fd.js:1
+72633 @ embed-video-1f669e6bc1f9b09c.js:4898
+d @ 0runtime-0bade58c6b45e4fd.js:1
+99502 @ embed-video-1f669e6bc1f9b09c.js:2591
+d @ 0runtime-0bade58c6b45e4fd.js:1
+86844 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+96234 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+98523 @ embed-video-1f669e6bc1f9b09c.js:8274
+d @ 0runtime-0bade58c6b45e4fd.js:1
+18787 @ embed-video-1f669e6bc1f9b09c.js:5287
+d @ 0runtime-0bade58c6b45e4fd.js:1
+30642 @ embed-video-1f669e6bc1f9b09c.js:4840
+d @ 0runtime-0bade58c6b45e4fd.js:1
+741 @ embed-video-1f669e6bc1f9b09c.js:2343
+d @ 0runtime-0bade58c6b45e4fd.js:1
+53659 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+41043 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+t @ embed-video-1f669e6bc1f9b09c.js:8311
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+d.O @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+a @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:1
+vendor-41-274e7d8a8f06baef.js:1 An error occurred! For more details, see the full error text at https://go.apollo.dev/c/err#%7B%22version%22%3A%223.8.3%22%2C%22message%22%3A33%2C%22args%22%3A%5B%5D%7D e {request: ƒ}
+(anonymous) @ vendor-41-274e7d8a8f06baef.js:1
+(anonymous) @ vendor-0-c1d0bec0d90695ca.js:9
+e.concat @ vendor-0-c1d0bec0d90695ca.js:5
+e.concat @ vendor-0-c1d0bec0d90695ca.js:5
+(anonymous) @ vendor-0-c1d0bec0d90695ca.js:5
+e.from @ vendor-0-c1d0bec0d90695ca.js:5
+V @ embed-video-1f669e6bc1f9b09c.js:8298
+$ @ embed-video-1f669e6bc1f9b09c.js:8298
+s @ embed-video-1f669e6bc1f9b09c.js:2565
+s @ embed-video-1f669e6bc1f9b09c.js:2565
+72633 @ embed-video-1f669e6bc1f9b09c.js:4947
+d @ 0runtime-0bade58c6b45e4fd.js:1
+99502 @ embed-video-1f669e6bc1f9b09c.js:2591
+d @ 0runtime-0bade58c6b45e4fd.js:1
+86844 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+96234 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+98523 @ embed-video-1f669e6bc1f9b09c.js:8274
+d @ 0runtime-0bade58c6b45e4fd.js:1
+18787 @ embed-video-1f669e6bc1f9b09c.js:5287
+d @ 0runtime-0bade58c6b45e4fd.js:1
+30642 @ embed-video-1f669e6bc1f9b09c.js:4840
+d @ 0runtime-0bade58c6b45e4fd.js:1
+741 @ embed-video-1f669e6bc1f9b09c.js:2343
+d @ 0runtime-0bade58c6b45e4fd.js:1
+53659 @ embed-video-1f669e6bc1f9b09c.js:2357
+d @ 0runtime-0bade58c6b45e4fd.js:1
+41043 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+t @ embed-video-1f669e6bc1f9b09c.js:8311
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+d.O @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+a @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:1
+vendor-12-d937a3ea228a6323.js:4 No storage available for session. We will not send any data.
+(anonymous) @ vendor-12-d937a3ea228a6323.js:4
+l @ vendor-12-d937a3ea228a6323.js:3
+(anonymous) @ vendor-12-d937a3ea228a6323.js:3
+r @ embed-video-1f669e6bc1f9b09c.js:8302
+41043 @ embed-video-1f669e6bc1f9b09c.js:8114
+d @ 0runtime-0bade58c6b45e4fd.js:1
+t @ embed-video-1f669e6bc1f9b09c.js:8311
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+d.O @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:8311
+a @ 0runtime-0bade58c6b45e4fd.js:1
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:1
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+vendor-36-201d192cdc83338d.js:16 Player w/ mediaElement has been deprecated and will be removed in v5.0 . We are currently at version v4.9 . Additional information: Please migrate from initializing Player with a mediaElement; use the attach method instead.
+(anonymous) @ vendor-36-201d192cdc83338d.js:16
+er @ vendor-9264a70b-fdbf1be49362d9d9.js:11
+ev @ vendor-9264a70b-fdbf1be49362d9d9.js:11
+em @ vendor-9264a70b-fdbf1be49362d9d9.js:11
+s7 @ vendor-9264a70b-fdbf1be49362d9d9.js:38
+c @ embed-video-1f669e6bc1f9b09c.js:2855
+$ @ embed-video-1f669e6bc1f9b09c.js:2897
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:2897
+Promise.then
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:2897
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:2897
+lA @ vendor-31-c34c4024545f554f.js:31
+iB @ vendor-31-c34c4024545f554f.js:31
+i @ vendor-31-c34c4024545f554f.js:31
+R @ vendor-34-055b058ed11e817a.js:9
+P @ vendor-34-055b058ed11e817a.js:9
+vendor-36-201d192cdc83338d.js:16 streaming.useNativeHlsOnSafari configuration has been deprecated and will be removed in v5.0 . We are currently at version v4.9 . Additional information: Please Use streaming.useNativeHlsForFairPlay or streaming.preferNativeHls instead.
+(anonymous) @ vendor-36-201d192cdc83338d.js:16
+er @ vendor-9264a70b-fdbf1be49362d9d9.js:11
+ev @ vendor-9264a70b-fdbf1be49362d9d9.js:11
+em @ vendor-9264a70b-fdbf1be49362d9d9.js:11
+x.configure @ vendor-9264a70b-fdbf1be49362d9d9.js:43
+c @ embed-video-1f669e6bc1f9b09c.js:2855
+$ @ embed-video-1f669e6bc1f9b09c.js:2897
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:2897
+Promise.then
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:2897
+(anonymous) @ embed-video-1f669e6bc1f9b09c.js:2897
+lA @ vendor-31-c34c4024545f554f.js:31
+iB @ vendor-31-c34c4024545f554f.js:31
+i @ vendor-31-c34c4024545f554f.js:31
+R @ vendor-34-055b058ed11e817a.js:9
+P @ vendor-34-055b058ed11e817a.js:9
+AppContext.tsx:1700 [AppContext] News data: {status: 'fulfilled', value: Array(1)}
+AppContext.tsx:1701 [AppContext] Events data: {status: 'fulfilled', value: Array(0)}
+AppContext.tsx:1702 [AppContext] Instructions data: {status: 'fulfilled', value: Array(56)}
+AppContext.tsx:1705 [AppContext] News value: [{…}]
+AppContext.tsx:1717 [AppContext] Setting news items: 1
+AppContext.tsx:1724 [AppContext] Events value: []
+AppContext.tsx:1738 [AppContext] Setting events: 0
+AppContext.tsx:1745 [AppContext] Instructions value: (56) [{…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}, {…}]
+AppContext.tsx:1762 [AppContext] Setting instructions: 56
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:226 [RecordingDetail] recording.loom_embed_url: https://www.loom.com/share/54ab677e97ac4b1ea8d09ec4211afaaa
+RecordingDetail.tsx:227 [RecordingDetail] recording.videoUrl: 
+RecordingDetail.tsx:233 [RecordingDetail] normalizedLoomUrl: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:7 [LoomEmbed] Received URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa
+LoomEmbed.tsx:20 [LoomEmbed] Using embed URL: https://www.loom.com/embed/54ab677e97ac4b1ea8d09ec4211afaaa

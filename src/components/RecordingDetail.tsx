@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { Card } from "./ui/card";
@@ -48,10 +48,14 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
     .filter(c => !c.parentId)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  // Записываем просмотр записи при открытии страницы
+  // Ref для предотвращения повторной записи просмотра
+  const viewRecordedRef = useRef<string | null>(null);
+
+  // Записываем просмотр записи при открытии страницы (только один раз)
   useEffect(() => {
     const recordView = async () => {
-      if (auth.isAuthenticated) {
+      if (auth.isAuthenticated && viewRecordedRef.current !== recording.id) {
+        viewRecordedRef.current = recording.id;
         try {
           await apiClient.recordRecordingView(parseInt(recording.id));
           await refreshRecordings();
@@ -223,14 +227,9 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
   };
 
   // Проверяем loom_embed_url на валидность Loom ссылки
-  console.log('[RecordingDetail] recording.loom_embed_url:', recording.loom_embed_url);
-  console.log('[RecordingDetail] recording.videoUrl:', recording.videoUrl);
-  
   const normalizedLoomUrl = recording.loom_embed_url
     ? validateAndNormalizeLoomUrl(recording.loom_embed_url)
     : null;
-  
-  console.log('[RecordingDetail] normalizedLoomUrl:', normalizedLoomUrl);
 
   // Проверяем videoUrl - может быть Loom или YouTube
   const videoUrlAsLoom = recording.videoUrl && !normalizedLoomUrl
