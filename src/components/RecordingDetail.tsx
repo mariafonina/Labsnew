@@ -50,22 +50,34 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
 
   // Ref для предотвращения повторной записи просмотра
   const viewRecordedRef = useRef<string | null>(null);
+  const isRecordingViewRef = useRef(false);
 
   // Записываем просмотр записи при открытии страницы (только один раз)
   useEffect(() => {
     const recordView = async () => {
-      if (auth.isAuthenticated && viewRecordedRef.current !== recording.id) {
-        viewRecordedRef.current = recording.id;
-        try {
-          await apiClient.recordRecordingView(parseInt(recording.id));
-          await refreshRecordings();
-        } catch (error) {
-          console.error('Failed to record view:', error);
-        }
+      // Prevent duplicate calls with multiple checks
+      if (!auth.isAuthenticated) return;
+      if (viewRecordedRef.current === recording.id) return;
+      if (isRecordingViewRef.current) return;
+      
+      isRecordingViewRef.current = true;
+      viewRecordedRef.current = recording.id;
+      
+      try {
+        await apiClient.recordRecordingView(parseInt(recording.id));
+        // Delay refresh to avoid burst of requests
+        setTimeout(() => {
+          refreshRecordings();
+        }, 500);
+      } catch (error) {
+        console.error('Failed to record view:', error);
+      } finally {
+        isRecordingViewRef.current = false;
       }
     };
     recordView();
-  }, [recording.id, auth.isAuthenticated, refreshRecordings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recording.id, auth.isAuthenticated]);
 
   const handleToggleFavorite = () => {
     if (isFavorite(recording.id)) {

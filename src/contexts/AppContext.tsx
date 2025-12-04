@@ -1652,8 +1652,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Ref to prevent duplicate fetchContent calls
+  const isFetchingContentRef = useRef(false);
+  const lastFetchTimeRef = useRef(0);
+  const FETCH_DEBOUNCE_MS = 1000; // Minimum 1 second between fetches
+
   // Fetch content from API (news, events, instructions, recordings, FAQ)
   const fetchContent = async () => {
+    // Prevent duplicate/rapid fetches
+    const now = Date.now();
+    if (isFetchingContentRef.current) {
+      console.log('[AppContext] fetchContent skipped - already fetching');
+      return;
+    }
+    if (now - lastFetchTimeRef.current < FETCH_DEBOUNCE_MS) {
+      console.log('[AppContext] fetchContent debounced - too soon since last fetch');
+      return;
+    }
+    
+    isFetchingContentRef.current = true;
+    lastFetchTimeRef.current = now;
     console.log('[AppContext] fetchContent called');
     try {
       // Загружаем потоки пользователя
@@ -1802,6 +1820,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       await fetchNotifications();
     } catch (error) {
       console.error('Error fetching content:', error);
+    } finally {
+      isFetchingContentRef.current = false;
     }
   };
 

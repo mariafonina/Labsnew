@@ -25,7 +25,7 @@ setInterval(() => {
 
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 1000, // 1000 requests per window (increased for development)
+  max: 3000, // 3000 requests per window (increased for production with many parallel requests)
   message: 'Too many requests from this IP, please try again later.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -58,7 +58,7 @@ export const strictLimiter = rateLimit({
 
 export const readLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 60, // 60 read operations per minute
+  max: 120, // 120 read operations per minute (increased for dashboard and list views)
   message: 'Too many requests, please slow down.',
   standardHeaders: true,
   legacyHeaders: false,
@@ -245,7 +245,7 @@ export const requestSizeLimiter = (req: Request, res: Response, next: NextFuncti
 
 export const burstLimiter = rateLimit({
   windowMs: 10 * 1000, // 10 seconds
-  max: 200, // 200 requests per 10 seconds (increased for development)
+  max: 500, // 500 requests per 10 seconds (increased for production with many parallel requests on page load)
   message: 'Too many requests in a short period. Please slow down.',
   standardHeaders: true,
   legacyHeaders: false,
