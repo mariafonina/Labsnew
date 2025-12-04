@@ -161,7 +161,15 @@ router.post('/import', verifyToken, requireAdmin, upload.single('file'), async (
           [userId, parseInt(user.productId), parseInt(user.cohortId)]
         );
 
-        if (existingEnrollment.rows.length === 0) {
+        if (existingEnrollment.rows.length > 0) {
+          // Обновляем actual_amount в enrollment
+          await query(
+            `UPDATE labs.user_enrollments
+             SET actual_amount = $1
+             WHERE id = $2`,
+            [parseFloat(user.actualPayment) || null, existingEnrollment.rows[0].id]
+          );
+        } else {
           // Получаем первый доступный pricing tier
           const tierResult = await query(
             'SELECT id FROM labs.pricing_tiers ORDER BY tier_level LIMIT 1'
@@ -177,9 +185,9 @@ router.post('/import', verifyToken, requireAdmin, upload.single('file'), async (
 
           // Создаем enrollment
           await query(
-            `INSERT INTO labs.user_enrollments (user_id, product_id, cohort_id, pricing_tier_id, status)
-             VALUES ($1, $2, $3, $4, 'active')`,
-            [userId, parseInt(user.productId), parseInt(user.cohortId), pricingTierId]
+            `INSERT INTO labs.user_enrollments (user_id, product_id, cohort_id, pricing_tier_id, actual_amount, status)
+             VALUES ($1, $2, $3, $4, $5, 'active')`,
+            [userId, parseInt(user.productId), parseInt(user.cohortId), pricingTierId, parseFloat(user.actualPayment) || null]
           );
 
           enrolled++;

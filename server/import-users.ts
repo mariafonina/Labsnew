@@ -157,7 +157,14 @@ async function importUsers() {
         );
 
         if (existingEnrollment.rows.length > 0) {
-          console.log(`  → Already enrolled in product ${user.productId}, cohort ${user.cohortId}`);
+          // Обновляем actual_amount в enrollment
+          await query(
+            `UPDATE labs.user_enrollments
+             SET actual_amount = $1
+             WHERE id = $2`,
+            [parseFloat(user.actualPayment) || null, existingEnrollment.rows[0].id]
+          );
+          console.log(`  → Updated enrollment in product ${user.productId}, cohort ${user.cohortId}`);
         } else {
           // Получаем первый доступный pricing tier
           const tierResult = await query(
@@ -174,9 +181,9 @@ async function importUsers() {
 
           // Создаем enrollment
           await query(
-            `INSERT INTO labs.user_enrollments (user_id, product_id, cohort_id, pricing_tier_id, status)
-             VALUES ($1, $2, $3, $4, 'active')`,
-            [userId, parseInt(user.productId), parseInt(user.cohortId), pricingTierId]
+            `INSERT INTO labs.user_enrollments (user_id, product_id, cohort_id, pricing_tier_id, actual_amount, status)
+             VALUES ($1, $2, $3, $4, $5, 'active')`,
+            [userId, parseInt(user.productId), parseInt(user.cohortId), pricingTierId, parseFloat(user.actualPayment) || null]
           );
 
           console.log(`  → Enrolled in product ${user.productId}, cohort ${user.cohortId}, tier ${pricingTierId}`);
