@@ -223,9 +223,14 @@ export function RecordingDetail({ recording, onBack }: RecordingDetailProps) {
   };
 
   // Проверяем loom_embed_url на валидность Loom ссылки
+  console.log('[RecordingDetail] recording.loom_embed_url:', recording.loom_embed_url);
+  console.log('[RecordingDetail] recording.videoUrl:', recording.videoUrl);
+  
   const normalizedLoomUrl = recording.loom_embed_url
     ? validateAndNormalizeLoomUrl(recording.loom_embed_url)
     : null;
+  
+  console.log('[RecordingDetail] normalizedLoomUrl:', normalizedLoomUrl);
 
   // Проверяем videoUrl - может быть Loom или YouTube
   const videoUrlAsLoom = recording.videoUrl && !normalizedLoomUrl
