@@ -187,7 +187,6 @@ export function AdminStreamDetail({
   const [thumbnailTab, setThumbnailTab] = useState<"upload" | "url">("upload");
   const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
   const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
-  const [selectedThumbnailFile, setSelectedThumbnailFile] = useState<File | null>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   // Members states
@@ -486,7 +485,7 @@ export function AdminStreamDetail({
   };
 
   // Thumbnail upload handlers
-  const handleThumbnailFileSelect = (file: File) => {
+  const handleThumbnailFileSelect = async (file: File) => {
     const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
       toast.error("Разрешены только изображения (JPEG, PNG, GIF, WebP)");
@@ -499,44 +498,36 @@ export function AdminStreamDetail({
       return;
     }
 
-    setSelectedThumbnailFile(file);
-    
     const reader = new FileReader();
     reader.onload = (e) => {
       setThumbnailPreview(e.target?.result as string);
     };
     reader.readAsDataURL(file);
-  };
-
-  const handleThumbnailUpload = async () => {
-    if (!selectedThumbnailFile) {
-      toast.error("Выберите файл для загрузки");
-      return;
-    }
 
     setIsThumbnailUploading(true);
 
     try {
-      const result = await apiClient.uploadImageDirect(selectedThumbnailFile, "thumbnails");
+      const result = await apiClient.uploadImageDirect(file, "thumbnails");
 
       if (!result.success) {
         throw new Error("Upload failed");
       }
 
-      setRecordingForm({ ...recordingForm, thumbnail: result.url });
-      setSelectedThumbnailFile(null);
-      setThumbnailPreview(null);
+      setRecordingForm(prev => ({ ...prev, thumbnail: result.url }));
       toast.success("Обложка загружена");
     } catch (error) {
       console.error("Upload error:", error);
       toast.error("Не удалось загрузить обложку");
+      setThumbnailPreview(null);
     } finally {
       setIsThumbnailUploading(false);
+      if (thumbnailInputRef.current) {
+        thumbnailInputRef.current.value = "";
+      }
     }
   };
 
   const resetThumbnailUpload = () => {
-    setSelectedThumbnailFile(null);
     setThumbnailPreview(null);
     if (thumbnailInputRef.current) {
       thumbnailInputRef.current.value = "";
@@ -1147,53 +1138,22 @@ export function AdminStreamDetail({
                             if (file) handleThumbnailFileSelect(file);
                           }}
                           className="hidden"
+                          disabled={isThumbnailUploading}
                         />
                         
-                        {!selectedThumbnailFile && !recordingForm.thumbnail ? (
-                          <div
-                            onClick={() => thumbnailInputRef.current?.click()}
-                            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-pink-400 transition-colors"
-                          >
-                            <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
-                            <p className="text-gray-600 font-medium">Нажмите для выбора файла</p>
-                            <p className="text-sm text-gray-400 mt-1">JPEG, PNG, GIF, WebP до 5MB</p>
-                          </div>
-                        ) : thumbnailPreview ? (
-                          <div className="space-y-3">
-                            <div className="relative">
+                        {isThumbnailUploading ? (
+                          <div className="relative">
+                            {thumbnailPreview && (
                               <img
                                 src={thumbnailPreview}
-                                alt="Preview"
-                                className="w-full h-48 object-cover rounded-lg border"
+                                alt="Uploading"
+                                className="w-full h-48 object-cover rounded-lg border opacity-50"
                               />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2 h-8 w-8"
-                                onClick={resetThumbnailUpload}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
+                            )}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 rounded-lg">
+                              <Loader2 className="h-10 w-10 text-pink-500 animate-spin mb-2" />
+                              <p className="text-gray-600 font-medium">Загрузка...</p>
                             </div>
-                            <Button
-                              type="button"
-                              onClick={handleThumbnailUpload}
-                              disabled={isThumbnailUploading}
-                              className="w-full bg-gradient-to-r from-pink-400 to-rose-400 hover:from-pink-500 hover:to-rose-500"
-                            >
-                              {isThumbnailUploading ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                  Загрузка...
-                                </>
-                              ) : (
-                                <>
-                                  <Upload className="h-4 w-4 mr-2" />
-                                  Загрузить в хранилище
-                                </>
-                              )}
-                            </Button>
                           </div>
                         ) : recordingForm.thumbnail ? (
                           <div className="space-y-3">
@@ -1208,12 +1168,14 @@ export function AdminStreamDetail({
                                 variant="destructive"
                                 size="icon"
                                 className="absolute top-2 right-2 h-8 w-8"
-                                onClick={() => setRecordingForm({ ...recordingForm, thumbnail: "" })}
+                                onClick={() => {
+                                  setRecordingForm({ ...recordingForm, thumbnail: "" });
+                                  setThumbnailPreview(null);
+                                }}
                               >
                                 <X className="h-4 w-4" />
                               </Button>
                             </div>
-                            <p className="text-sm text-gray-500 text-center">Текущая обложка загружена</p>
                             <Button
                               type="button"
                               variant="outline"
@@ -1224,7 +1186,16 @@ export function AdminStreamDetail({
                               Заменить обложку
                             </Button>
                           </div>
-                        ) : null}
+                        ) : (
+                          <div
+                            onClick={() => thumbnailInputRef.current?.click()}
+                            className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-pink-400 transition-colors"
+                          >
+                            <Upload className="h-10 w-10 text-gray-400 mx-auto mb-3" />
+                            <p className="text-gray-600 font-medium">Нажмите для выбора файла</p>
+                            <p className="text-sm text-gray-400 mt-1">JPEG, PNG, GIF, WebP до 5MB</p>
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-3">
