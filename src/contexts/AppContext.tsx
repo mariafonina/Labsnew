@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react";
 import { apiClient } from "../api/client";
 
 const getApiBaseUrl = () => {
@@ -1806,7 +1806,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   // Refresh recordings from API
-  const refreshRecordings = async () => {
+  const refreshRecordings = useCallback(async () => {
     try {
       const recordingsData = await apiClient.getRecordings();
       const items = recordingsData.length > 0 ? recordingsData.map((item: any) => ({
@@ -1830,7 +1830,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error refreshing recordings:', error);
     }
-  };
+  }, []);
 
   // Admin functions for Recordings
   const addRecording = (recording: Omit<Recording, "id" | "views">) => {
