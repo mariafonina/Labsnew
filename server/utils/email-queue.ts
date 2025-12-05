@@ -143,6 +143,24 @@ class EmailQueueService {
           AND last_attempt_at < NOW() - INTERVAL '5 minutes'
       `);
 
+      // First, check how many pending emails exist
+      const pendingCheck = await query(`
+        SELECT id, recipient_email, next_retry_at, created_at, attempts
+        FROM labs.email_queue 
+        WHERE status = 'pending'
+        ORDER BY priority DESC, created_at ASC
+        LIMIT 10
+      `);
+      
+      if (pendingCheck.rows.length > 0) {
+        console.log(`[EmailQueue] Found ${pendingCheck.rows.length} pending emails:`);
+        pendingCheck.rows.forEach((e: any) => {
+          const nextRetry = e.next_retry_at ? new Date(e.next_retry_at).toISOString() : 'NULL';
+          const isReady = !e.next_retry_at || new Date(e.next_retry_at) <= new Date();
+          console.log(`  - ID ${e.id}: ${e.recipient_email}, next_retry_at: ${nextRetry}, ready: ${isReady}, attempts: ${e.attempts}`);
+        });
+      }
+
       const client = await getClient();
       let pendingEmails;
 

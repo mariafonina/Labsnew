@@ -352,4 +352,27 @@ router.post('/queue/batch/:batchId/retry', verifyToken, requireAdmin, asyncHandl
   });
 }));
 
+router.get('/queue/pending', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const result = await query(`
+    SELECT id, email_type, recipient_email, subject, status, attempts, max_attempts, 
+           next_retry_at, created_at, last_attempt_at, error_message, batch_id
+    FROM labs.email_queue 
+    WHERE status = 'pending'
+    ORDER BY created_at DESC
+    LIMIT 100
+  `);
+  res.json(result.rows);
+}));
+
+router.get('/queue/all', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const result = await query(`
+    SELECT id, email_type, recipient_email, subject, status, attempts, max_attempts, 
+           next_retry_at, created_at, last_attempt_at, error_message, batch_id
+    FROM labs.email_queue 
+    ORDER BY created_at DESC
+    LIMIT 100
+  `);
+  res.json(result.rows);
+}));
+
 export default router;
