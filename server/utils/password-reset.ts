@@ -21,20 +21,13 @@ export async function generateResetToken(userId: number): Promise<string> {
 export async function sendPasswordResetEmail(email: string, username: string, token: string): Promise<void> {
   // Определяем базовый URL фронтенда
   let frontendBaseUrl = process.env.FRONTEND_BASE_URL;
-  
+
   if (!frontendBaseUrl) {
-    // Для Replit
-    if (process.env.REPL_SLUG && process.env.REPLIT_DOMAINS) {
-      const domains = process.env.REPLIT_DOMAINS.split(',');
-      frontendBaseUrl = `https://${process.env.REPL_SLUG}.${domains[0]}`;
-    } 
-    // Для локальной разработки
-    else if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development') {
       frontendBaseUrl = 'http://localhost:5173';
-    }
-    // Fallback
-    else {
-      frontendBaseUrl = 'http://localhost:5173';
+    } else {
+      // Production default
+      frontendBaseUrl = 'https://labs.mariafonina.ru';
     }
   }
 

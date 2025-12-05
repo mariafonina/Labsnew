@@ -36,15 +36,13 @@ export async function generateInitialPasswordToken(userId: number): Promise<stri
 
 function getFrontendBaseUrl(): string {
   let frontendBaseUrl = process.env.FRONTEND_BASE_URL;
-  
+
   if (!frontendBaseUrl) {
-    if (process.env.REPL_SLUG && process.env.REPLIT_DOMAINS) {
-      const domains = process.env.REPLIT_DOMAINS.split(',');
-      frontendBaseUrl = `https://${process.env.REPL_SLUG}.${domains[0]}`;
-    } else if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development') {
       frontendBaseUrl = 'http://localhost:5173';
     } else {
-      frontendBaseUrl = 'http://localhost:5173';
+      // Production default
+      frontendBaseUrl = 'https://labs.mariafonina.ru';
     }
   }
 
