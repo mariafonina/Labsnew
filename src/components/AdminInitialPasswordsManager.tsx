@@ -61,15 +61,15 @@ export function AdminInitialPasswordsManager() {
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-500" />
                 <div>
-                  <div className="text-gray-500">Отправлено</div>
-                  <div className="font-bold text-lg text-green-600">{result.sent}</div>
+                  <div className="text-gray-500">В очереди</div>
+                  <div className="font-bold text-lg text-green-600">{result.queued}</div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <XCircle className="h-4 w-4 text-red-500" />
+                <XCircle className="h-4 w-4 text-amber-500" />
                 <div>
-                  <div className="text-gray-500">Ошибки</div>
-                  <div className="font-bold text-lg text-red-600">{result.failed}</div>
+                  <div className="text-gray-500">Пропущено</div>
+                  <div className="font-bold text-lg text-amber-600">{result.skipped}</div>
                 </div>
               </div>
             </div>

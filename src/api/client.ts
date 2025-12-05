@@ -710,12 +710,16 @@ class ApiClient {
     return this.post('/reset-password', { token, newPassword });
   }
 
-  async sendInitialPasswords(cohortIds?: number[]): Promise<{ sent: number; failed: number; skipped: number; total: number; message: string }> {
+  async sendInitialPasswords(cohortIds?: number[]): Promise<{ success: boolean; queued: number; skipped: number; total: number; message: string; batch_id?: string }> {
     return this.post('/admin/send-initial-passwords', { cohortIds });
   }
 
   async getInitialPasswordStats(): Promise<{ stats: { total: number; used: number; active: number; expired: number } }> {
     return this.get('/admin/initial-passwords/stats');
+  }
+
+  async getBatchStatus(batchId: string): Promise<{ batch_id: string; total: number; pending: number; processing: number; sent: number; failed: number; progress_percent: number }> {
+    return this.get(`/admin/emails/queue/batch/${batchId}`);
   }
 
   async verifySetupToken(token: string): Promise<{ valid: boolean; message?: string }> {

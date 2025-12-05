@@ -186,7 +186,12 @@ async function initDB() {
     emailQueueService.startWorker(5000);
     console.log('Email queue worker started');
   } catch (error) {
-    console.error('Failed to start email queue worker:', error);
+    console.error('CRITICAL: Failed to start email queue worker:', error);
+    console.error('Emails will not be sent! Check logs and restart the server.');
+    // In production, this is critical - throw error to prevent silent failure
+    if (isProduction) {
+      throw new Error('Email queue worker failed to start');
+    }
   }
 }
 

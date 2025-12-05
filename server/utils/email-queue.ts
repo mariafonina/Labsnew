@@ -73,7 +73,6 @@ class EmailQueueService {
 
   async addBatchToQueue(emails: QueuedEmail[]): Promise<BatchResult> {
     const batchId = uuidv4();
-    let queued = 0;
 
     const client = await getClient();
     try {
@@ -103,23 +102,29 @@ class EmailQueueService {
             email.user_id || null
           ]
         );
-        queued++;
       }
 
       await client.query('COMMIT');
+
+      // Get actual count from database after successful commit
+      const countResult = await client.query(
+        'SELECT COUNT(*) as count FROM labs.email_queue WHERE batch_id = $1',
+        [batchId]
+      );
+      const queued = parseInt(countResult.rows[0].count) || 0;
+
+      return {
+        batch_id: batchId,
+        total: emails.length,
+        queued,
+        message: `${queued} писем добавлено в очередь`
+      };
     } catch (error) {
       await client.query('ROLLBACK');
       throw error;
     } finally {
       client.release();
     }
-
-    return {
-      batch_id: batchId,
-      total: emails.length,
-      queued,
-      message: `${queued} писем добавлено в очередь`
-    };
   }
 
   async processQueue(): Promise<void> {
@@ -129,26 +134,43 @@ class EmailQueueService {
 
     this.isProcessing = true;
 
-    const client = await getClient();
     try {
-      await client.query('BEGIN');
+      // Reset stuck emails from previous crashes (older than 5 minutes in processing)
+      await query(`
+        UPDATE labs.email_queue
+        SET status = 'pending', next_retry_at = NOW()
+        WHERE status = 'processing'
+          AND last_attempt_at < NOW() - INTERVAL '5 minutes'
+      `);
 
-      const pendingEmails = await client.query(
-        `UPDATE labs.email_queue 
-         SET status = 'processing', last_attempt_at = NOW(), updated_at = NOW()
-         WHERE id IN (
-           SELECT id FROM labs.email_queue 
-           WHERE status = 'pending' 
-             AND (next_retry_at IS NULL OR next_retry_at <= NOW())
-           ORDER BY priority DESC, created_at ASC
-           LIMIT $1
-           FOR UPDATE SKIP LOCKED
-         )
-         RETURNING *`,
-        [MAX_BATCH_SIZE]
-      );
+      const client = await getClient();
+      let pendingEmails;
 
-      await client.query('COMMIT');
+      try {
+        await client.query('BEGIN');
+
+        pendingEmails = await client.query(
+          `UPDATE labs.email_queue
+           SET status = 'processing', last_attempt_at = NOW(), updated_at = NOW()
+           WHERE id IN (
+             SELECT id FROM labs.email_queue
+             WHERE status = 'pending'
+               AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+             ORDER BY priority DESC, created_at ASC
+             LIMIT $1
+             FOR UPDATE SKIP LOCKED
+           )
+           RETURNING *`,
+          [MAX_BATCH_SIZE]
+        );
+
+        await client.query('COMMIT');
+      } catch (error) {
+        await client.query('ROLLBACK');
+        throw error;
+      } finally {
+        client.release();
+      }
 
       if (pendingEmails.rows.length === 0) {
         return;
@@ -161,10 +183,8 @@ class EmailQueueService {
         await this.delay(EMAIL_DELAY_MS);
       }
     } catch (error) {
-      await client.query('ROLLBACK');
       console.error('[EmailQueue] Error processing queue:', error);
     } finally {
-      client.release();
       this.isProcessing = false;
     }
   }
@@ -176,10 +196,18 @@ class EmailQueueService {
       let sendResult: any;
 
       if (email.template_id) {
+        // Parse template_data from database (can be string or object)
+        let templateData;
+        if (email.template_data) {
+          templateData = typeof email.template_data === 'string'
+            ? JSON.parse(email.template_data)
+            : email.template_data;
+        }
+
         sendResult = await notisendClient.sendTemplateEmail(
           email.recipient_email,
           email.template_id,
-          email.template_data || {},
+          templateData || {},
           email.subject
         );
       } else {
@@ -242,14 +270,14 @@ class EmailQueueService {
       } else {
         const retryDelayMinutes = RETRY_DELAY_MINUTES[attempts - 1] || 15;
         await query(
-          `UPDATE labs.email_queue 
-           SET status = 'pending', 
+          `UPDATE labs.email_queue
+           SET status = 'pending',
                error_message = $1,
                attempts = $2,
-               next_retry_at = NOW() + INTERVAL '${retryDelayMinutes} minutes',
+               next_retry_at = NOW() + $3 * INTERVAL '1 minute',
                updated_at = NOW()
-           WHERE id = $3`,
-          [error.message || 'Unknown error', attempts, emailId]
+           WHERE id = $4`,
+          [error.message || 'Unknown error', attempts, retryDelayMinutes, emailId]
         );
         console.log(`[EmailQueue] ⟳ Retry scheduled for ${email.recipient_email} in ${retryDelayMinutes} min`);
       }
@@ -333,10 +361,11 @@ class EmailQueueService {
 
   async cleanupOldEmails(daysToKeep = 30): Promise<number> {
     const result = await query(
-      `DELETE FROM labs.email_queue 
-       WHERE (status = 'sent' OR status = 'cancelled') 
-         AND created_at < NOW() - INTERVAL '${daysToKeep} days'
-       RETURNING id`
+      `DELETE FROM labs.email_queue
+       WHERE (status = 'sent' OR status = 'cancelled')
+         AND created_at < NOW() - $1 * INTERVAL '1 day'
+       RETURNING id`,
+      [daysToKeep]
     );
     return result.rowCount || 0;
   }

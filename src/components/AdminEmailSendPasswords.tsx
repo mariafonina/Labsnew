@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { AdminFormWrapper } from "./AdminFormWrapper";
 import { AdminFormField } from "./AdminFormField";
 import { apiClient } from "../api/client";
+import { BatchProgressTracker } from "./BatchProgressTracker";
 
 type Product = {
   id: number;
@@ -39,6 +40,8 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
   const [products, setProducts] = useState<Product[]>([]);
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
+  const [showProgress, setShowProgress] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -66,9 +69,11 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
               const members = await response.json();
               return { ...cohort, member_count: members.length };
             }
-            return { ...cohort, member_count: 0 };
+            // Return undefined on error to distinguish from empty cohort
+            return { ...cohort, member_count: undefined };
           } catch {
-            return { ...cohort, member_count: 0 };
+            // Return undefined on error to distinguish from empty cohort
+            return { ...cohort, member_count: undefined };
           }
         })
       );
@@ -85,9 +90,10 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
   const selectedProductData = products.find((p) => p.id === selectedProduct);
   const productCohorts = cohorts.filter((c) => c.product_id === selectedProduct);
 
-  // Calculate total recipients
-  const totalRecipients = productCohorts
-    .filter((c) => selectedCohorts.includes(c.id))
+  // Calculate total recipients (only count cohorts with valid member_count)
+  const selectedCohortsData = productCohorts.filter((c) => selectedCohorts.includes(c.id));
+  const hasErrorLoadingMembers = selectedCohortsData.some((c) => c.member_count === undefined);
+  const totalRecipients = selectedCohortsData
     .reduce((acc, c) => acc + (c.member_count || 0), 0);
 
   const handleToggleCohort = (cohortId: number) => {
@@ -117,27 +123,40 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
 
     try {
       const result = await apiClient.sendInitialPasswords(selectedCohorts);
-      
-      if (result.sent > 0) {
-        let message = `Отправлено ${result.sent} писем с паролями`;
+
+      if (result.queued > 0) {
+        let message = `В очередь добавлено ${result.queued} писем с паролями`;
         if (result.skipped > 0) {
-          message += ` (${result.skipped} пропущено - уже получили)`;
+          message += ` (пропущено ${result.skipped} - уже получили письма)`;
         }
         toast.success(message);
-      } else if (result.skipped > 0 && result.sent === 0) {
+
+        // Show progress tracker if batch_id exists
+        if (result.batch_id) {
+          setActiveBatchId(result.batch_id);
+          setShowProgress(true);
+        }
+      } else if (result.skipped > 0 && result.queued === 0) {
         toast.info(`Все ${result.skipped} пользователей уже получили письма ранее`);
       } else if (result.total === 0) {
         toast.info("Нет пользователей в выбранных потоках для рассылки");
       } else {
-        toast.warning(`Не удалось отправить письма: ${result.failed} ошибок`);
+        toast.warning("Не удалось добавить письма в очередь");
       }
-      
-      onBack();
     } catch (error: any) {
       toast.error(error.message || "Не удалось отправить пароли");
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleProgressComplete = () => {
+    toast.success("Рассылка завершена!");
+    setTimeout(() => {
+      setShowProgress(false);
+      setActiveBatchId(null);
+      onBack();
+    }, 2000);
   };
 
   if (loading) {
@@ -152,6 +171,7 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
           variant="ghost"
           onClick={onBack}
           className="mb-4 -ml-2 hover:bg-gray-100"
+          disabled={showProgress}
         >
           <ChevronRight className="h-4 w-4 mr-2 rotate-180" />
           Назад к списку рассылок
@@ -177,24 +197,36 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
         </div>
       </div>
 
+      {/* Progress Tracker */}
+      {showProgress && activeBatchId && (
+        <BatchProgressTracker
+          batchId={activeBatchId}
+          totalEmails={totalRecipients}
+          onComplete={handleProgressComplete}
+        />
+      )}
+
       {/* Warning Alert */}
-      <Card className="p-6 border-2 border-amber-200 bg-amber-50">
-        <div className="flex items-start gap-4">
-          <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="h-5 w-5 text-amber-600" />
+      {!showProgress && (
+        <Card className="p-6 border-2 border-amber-200 bg-amber-50">
+          <div className="flex items-start gap-4">
+            <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <h3 className="font-black text-lg mb-1 text-amber-900">
+                Важно
+              </h3>
+              <p className="text-amber-800">
+                Отправка первичных паролей предназначена для новых учеников. Убедитесь, что выбрали правильные потоки. Письма будут отправлены всем ученикам выбранных потоков.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-black text-lg mb-1 text-amber-900">
-              Важно
-            </h3>
-            <p className="text-amber-800">
-              Отправка первичных паролей предназначена для новых учеников. Убедитесь, что выбрали правильные потоки. Письма будут отправлены всем ученикам выбранных потоков.
-            </p>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      )}
 
       {/* Form */}
+      {!showProgress && (
       <AdminFormWrapper
         title="Параметры отправки"
         description="Выберите продукт и потоки"
@@ -311,17 +343,21 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
                             </div>
                             <div>
                               <p className="font-black">{cohort.name}</p>
-                              {cohort.member_count !== undefined && (
-                                <div className="flex items-center gap-2 text-sm text-gray-500">
-                                  <Users className="h-3.5 w-3.5" />
-                                  <span>
+                              <div className="flex items-center gap-2 text-sm">
+                                <Users className="h-3.5 w-3.5 text-gray-400" />
+                                {cohort.member_count !== undefined ? (
+                                  <span className="text-gray-500">
                                     {cohort.member_count}{" "}
                                     {cohort.member_count === 1
                                       ? "ученик"
                                       : "учеников"}
                                   </span>
-                                </div>
-                              )}
+                                ) : (
+                                  <span className="text-red-500">
+                                    Ошибка загрузки
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                           {isSelected && (
@@ -338,6 +374,25 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
             </AdminFormField>
           )}
 
+          {/* Error Warning */}
+          {hasErrorLoadingMembers && selectedCohorts.length > 0 && (
+            <Card className="p-6 border-2 border-red-200 bg-red-50">
+              <div className="flex items-start gap-4">
+                <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg mb-1 text-red-900">
+                    Ошибка загрузки
+                  </h3>
+                  <p className="text-red-800">
+                    Не удалось загрузить количество учеников для некоторых потоков. Реальное количество получателей может отличаться от отображаемого.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Summary */}
           {totalRecipients > 0 && (
             <Card className="p-6 border-2 border-purple-200 bg-purple-50">
@@ -348,7 +403,7 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
                   </div>
                   <div>
                     <p className="text-sm text-purple-700 mb-1">
-                      Получателей
+                      Получателей {hasErrorLoadingMembers && "(приблизительно)"}
                     </p>
                     <p className="text-3xl font-black text-purple-900">
                       {totalRecipients}
@@ -368,6 +423,7 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
           )}
         </div>
       </AdminFormWrapper>
+      )}
     </div>
   );
 }
