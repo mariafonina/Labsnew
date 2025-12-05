@@ -714,6 +714,19 @@ class ApiClient {
     return this.post('/admin/send-initial-passwords', { cohortIds });
   }
 
+  async sendInitialPasswordsByEmails(emails: string[]): Promise<{ 
+    success: boolean; 
+    queued: number; 
+    skipped: number; 
+    not_found: number;
+    not_found_emails: string[];
+    total: number; 
+    message: string; 
+    batch_id?: string 
+  }> {
+    return this.post('/admin/send-initial-passwords-by-emails', { emails });
+  }
+
   async getInitialPasswordStats(): Promise<{ stats: { total: number; used: number; active: number; expired: number } }> {
     return this.get('/admin/initial-passwords/stats');
   }

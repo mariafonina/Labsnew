@@ -116,6 +116,124 @@ router.post(
   })
 );
 
+router.post(
+  '/send-initial-passwords-by-emails',
+  verifyToken,
+  requireAdmin,
+  createLimiter,
+  asyncHandler(async (req: AuthRequest, res: Response) => {
+    await cleanupExpiredInitialTokens();
+
+    const { emails } = req.body as { emails: string[] };
+
+    if (!emails || !Array.isArray(emails) || emails.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Необходимо указать список email-адресов'
+      });
+      return;
+    }
+
+    const cleanedEmails = emails
+      .map(e => e.trim().toLowerCase())
+      .filter(e => e && e.includes('@'));
+
+    if (cleanedEmails.length === 0) {
+      res.status(400).json({
+        success: false,
+        message: 'Не найдено валидных email-адресов'
+      });
+      return;
+    }
+
+    const result = await query(
+      `SELECT id, username, email 
+       FROM labs.users 
+       WHERE LOWER(email) = ANY($1) AND role = 'user'`,
+      [cleanedEmails]
+    );
+
+    const users = result.rows;
+    const foundEmails = new Set(users.map((u: any) => u.email.toLowerCase()));
+    const notFoundEmails = cleanedEmails.filter(e => !foundEmails.has(e));
+
+    if (users.length === 0) {
+      res.json({
+        success: true,
+        message: 'Пользователи с указанными email не найдены',
+        queued: 0,
+        skipped: 0,
+        not_found: notFoundEmails.length,
+        not_found_emails: notFoundEmails,
+        total: 0
+      });
+      return;
+    }
+
+    const existingTokensResult = await query(
+      `SELECT DISTINCT user_id FROM labs.initial_password_tokens 
+       WHERE used = FALSE AND expires_at > NOW()`
+    );
+    const usersWithValidTokens = new Set(existingTokensResult.rows.map((r: any) => r.user_id));
+
+    const emailsToQueue: QueuedEmail[] = [];
+    let skipped = 0;
+
+    for (const user of users) {
+      if (usersWithValidTokens.has(user.id)) {
+        skipped++;
+        console.log(`⊘ Skipped ${user.email} - already has valid token`);
+        continue;
+      }
+
+      try {
+        const token = await generateInitialPasswordToken(user.id);
+        const emailContent = getInitialPasswordEmailContent(user.email, user.username, token);
+        
+        emailsToQueue.push({
+          email_type: 'initial_password',
+          recipient_email: user.email,
+          recipient_name: user.username,
+          subject: emailContent.subject,
+          html_content: emailContent.html,
+          from_email: emailContent.from_email,
+          from_name: emailContent.from_name,
+          user_id: user.id,
+          priority: 1
+        });
+      } catch (error: any) {
+        console.error(`✗ Failed to generate token for ${user.email}:`, error.message);
+      }
+    }
+
+    if (emailsToQueue.length === 0) {
+      res.json({
+        success: true,
+        message: 'Нет пользователей для рассылки (все уже получили письмо)',
+        queued: 0,
+        skipped,
+        not_found: notFoundEmails.length,
+        not_found_emails: notFoundEmails,
+        total: users.length
+      });
+      return;
+    }
+
+    const batchResult = await emailQueueService.addBatchToQueue(emailsToQueue);
+
+    res.json({
+      success: true,
+      message: `Рассылка запущена: ${batchResult.queued} писем в очереди`,
+      batch_id: batchResult.batch_id,
+      queued: batchResult.queued,
+      skipped,
+      not_found: notFoundEmails.length,
+      not_found_emails: notFoundEmails.slice(0, 10),
+      total: users.length
+    });
+  })
+);
+
 router.get(
   '/initial-passwords/stats',
   verifyToken,

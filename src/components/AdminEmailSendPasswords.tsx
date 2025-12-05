@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
+import { Textarea } from "./ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import {
   ChevronRight,
   Key,
@@ -10,6 +12,8 @@ import {
   Calendar,
   Send,
   AlertCircle,
+  Mail,
+  List,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminFormWrapper } from "./AdminFormWrapper";
@@ -34,14 +38,17 @@ interface AdminEmailSendPasswordsProps {
 }
 
 export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps) {
+  const [activeTab, setActiveTab] = useState<"cohorts" | "emails">("cohorts");
   const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
   const [selectedCohorts, setSelectedCohorts] = useState<number[]>([]);
+  const [emailList, setEmailList] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [cohorts, setCohorts] = useState<Cohort[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeBatchId, setActiveBatchId] = useState<string | null>(null);
   const [showProgress, setShowProgress] = useState(false);
+  const [notFoundEmails, setNotFoundEmails] = useState<string[]>([]);
 
   useEffect(() => {
     loadData();
@@ -113,6 +120,15 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
     setSelectedCohorts([]);
   };
 
+  const parseEmailList = (text: string): string[] => {
+    return text
+      .split(/[\n,;]+/)
+      .map(e => e.trim().toLowerCase())
+      .filter(e => e && e.includes('@'));
+  };
+
+  const parsedEmails = parseEmailList(emailList);
+
   const handleSendPasswords = async () => {
     if (!selectedProduct || selectedCohorts.length === 0) {
       toast.error("Выберите продукт и хотя бы один поток");
@@ -131,7 +147,6 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
         }
         toast.success(message);
 
-        // Show progress tracker if batch_id exists
         if (result.batch_id) {
           setActiveBatchId(result.batch_id);
           setShowProgress(true);
@@ -145,6 +160,51 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
       }
     } catch (error: any) {
       console.error('Send passwords error:', error);
+      toast.error(error?.message || "Не удалось отправить пароли");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const handleSendPasswordsByEmails = async () => {
+    if (parsedEmails.length === 0) {
+      toast.error("Введите хотя бы один email-адрес");
+      return;
+    }
+
+    setIsSending(true);
+    setNotFoundEmails([]);
+
+    try {
+      const result = await apiClient.sendInitialPasswordsByEmails(parsedEmails);
+
+      if (result.not_found > 0) {
+        setNotFoundEmails(result.not_found_emails || []);
+      }
+
+      if (result.queued > 0) {
+        let message = `В очередь добавлено ${result.queued} писем с паролями`;
+        if (result.skipped > 0) {
+          message += ` (пропущено ${result.skipped} - уже получили)`;
+        }
+        if (result.not_found > 0) {
+          message += ` • Не найдено: ${result.not_found}`;
+        }
+        toast.success(message);
+
+        if (result.batch_id) {
+          setActiveBatchId(result.batch_id);
+          setShowProgress(true);
+        }
+      } else if (result.not_found === parsedEmails.length) {
+        toast.error(`Пользователи с указанными email не найдены в системе`);
+      } else if (result.skipped > 0 && result.queued === 0) {
+        toast.info(`Все ${result.skipped} пользователей уже получили письма ранее`);
+      } else {
+        toast.warning("Не удалось добавить письма в очередь");
+      }
+    } catch (error: any) {
+      console.error('Send passwords by emails error:', error);
       toast.error(error?.message || "Не удалось отправить пароли");
     } finally {
       setIsSending(false);
@@ -228,202 +288,291 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
 
       {/* Form */}
       {!showProgress && (
-      <AdminFormWrapper
-        title="Параметры отправки"
-        description="Выберите продукт и потоки"
-        onSubmit={handleSendPasswords}
-        onCancel={onBack}
-        submitText={isSending ? "Отправка..." : "Отправить пароли"}
-        submitDisabled={!selectedProduct || selectedCohorts.length === 0 || isSending}
-      >
-        <div className="space-y-6">
-          {/* Product Selection */}
-          <AdminFormField label="Продукт" required emoji="📦">
-            <div className="space-y-3">
-              {products.map((product) => (
-                <Card
-                  key={product.id}
-                  className={`p-4 border-2 cursor-pointer transition-all ${
-                    selectedProduct === product.id
-                      ? "border-purple-400 bg-purple-50 shadow-lg"
-                      : "border-gray-200 hover:border-purple-200 hover:bg-gray-50"
-                  }`}
-                  onClick={() => {
-                    setSelectedProduct(product.id);
-                    setSelectedCohorts([]);
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                          selectedProduct === product.id
-                            ? "bg-purple-400"
-                            : "bg-gray-100"
-                        }`}
-                      >
-                        <Package
-                          className={`h-5 w-5 ${
-                            selectedProduct === product.id
-                              ? "text-white"
-                              : "text-gray-400"
-                          }`}
-                        />
-                      </div>
-                      <div>
-                        <p className="font-black text-lg">{product.name}</p>
-                        <p className="text-sm text-gray-500">
-                          {cohorts.filter((c) => c.product_id === product.id).length}{" "}
-                          {cohorts.filter((c) => c.product_id === product.id).length === 1 ? "поток" : "потоков"}
-                        </p>
-                      </div>
-                    </div>
-                    {selectedProduct === product.id && (
-                      <Badge className="bg-purple-500 text-white">
-                        Выбран
-                      </Badge>
-                    )}
-                  </div>
-                </Card>
-              ))}
-            </div>
-          </AdminFormField>
+        <Tabs value={activeTab} onValueChange={(v: string) => setActiveTab(v as "cohorts" | "emails")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="cohorts" className="gap-2">
+              <Users className="h-4 w-4" />
+              По потокам
+            </TabsTrigger>
+            <TabsTrigger value="emails" className="gap-2">
+              <List className="h-4 w-4" />
+              По списку email
+            </TabsTrigger>
+          </TabsList>
 
-          {/* Cohorts Selection */}
-          {selectedProductData && productCohorts.length > 0 && (
-            <AdminFormField label="Потоки" required emoji="📅">
-              <div className="space-y-4">
-                {/* Select All / Deselect All */}
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleSelectAllCohorts}
-                    className="flex-1"
-                  >
-                    Выбрать все
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleDeselectAllCohorts}
-                    className="flex-1"
-                  >
-                    Снять выбор
-                  </Button>
-                </div>
-
-                {/* Cohorts List */}
-                <div className="space-y-3">
-                  {productCohorts.map((cohort) => {
-                    const isSelected = selectedCohorts.includes(cohort.id);
-                    return (
+          <TabsContent value="cohorts">
+            <AdminFormWrapper
+              title="Параметры отправки"
+              description="Выберите продукт и потоки"
+              onSubmit={handleSendPasswords}
+              onCancel={onBack}
+              submitText={isSending ? "Отправка..." : "Отправить пароли"}
+              submitDisabled={!selectedProduct || selectedCohorts.length === 0 || isSending}
+            >
+              <div className="space-y-6">
+                {/* Product Selection */}
+                <AdminFormField label="Продукт" required emoji="📦">
+                  <div className="space-y-3">
+                    {products.map((product) => (
                       <Card
-                        key={cohort.id}
+                        key={product.id}
                         className={`p-4 border-2 cursor-pointer transition-all ${
-                          isSelected
-                            ? "border-green-400 bg-green-50 shadow-lg"
-                            : "border-gray-200 hover:border-green-200 hover:bg-gray-50"
+                          selectedProduct === product.id
+                            ? "border-purple-400 bg-purple-50 shadow-lg"
+                            : "border-gray-200 hover:border-purple-200 hover:bg-gray-50"
                         }`}
-                        onClick={() => handleToggleCohort(cohort.id)}
+                        onClick={() => {
+                          setSelectedProduct(product.id);
+                          setSelectedCohorts([]);
+                        }}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div
                               className={`h-10 w-10 rounded-lg flex items-center justify-center ${
-                                isSelected ? "bg-green-400" : "bg-gray-100"
+                                selectedProduct === product.id
+                                  ? "bg-purple-400"
+                                  : "bg-gray-100"
                               }`}
                             >
-                              <Calendar
+                              <Package
                                 className={`h-5 w-5 ${
-                                  isSelected ? "text-white" : "text-gray-400"
+                                  selectedProduct === product.id
+                                    ? "text-white"
+                                    : "text-gray-400"
                                 }`}
                               />
                             </div>
                             <div>
-                              <p className="font-black">{cohort.name}</p>
-                              <div className="flex items-center gap-2 text-sm">
-                                <Users className="h-3.5 w-3.5 text-gray-400" />
-                                {cohort.member_count !== undefined ? (
-                                  <span className="text-gray-500">
-                                    {cohort.member_count}{" "}
-                                    {cohort.member_count === 1
-                                      ? "ученик"
-                                      : "учеников"}
-                                  </span>
-                                ) : (
-                                  <span className="text-red-500">
-                                    Ошибка загрузки
-                                  </span>
-                                )}
-                              </div>
+                              <p className="font-black text-lg">{product.name}</p>
+                              <p className="text-sm text-gray-500">
+                                {cohorts.filter((c) => c.product_id === product.id).length}{" "}
+                                {cohorts.filter((c) => c.product_id === product.id).length === 1 ? "поток" : "потоков"}
+                              </p>
                             </div>
                           </div>
-                          {isSelected && (
-                            <Badge className="bg-green-500 text-white">
+                          {selectedProduct === product.id && (
+                            <Badge className="bg-purple-500 text-white">
                               Выбран
                             </Badge>
                           )}
                         </div>
                       </Card>
-                    );
-                  })}
-                </div>
-              </div>
-            </AdminFormField>
-          )}
-
-          {/* Error Warning */}
-          {hasErrorLoadingMembers && selectedCohorts.length > 0 && (
-            <Card className="p-6 border-2 border-red-200 bg-red-50">
-              <div className="flex items-start gap-4">
-                <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                  <AlertCircle className="h-5 w-5 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="font-black text-lg mb-1 text-red-900">
-                    Ошибка загрузки
-                  </h3>
-                  <p className="text-red-800">
-                    Не удалось загрузить количество учеников для некоторых потоков. Реальное количество получателей может отличаться от отображаемого.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          )}
-
-          {/* Summary */}
-          {totalRecipients > 0 && (
-            <Card className="p-6 border-2 border-purple-200 bg-purple-50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-12 w-12 rounded-xl bg-purple-400 flex items-center justify-center">
-                    <Send className="h-6 w-6 text-white" />
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-sm text-purple-700 mb-1">
-                      Получателей {hasErrorLoadingMembers && "(приблизительно)"}
-                    </p>
-                    <p className="text-3xl font-black text-purple-900">
-                      {totalRecipients}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-purple-700 mb-1">
-                    Выбрано потоков
-                  </p>
-                  <p className="text-2xl font-black text-purple-900">
-                    {selectedCohorts.length}
-                  </p>
-                </div>
+                </AdminFormField>
+
+                {/* Cohorts Selection */}
+                {selectedProductData && productCohorts.length > 0 && (
+                  <AdminFormField label="Потоки" required emoji="📅">
+                    <div className="space-y-4">
+                      {/* Select All / Deselect All */}
+                      <div className="flex gap-3">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleSelectAllCohorts}
+                          className="flex-1"
+                        >
+                          Выбрать все
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDeselectAllCohorts}
+                          className="flex-1"
+                        >
+                          Снять выбор
+                        </Button>
+                      </div>
+
+                      {/* Cohorts List */}
+                      <div className="space-y-3">
+                        {productCohorts.map((cohort) => {
+                          const isSelected = selectedCohorts.includes(cohort.id);
+                          return (
+                            <Card
+                              key={cohort.id}
+                              className={`p-4 border-2 cursor-pointer transition-all ${
+                                isSelected
+                                  ? "border-green-400 bg-green-50 shadow-lg"
+                                  : "border-gray-200 hover:border-green-200 hover:bg-gray-50"
+                              }`}
+                              onClick={() => handleToggleCohort(cohort.id)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className={`h-10 w-10 rounded-lg flex items-center justify-center ${
+                                      isSelected ? "bg-green-400" : "bg-gray-100"
+                                    }`}
+                                  >
+                                    <Calendar
+                                      className={`h-5 w-5 ${
+                                        isSelected ? "text-white" : "text-gray-400"
+                                      }`}
+                                    />
+                                  </div>
+                                  <div>
+                                    <p className="font-black">{cohort.name}</p>
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <Users className="h-3.5 w-3.5 text-gray-400" />
+                                      {cohort.member_count !== undefined ? (
+                                        <span className="text-gray-500">
+                                          {cohort.member_count}{" "}
+                                          {cohort.member_count === 1
+                                            ? "ученик"
+                                            : "учеников"}
+                                        </span>
+                                      ) : (
+                                        <span className="text-red-500">
+                                          Ошибка загрузки
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <Badge className="bg-green-500 text-white">
+                                    Выбран
+                                  </Badge>
+                                )}
+                              </div>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </AdminFormField>
+                )}
+
+                {/* Error Warning */}
+                {hasErrorLoadingMembers && selectedCohorts.length > 0 && (
+                  <Card className="p-6 border-2 border-red-200 bg-red-50">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="h-5 w-5 text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-lg mb-1 text-red-900">
+                          Ошибка загрузки
+                        </h3>
+                        <p className="text-red-800">
+                          Не удалось загрузить количество учеников для некоторых потоков. Реальное количество получателей может отличаться от отображаемого.
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Summary */}
+                {totalRecipients > 0 && (
+                  <Card className="p-6 border-2 border-purple-200 bg-purple-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-xl bg-purple-400 flex items-center justify-center">
+                          <Send className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-purple-700 mb-1">
+                            Получателей {hasErrorLoadingMembers && "(приблизительно)"}
+                          </p>
+                          <p className="text-3xl font-black text-purple-900">
+                            {totalRecipients}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-purple-700 mb-1">
+                          Выбрано потоков
+                        </p>
+                        <p className="text-2xl font-black text-purple-900">
+                          {selectedCohorts.length}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
               </div>
-            </Card>
-          )}
-        </div>
-      </AdminFormWrapper>
+            </AdminFormWrapper>
+          </TabsContent>
+
+          <TabsContent value="emails">
+            <AdminFormWrapper
+              title="Отправка по списку email"
+              description="Введите email-адреса пользователей"
+              onSubmit={handleSendPasswordsByEmails}
+              onCancel={onBack}
+              submitText={isSending ? "Отправка..." : `Отправить пароли (${parsedEmails.length})`}
+              submitDisabled={parsedEmails.length === 0 || isSending}
+            >
+              <div className="space-y-6">
+                <AdminFormField 
+                  label="Список email-адресов" 
+                  required 
+                  emoji="📧"
+                >
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">
+                      Введите email-адреса через запятую, точку с запятой или каждый на новой строке
+                    </p>
+                    <Textarea
+                      value={emailList}
+                      onChange={(e) => setEmailList(e.target.value)}
+                      placeholder="example1@mail.ru&#10;example2@mail.ru&#10;example3@mail.ru"
+                      className="min-h-[200px] font-mono text-sm"
+                    />
+                  </div>
+                </AdminFormField>
+
+                {/* Parsed emails count */}
+                {emailList.trim() && (
+                  <Card className={`p-4 border-2 ${parsedEmails.length > 0 ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'}`}>
+                    <div className="flex items-center gap-3">
+                      <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${parsedEmails.length > 0 ? 'bg-green-400' : 'bg-gray-300'}`}>
+                        <Mail className={`h-5 w-5 ${parsedEmails.length > 0 ? 'text-white' : 'text-gray-500'}`} />
+                      </div>
+                      <div>
+                        <p className="font-bold">
+                          {parsedEmails.length > 0 
+                            ? `Распознано ${parsedEmails.length} email-адресов` 
+                            : 'Не распознано ни одного email-адреса'}
+                        </p>
+                        {parsedEmails.length > 0 && parsedEmails.length <= 5 && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            {parsedEmails.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
+                {/* Not found emails warning */}
+                {notFoundEmails.length > 0 && (
+                  <Card className="p-6 border-2 border-amber-200 bg-amber-50">
+                    <div className="flex items-start gap-4">
+                      <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                        <AlertCircle className="h-5 w-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-lg mb-1 text-amber-900">
+                          Не найдены в системе ({notFoundEmails.length})
+                        </h3>
+                        <p className="text-amber-800 text-sm">
+                          {notFoundEmails.slice(0, 5).join(', ')}
+                          {notFoundEmails.length > 5 && ` и ещё ${notFoundEmails.length - 5}...`}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            </AdminFormWrapper>
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
