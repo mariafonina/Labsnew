@@ -35,9 +35,9 @@ export interface QueueStats {
   total: number;
 }
 
-const EMAIL_DELAY_MS = 1000;
-const MAX_BATCH_SIZE = 5;
-const RETRY_DELAY_MINUTES = [1, 5, 15];
+const EMAIL_DELAY_MS = 60000;
+const MAX_BATCH_SIZE = 1;
+const RETRY_DELAY_MINUTES = [5, 30, 60];
 
 class EmailQueueService {
   private isProcessing = false;
