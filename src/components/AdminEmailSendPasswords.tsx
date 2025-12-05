@@ -144,7 +144,8 @@ export function AdminEmailSendPasswords({ onBack }: AdminEmailSendPasswordsProps
         toast.warning("Не удалось добавить письма в очередь");
       }
     } catch (error: any) {
-      toast.error(error.message || "Не удалось отправить пароли");
+      console.error('Send passwords error:', error);
+      toast.error(error?.message || "Не удалось отправить пароли");
     } finally {
       setIsSending(false);
     }
