@@ -34,9 +34,12 @@ import { AdminFAQManager } from "./components/AdminFAQManager";
 import { AdminEmailManager } from "./components/AdminEmailManager";
 import { AdminInitialPasswordsManager } from "./components/AdminInitialPasswordsManager";
 
+import { YMInitializer } from "react-yandex-metrika";
+
 export default function App() {
   return (
     <>
+      <YMInitializer accounts={[105691042]} options={{ webvisor: true }} />
       <ScrollToTop />
       <Toaster position="top-center" />
       <Routes>
@@ -69,13 +72,34 @@ export default function App() {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="products" element={<AdminProductsPage />} />
             <Route path="products/:productId" element={<AdminProductsPage />} />
-            <Route path="products/:productId/cohorts/:cohortId" element={<AdminProductsPage />} />
-            <Route path="products/:productId/cohorts/:cohortId/:section" element={<AdminProductsPage />} />
-            <Route path="products/:productId/cohorts/:cohortId/:section/new" element={<AdminProductsPage />} />
-            <Route path="products/:productId/cohorts/:cohortId/:section/new-category" element={<AdminProductsPage />} />
-            <Route path="products/:productId/cohorts/:cohortId/:section/category/:itemId/new" element={<AdminProductsPage />} />
-            <Route path="products/:productId/cohorts/:cohortId/:section/instruction/:itemId/edit" element={<AdminProductsPage />} />
-            <Route path="products/:productId/cohorts/:cohortId/:section/:itemId/edit" element={<AdminProductsPage />} />
+            <Route
+              path="products/:productId/cohorts/:cohortId"
+              element={<AdminProductsPage />}
+            />
+            <Route
+              path="products/:productId/cohorts/:cohortId/:section"
+              element={<AdminProductsPage />}
+            />
+            <Route
+              path="products/:productId/cohorts/:cohortId/:section/new"
+              element={<AdminProductsPage />}
+            />
+            <Route
+              path="products/:productId/cohorts/:cohortId/:section/new-category"
+              element={<AdminProductsPage />}
+            />
+            <Route
+              path="products/:productId/cohorts/:cohortId/:section/category/:itemId/new"
+              element={<AdminProductsPage />}
+            />
+            <Route
+              path="products/:productId/cohorts/:cohortId/:section/instruction/:itemId/edit"
+              element={<AdminProductsPage />}
+            />
+            <Route
+              path="products/:productId/cohorts/:cohortId/:section/:itemId/edit"
+              element={<AdminProductsPage />}
+            />
             <Route path="enrollments" element={<AdminEnrollments />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="users/:userId" element={<AdminUsers />} />
@@ -86,13 +110,22 @@ export default function App() {
             <Route path="events" element={<AdminEventsManager />} />
             <Route path="events/:eventId" element={<AdminEventsManager />} />
             <Route path="instructions" element={<AdminInstructionsManager />} />
-            <Route path="instructions/:instructionId" element={<AdminInstructionsManager />} />
+            <Route
+              path="instructions/:instructionId"
+              element={<AdminInstructionsManager />}
+            />
             <Route path="recordings" element={<AdminRecordingsManager />} />
-            <Route path="recordings/:recordingId" element={<AdminRecordingsManager />} />
+            <Route
+              path="recordings/:recordingId"
+              element={<AdminRecordingsManager />}
+            />
             <Route path="faq" element={<AdminFAQManager />} />
             <Route path="faq/:faqId" element={<AdminFAQManager />} />
             <Route path="emails" element={<AdminEmailManager />} />
-            <Route path="initial-passwords" element={<AdminInitialPasswordsManager />} />
+            <Route
+              path="initial-passwords"
+              element={<AdminInitialPasswordsManager />}
+            />
           </Route>
         </Route>
 
