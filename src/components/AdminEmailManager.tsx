@@ -20,6 +20,12 @@ import {
   Trash2,
   RefreshCw,
   Key,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  XCircle,
+  RotateCcw,
+  Loader2,
 } from "lucide-react";
 import { AdminFormField } from "./AdminFormField";
 import { AdminEmptyState } from "./AdminEmptyState";
@@ -69,6 +75,28 @@ interface CampaignStats {
   };
 }
 
+interface QueueStats {
+  pending: number;
+  processing: number;
+  sent: number;
+  failed: number;
+  total: number;
+}
+
+interface FailedEmail {
+  id: number;
+  email_type: string;
+  recipient_email: string;
+  subject: string;
+  status: string;
+  attempts: number;
+  max_attempts: number;
+  created_at: string;
+  last_attempt_at: string;
+  error_message: string | null;
+  batch_id: string | null;
+}
+
 export function AdminEmailManager() {
   const [campaigns, setCampaigns] = useState<EmailCampaign[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +107,10 @@ export function AdminEmailManager() {
   const [viewingCampaignStats, setViewingCampaignStats] = useState<CampaignStats | null>(null);
   const [showingSendPasswords, setShowingSendPasswords] = useState(false);
   const [showingCompose, setShowingCompose] = useState(false);
+  const [queueStats, setQueueStats] = useState<QueueStats | null>(null);
+  const [failedEmails, setFailedEmails] = useState<FailedEmail[]>([]);
+  const [showFailedEmails, setShowFailedEmails] = useState(false);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
 
   const [campaignForm, setCampaignForm] = useState({
     name: "",
@@ -91,6 +123,7 @@ export function AdminEmailManager() {
 
   useEffect(() => {
     loadCampaigns();
+    loadQueueData();
   }, []);
 
   const loadCampaigns = async () => {
@@ -103,6 +136,32 @@ export function AdminEmailManager() {
       console.error("Failed to load campaigns:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadQueueData = async () => {
+    try {
+      const [stats, failed] = await Promise.all([
+        apiClient.getEmailQueueStats(),
+        apiClient.getEmailQueueFailed()
+      ]);
+      setQueueStats(stats);
+      setFailedEmails(failed);
+    } catch (error: any) {
+      console.error("Failed to load queue data:", error);
+    }
+  };
+
+  const handleRetryEmail = async (emailId: number) => {
+    try {
+      setRetryingId(emailId);
+      await apiClient.retryFailedEmail(emailId);
+      toast.success("Письмо поставлено в очередь на повторную отправку");
+      await loadQueueData();
+    } catch (error: any) {
+      toast.error(error.message || "Не удалось повторить отправку");
+    } finally {
+      setRetryingId(null);
     }
   };
 
@@ -451,6 +510,131 @@ export function AdminEmailManager() {
           </Button>
         </div>
       </div>
+
+      {/* Email Queue Status - Show if there are pending, processing or failed emails */}
+      {queueStats && (queueStats.pending > 0 || queueStats.processing > 0 || queueStats.failed > 0) && (
+        <Card className={`p-6 border-2 ${queueStats.failed > 0 ? 'border-red-300 bg-red-50' : queueStats.pending > 0 || queueStats.processing > 0 ? 'border-amber-300 bg-amber-50' : 'border-green-300 bg-green-50'}`}>
+          <div className="flex items-start justify-between">
+            <div className="flex items-start gap-4">
+              <div className={`h-12 w-12 rounded-xl flex items-center justify-center ${queueStats.failed > 0 ? 'bg-red-100' : queueStats.pending > 0 || queueStats.processing > 0 ? 'bg-amber-100' : 'bg-green-100'}`}>
+                {queueStats.failed > 0 ? (
+                  <AlertTriangle className="h-6 w-6 text-red-600" />
+                ) : queueStats.processing > 0 ? (
+                  <Loader2 className="h-6 w-6 text-amber-600 animate-spin" />
+                ) : queueStats.pending > 0 ? (
+                  <Clock className="h-6 w-6 text-amber-600" />
+                ) : (
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                )}
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-1">Очередь отправки писем</h3>
+                <div className="flex flex-wrap gap-4 text-sm">
+                  {queueStats.pending > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-amber-600" />
+                      <span>Ожидают: <strong>{queueStats.pending}</strong></span>
+                    </div>
+                  )}
+                  {queueStats.processing > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <Loader2 className="h-4 w-4 text-blue-600 animate-spin" />
+                      <span>Отправляются: <strong>{queueStats.processing}</strong></span>
+                    </div>
+                  )}
+                  {queueStats.failed > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <XCircle className="h-4 w-4 text-red-600" />
+                      <span>С ошибками: <strong className="text-red-600">{queueStats.failed}</strong></span>
+                    </div>
+                  )}
+                  {queueStats.sent > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span>Отправлено: <strong>{queueStats.sent}</strong></span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadQueueData}
+                className="gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Обновить
+              </Button>
+              {queueStats.failed > 0 && (
+                <Button
+                  variant={showFailedEmails ? "secondary" : "destructive"}
+                  size="sm"
+                  onClick={() => setShowFailedEmails(!showFailedEmails)}
+                  className="gap-2"
+                >
+                  {showFailedEmails ? 'Скрыть ошибки' : 'Показать ошибки'}
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Failed Emails List */}
+          {showFailedEmails && failedEmails.length > 0 && (
+            <div className="mt-6 space-y-3">
+              <h4 className="font-semibold text-red-700 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Письма с ошибками отправки
+              </h4>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {failedEmails.map((email) => (
+                  <div key={email.id} className="bg-white rounded-lg p-4 border border-red-200">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium truncate">{email.recipient_email}</span>
+                          <Badge variant="outline" className="text-xs">
+                            {email.email_type === 'initial_password' ? 'Пароль' : 
+                             email.email_type === 'campaign' ? 'Рассылка' :
+                             email.email_type === 'credential' ? 'Доступ' : email.email_type}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600 truncate mb-2">{email.subject}</p>
+                        {email.error_message && (
+                          <div className="bg-red-50 border border-red-200 rounded p-2 text-sm text-red-700">
+                            <strong>Ошибка:</strong> {email.error_message}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                          <span>Попыток: {email.attempts}/{email.max_attempts}</span>
+                          {email.last_attempt_at && (
+                            <span>Последняя: {new Date(email.last_attempt_at).toLocaleString('ru-RU')}</span>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRetryEmail(email.id)}
+                        disabled={retryingId === email.id}
+                        className="gap-2 shrink-0"
+                      >
+                        {retryingId === email.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-4 w-4" />
+                        )}
+                        Повторить
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Overall Stats - Only show if there are sent campaigns */}
       {sentCampaigns.length > 0 && (

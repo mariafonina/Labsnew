@@ -722,6 +722,30 @@ class ApiClient {
     return this.get(`/admin/emails/queue/batch/${batchId}`);
   }
 
+  async getEmailQueueStats(): Promise<{ pending: number; processing: number; sent: number; failed: number; total: number }> {
+    return this.get('/admin/emails/queue/stats');
+  }
+
+  async getEmailQueueFailed(): Promise<Array<{
+    id: number;
+    email_type: string;
+    recipient_email: string;
+    subject: string;
+    status: string;
+    attempts: number;
+    max_attempts: number;
+    created_at: string;
+    last_attempt_at: string;
+    error_message: string | null;
+    batch_id: string | null;
+  }>> {
+    return this.get('/admin/emails/queue/failed');
+  }
+
+  async retryFailedEmail(id: number): Promise<{ message: string; email: any }> {
+    return this.post(`/admin/emails/queue/${id}/retry`);
+  }
+
   async verifySetupToken(token: string): Promise<{ valid: boolean; message?: string }> {
     return this.get(`/verify-setup-token/${token}`);
   }
