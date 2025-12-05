@@ -14,6 +14,96 @@ router.get('/', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest,
   res.json(result.rows);
 }));
 
+// ===== QUEUE ROUTES (must be before /:id) =====
+router.get('/queue/stats', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const stats = await emailQueueService.getQueueStats();
+  res.json(stats);
+}));
+
+router.get('/queue/batch/:batchId', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { batchId } = req.params;
+  const status = await emailQueueService.getBatchStatus(batchId);
+  res.json(status);
+}));
+
+router.post('/queue/batch/:batchId/cancel', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { batchId } = req.params;
+  const cancelled = await emailQueueService.cancelBatch(batchId);
+  res.json({ 
+    message: `Отменено ${cancelled} писем`,
+    cancelled 
+  });
+}));
+
+router.post('/queue/batch/:batchId/retry', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { batchId } = req.params;
+  const retried = await emailQueueService.retryFailedInBatch(batchId);
+  res.json({ 
+    message: `${retried} писем поставлено на повторную отправку`,
+    retried 
+  });
+}));
+
+router.get('/queue/pending', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const result = await query(`
+    SELECT id, email_type, recipient_email, subject, status, attempts, max_attempts, 
+           next_retry_at, created_at, last_attempt_at, error_message, batch_id
+    FROM labs.email_queue 
+    WHERE status = 'pending'
+    ORDER BY created_at DESC
+    LIMIT 100
+  `);
+  res.json(result.rows);
+}));
+
+router.get('/queue/all', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const result = await query(`
+    SELECT id, email_type, recipient_email, subject, status, attempts, max_attempts, 
+           next_retry_at, created_at, last_attempt_at, error_message, batch_id
+    FROM labs.email_queue 
+    ORDER BY created_at DESC
+    LIMIT 100
+  `);
+  res.json(result.rows);
+}));
+
+router.get('/queue/failed', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const result = await query(`
+    SELECT id, email_type, recipient_email, subject, status, attempts, max_attempts, 
+           created_at, last_attempt_at, error_message, batch_id
+    FROM labs.email_queue 
+    WHERE status = 'failed'
+    ORDER BY last_attempt_at DESC
+    LIMIT 100
+  `);
+  res.json(result.rows);
+}));
+
+router.post('/queue/:id/retry', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
+  const { id } = req.params;
+  const result = await query(
+    `UPDATE labs.email_queue 
+     SET status = 'pending', 
+         attempts = 0, 
+         error_message = NULL,
+         next_retry_at = NULL,
+         updated_at = NOW()
+     WHERE id = $1 AND status = 'failed'
+     RETURNING *`,
+    [id]
+  );
+  
+  if (result.rows.length === 0) {
+    return res.status(404).json({ error: 'Email not found or not in failed status' });
+  }
+  
+  res.json({ 
+    message: 'Email queued for retry',
+    email: result.rows[0]
+  });
+}));
+// ===== END QUEUE ROUTES =====
+
 router.get('/:id', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
   const { id } = req.params;
   const result = await query('SELECT * FROM labs.email_campaigns WHERE id = $1', [id]);
@@ -320,94 +410,6 @@ router.post('/send-user-credentials', verifyToken, requireAdmin, createLimiter, 
     batch_id: batchResult.batch_id,
     total: users.length,
     queued: batchResult.queued,
-  });
-}));
-
-router.get('/queue/stats', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
-  const stats = await emailQueueService.getQueueStats();
-  res.json(stats);
-}));
-
-router.get('/queue/batch/:batchId', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
-  const { batchId } = req.params;
-  const status = await emailQueueService.getBatchStatus(batchId);
-  res.json(status);
-}));
-
-router.post('/queue/batch/:batchId/cancel', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
-  const { batchId } = req.params;
-  const cancelled = await emailQueueService.cancelBatch(batchId);
-  res.json({ 
-    message: `Отменено ${cancelled} писем`,
-    cancelled 
-  });
-}));
-
-router.post('/queue/batch/:batchId/retry', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
-  const { batchId } = req.params;
-  const retried = await emailQueueService.retryFailedInBatch(batchId);
-  res.json({ 
-    message: `${retried} писем поставлено на повторную отправку`,
-    retried 
-  });
-}));
-
-router.get('/queue/pending', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
-  const result = await query(`
-    SELECT id, email_type, recipient_email, subject, status, attempts, max_attempts, 
-           next_retry_at, created_at, last_attempt_at, error_message, batch_id
-    FROM labs.email_queue 
-    WHERE status = 'pending'
-    ORDER BY created_at DESC
-    LIMIT 100
-  `);
-  res.json(result.rows);
-}));
-
-router.get('/queue/all', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
-  const result = await query(`
-    SELECT id, email_type, recipient_email, subject, status, attempts, max_attempts, 
-           next_retry_at, created_at, last_attempt_at, error_message, batch_id
-    FROM labs.email_queue 
-    ORDER BY created_at DESC
-    LIMIT 100
-  `);
-  res.json(result.rows);
-}));
-
-router.get('/queue/failed', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
-  const result = await query(`
-    SELECT id, email_type, recipient_email, subject, status, attempts, max_attempts, 
-           created_at, last_attempt_at, error_message, batch_id
-    FROM labs.email_queue 
-    WHERE status = 'failed'
-    ORDER BY last_attempt_at DESC
-    LIMIT 100
-  `);
-  res.json(result.rows);
-}));
-
-router.post('/queue/:id/retry', verifyToken, requireAdmin, asyncHandler(async (req: AuthRequest, res) => {
-  const { id } = req.params;
-  const result = await query(
-    `UPDATE labs.email_queue 
-     SET status = 'pending', 
-         attempts = 0, 
-         error_message = NULL,
-         next_retry_at = NULL,
-         updated_at = NOW()
-     WHERE id = $1 AND status = 'failed'
-     RETURNING *`,
-    [id]
-  );
-  
-  if (result.rows.length === 0) {
-    return res.status(404).json({ error: 'Email not found or not in failed status' });
-  }
-  
-  res.json({ 
-    message: 'Email queued for retry',
-    email: result.rows[0]
   });
 }));
 
